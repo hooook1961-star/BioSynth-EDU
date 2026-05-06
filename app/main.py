@@ -71,16 +71,29 @@ with col2:
         data = get_pubchem_data(smiles)
         
         if data:
-            # Основные физико-химические свойства
             st.metric("М. вес", f"{data['mw']} г/моль")
             st.metric("LogP", data['logp'])
             st.metric("Вращающихся связей", data['rotatable_bonds'])
             
-            # Раскрывающийся список с идентификаторами
-            with st.expander("🆔 Идентификаторы"):
-                st.write(f"**IUPAC:** {data['iupac']}")
-                st.code(data['inchikey'], language=None)
-                st.caption("InChIKey — уникальный код для поиска в ChEMBL и UniProt")
+            # --- НОВЫЙ БЛОК: Данные ChEMBL ---
+            st.divider()
+            with st.spinner("Запрос к ChEMBL..."):
+                chembl_info = get_chembl_data(data['inchikey'])
+            
+            if chembl_info:
+                st.write(f"🧬 **ChEMBL ID:** `{chembl_info['chembl_id']}`")
+                
+                # Статус одобрения
+                phase = chembl_info['max_phase']
+                status_color = "green" if phase == 4 else "orange"
+                st.markdown(f"**Статус:** <span style='color:{status_color}'>Phase {phase} (Одобрено)</span>" if phase == 4 else f"**Статус:** Phase {phase}", unsafe_allow_html=True)
+                
+                # Механизмы
+                with st.expander("🔬 Механизм действия"):
+                    for m in chembl_info['mechanisms']:
+                        st.write(f"• {m}")
+            else:
+                st.caption("Биологическая активность в ChEMBL не найдена")
 
             st.divider()
             
