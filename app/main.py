@@ -117,91 +117,98 @@ with col2:
 
 # Вкладка ADMET 
 with tab2:
-    st.header("Прогнозирование свойств (SwissADME / ADMETlab)")
-    st.info("Используйте внешние сервисы для глубокого анализа, затем загрузите CSV результат.")
+    st.header("📊 ADMET Анализ и интерпретация")
     
-    serv_col1, serv_col2 = st.columns(2)
-    with serv_col1:
-        st.link_button("Открыть SwissADME ↗️", "http://www.swissadme.ch/", use_container_width=True)
-    with serv_col2:
-        st.link_button("Открыть ADMETlab 3.0 ↗️", "https://admetlab3.scbdd.com/", use_container_width=True)
-
+    # Блок с инструкциями и кнопками
+    st.markdown("""
+    Для проведения глубокого анализа ADMET:
+    1. Нажмите кнопку **«Открыть ADMETlab 3.0»** ниже.
+    2. Скопируйте ваш SMILES (из первой вкладки) и вставьте его в поле ввода на сайте.
+    3. После завершения расчета скачайте результат в формате **CSV**.
+    4. Загрузите файл сюда для автоматической интерпретации.
+    """)
+    
+    # Кнопки со ссылками
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
+        st.link_button("🌐 Открыть ADMETlab 3.0", "https://admetlab3.scbdd.com/", use_container_width=True)
+    with col_btn2:
+        st.link_button("🧪 Альтернатива: SwissADME", "http://www.swissadme.ch/", use_container_width=True)
+    
     st.divider()
-    uploaded_file = st.file_uploader("Загрузите CSV результат", type="csv")
+    
+    # Загрузка файла
+    uploaded_file = st.file_uploader("📥 Загрузите CSV файл с результатами ADMETlab", type="csv")
+    
     if uploaded_file:
-        df = pd.read_csv(uploaded_file)
-        
-        # Показываем исходные данные (скрыто под спойлер)
-        with st.expander("👁️ Посмотреть все сырые данные CSV"):
-            st.dataframe(df)
+        try:
+            df = pd.read_csv(uploaded_file)
             
-        st.subheader("📝 Краткая интерпретация ключевых параметров")
-        
-        # Пытаемся найти и интерпретировать важные колонки
-        # (Названия колонок могут чуть отличаться в разных версиях, 
-        # добавим поиск по ключевым словам)
-        
-        cols = df.columns.tolist()
-        
-        # Создаем колонки для карточек
-        c1, c2, c3 = st.columns(3)
-        
-        # 1. Липофильность (LogP)
-        logp_col = next((c for c in cols if 'logp' in c.lower()), None)
-        if logp_col:
-            val = df[logp_col].iloc[0]
-            with c1:
-                st.metric("LogP (Липофильность)", val)
-                if 0 < val < 5:
-                    st.success("✅ Оптимально для перорального приема.")
-                else:
-                    st.warning("⚠️ Возможны проблемы с растворимостью.")
+            # Показываем исходные данные (скрыто под спойлер)
+            with st.expander("👁️ Посмотреть все сырые данные CSV"):
+                st.dataframe(df)
+                
+            st.subheader("📝 Краткая интерпретация ключевых параметров")
+            
+            cols = df.columns.tolist()
+            c1, c2, c3 = st.columns(3)
+            
+            # 1. Липофильность (LogP)
+            logp_col = next((c for c in cols if 'logp' in c.lower()), None)
+            if logp_col:
+                val = float(df[logp_col].iloc[0])
+                with c1:
+                    st.metric("LogP (Липофильность)", f"{val:.2f}")
+                    if 0 < val < 5:
+                        st.success("✅ Оптимально.")
+                    else:
+                        st.warning("⚠️ Крайние значения.")
 
-        # 2. Гематоэнцефалический барьер (BBB)
-        bbb_col = next((c for c in cols if 'bbb' in c.lower()), None)
-        if bbb_col:
-            val = df[bbb_col].iloc[0]
-            with c2:
-                st.metric("BBB (Проницаемость в мозг)", f"{val:.2f}")
-                if val > 0.5:
-                    st.warning("🧠 Проникает через ГЭБ. Возможны побочные эффекты на ЦНС.")
-                else:
-                    st.success("🛡️ Не проникает в мозг (безопасно для ЦНС).")
+            # 2. Гематоэнцефалический барьер (BBB)
+            bbb_col = next((c for c in cols if 'bbb' in c.lower()), None)
+            if bbb_col:
+                val = float(df[bbb_col].iloc[0])
+                with c2:
+                    st.metric("BBB (Проницаемость)", f"{val:.2f}")
+                    if val > 0.5:
+                        st.warning("🧠 Проникает через ГЭБ.")
+                    else:
+                        st.success("🛡️ Не проникает в мозг.")
 
-        # 3. Токсичность (hERG)
-        herg_col = next((c for c in cols if 'herg' in c.lower()), None)
-        if herg_col:
-            val = df[herg_col].iloc[0]
-            with c3:
-                st.metric("hERG (Кардиотоксичность)", f"{val:.2f}")
-                if val > 0.5:
-                    st.error("💔 Высокий риск кардиотоксичности!")
-                else:
-                    st.success("❤️ Риск кардиотоксичности низкий.")
+            # 3. Токсичность (hERG)
+            herg_col = next((c for c in cols if 'herg' in c.lower()), None)
+            if herg_col:
+                val = float(df[herg_col].iloc[0])
+                with c3:
+                    st.metric("hERG (Кардиотоксичность)", f"{val:.2f}")
+                    if val > 0.5:
+                        st.error("💔 Высокий риск.")
+                    else:
+                        st.success("❤️ Риск низкий.")
 
-        st.divider()
-        
-        # Добавляем общий вывод по "Правилу Пяти Липинского"
-        st.subheader("🧐 Соответствие правилам Drug-like")
-        
-        # Пример логики для правил
-        mw_col = next((c for c in cols if 'mw' in c.lower() or 'weight' in c.lower()), None)
-        hbd_col = next((c for c in cols if 'hbd' in c.lower()), None)
-        hba_col = next((c for c in cols if 'hba' in c.lower()), None)
-        
-        violations = 0
-        if mw_col and df[mw_col].iloc[0] > 500: violations += 1
-        if logp_col and df[logp_col].iloc[0] > 5: violations += 1
-        if hbd_col and df[hbd_col].iloc[0] > 5: violations += 1
-        if hba_col and df[hba_col].iloc[0] > 10: violations += 1
-        
-        if violations == 0:
-            st.balloons()
-            st.success("🌟 Молекула полностью соответствует правилу Липинского (0 нарушений). Это отличный кандидат!")
-        else:
-            st.warning(f"⚠️ Обнаружено нарушений правила Липинского: {violations}. Молекула может иметь плохую биодоступность.")
+            st.divider()
+            
+            # Анализ правил Липинского
+            st.subheader("🧐 Соответствие правилам Drug-like")
+            
+            mw_col = next((c for c in cols if any(word in c.lower() for word in ['mw', 'weight'])), None)
+            hbd_col = next((c for c in cols if 'hbd' in c.lower()), None)
+            hba_col = next((c for c in cols if 'hba' in c.lower()), None)
+            
+            violations = 0
+            if mw_col and float(df[mw_col].iloc[0]) > 500: violations += 1
+            if logp_col and float(df[logp_col].iloc[0]) > 5: violations += 1
+            if hbd_col and float(df[hbd_col].iloc[0]) > 5: violations += 1
+            if hba_col and float(df[hba_col].iloc[0]) > 10: violations += 1
+            
+            if violations == 0:
+                st.balloons()
+                st.success("🌟 Молекула полностью соответствует правилу Липинского!")
+            else:
+                st.warning(f"⚠️ Нарушений правила Липинского: {violations}.")
+
         except Exception as e:
-            st.error(f"Ошибка: {e}")
+            st.error(f"❌ Ошибка при чтении файла: {e}")
 with tab3:
     st.header("🛠️ Подготовка лиганда к докингу")
     
