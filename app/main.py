@@ -115,7 +115,7 @@ with col2:
         else:
             st.warning("Данные в PubChem не найдены")
 
-# Вкладки ADMET и Обучение остаются такими же, как мы обсуждали ранее
+# Вкладка ADMET 
 with tab2:
     st.header("Прогнозирование свойств (SwissADME / ADMETlab)")
     st.info("Используйте внешние сервисы для глубокого анализа, затем загрузите CSV результат.")
@@ -129,10 +129,77 @@ with tab2:
     st.divider()
     uploaded_file = st.file_uploader("Загрузите CSV результат", type="csv")
     if uploaded_file:
-        try:
-            df = pd.read_csv(uploaded_file, sep=None, engine='python')
-            st.success("Данные загружены!")
-            st.dataframe(df.T, use_container_width=True)
+        df = pd.read_csv(uploaded_file)
+        
+        # Показываем исходные данные (скрыто под спойлер)
+        with st.expander("👁️ Посмотреть все сырые данные CSV"):
+            st.dataframe(df)
+            
+        st.subheader("📝 Краткая интерпретация ключевых параметров")
+        
+        # Пытаемся найти и интерпретировать важные колонки
+        # (Названия колонок могут чуть отличаться в разных версиях, 
+        # добавим поиск по ключевым словам)
+        
+        cols = df.columns.tolist()
+        
+        # Создаем колонки для карточек
+        c1, c2, c3 = st.columns(3)
+        
+        # 1. Липофильность (LogP)
+        logp_col = next((c for c in cols if 'logp' in c.lower()), None)
+        if logp_col:
+            val = df[logp_col].iloc[0]
+            with c1:
+                st.metric("LogP (Липофильность)", val)
+                if 0 < val < 5:
+                    st.success("✅ Оптимально для перорального приема.")
+                else:
+                    st.warning("⚠️ Возможны проблемы с растворимостью.")
+
+        # 2. Гематоэнцефалический барьер (BBB)
+        bbb_col = next((c for c in cols if 'bbb' in c.lower()), None)
+        if bbb_col:
+            val = df[bbb_col].iloc[0]
+            with c2:
+                st.metric("BBB (Проницаемость в мозг)", f"{val:.2f}")
+                if val > 0.5:
+                    st.warning("🧠 Проникает через ГЭБ. Возможны побочные эффекты на ЦНС.")
+                else:
+                    st.success("🛡️ Не проникает в мозг (безопасно для ЦНС).")
+
+        # 3. Токсичность (hERG)
+        herg_col = next((c for c in cols if 'herg' in c.lower()), None)
+        if herg_col:
+            val = df[herg_col].iloc[0]
+            with c3:
+                st.metric("hERG (Кардиотоксичность)", f"{val:.2f}")
+                if val > 0.5:
+                    st.error("💔 Высокий риск кардиотоксичности!")
+                else:
+                    st.success("❤️ Риск кардиотоксичности низкий.")
+
+        st.divider()
+        
+        # Добавляем общий вывод по "Правилу Пяти Липинского"
+        st.subheader("🧐 Соответствие правилам Drug-like")
+        
+        # Пример логики для правил
+        mw_col = next((c for c in cols if 'mw' in c.lower() or 'weight' in c.lower()), None)
+        hbd_col = next((c for c in cols if 'hbd' in c.lower()), None)
+        hba_col = next((c for c in cols if 'hba' in c.lower()), None)
+        
+        violations = 0
+        if mw_col and df[mw_col].iloc[0] > 500: violations += 1
+        if logp_col and df[logp_col].iloc[0] > 5: violations += 1
+        if hbd_col and df[hbd_col].iloc[0] > 5: violations += 1
+        if hba_col and df[hba_col].iloc[0] > 10: violations += 1
+        
+        if violations == 0:
+            st.balloons()
+            st.success("🌟 Молекула полностью соответствует правилу Липинского (0 нарушений). Это отличный кандидат!")
+        else:
+            st.warning(f"⚠️ Обнаружено нарушений правила Липинского: {violations}. Молекула может иметь плохую биодоступность.")
         except Exception as e:
             st.error(f"Ошибка: {e}")
 with tab3:
