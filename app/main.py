@@ -144,22 +144,29 @@ with tab2:
         try:
             df = pd.read_csv(uploaded_file)
             
-            # Показываем исходные данные (скрыто под спойлер)
             with st.expander("👁️ Посмотреть все сырые данные CSV"):
                 st.dataframe(df)
                 
             st.subheader("📝 Краткая интерпретация ключевых параметров")
-            
             cols = df.columns.tolist()
             c1, c2, c3 = st.columns(3)
-            
+
+            # Вспомогательная функция для безопасного превращения в число
+            def safe_float(val):
+                if isinstance(val, (int, float)): return float(val)
+                val_str = str(val).strip().lower()
+                if val_str == 'yes': return 1.0
+                if val_str == 'no': return 0.0
+                try: return float(val_str)
+                except: return 0.0
+
             # 1. Липофильность (LogP)
             logp_col = next((c for c in cols if 'logp' in c.lower()), None)
             if logp_col:
-                val = float(df[logp_col].iloc[0])
+                val = safe_float(df[logp_col].iloc[0])
                 with c1:
                     st.metric("LogP (Липофильность)", f"{val:.2f}")
-                    if 0 < val < 5:
+                    if -1 < val < 5: # Расширили диапазон для полярных соединений
                         st.success("✅ Оптимально.")
                     else:
                         st.warning("⚠️ Крайние значения.")
@@ -167,48 +174,52 @@ with tab2:
             # 2. Гематоэнцефалический барьер (BBB)
             bbb_col = next((c for c in cols if 'bbb' in c.lower()), None)
             if bbb_col:
-                val = float(df[bbb_col].iloc[0])
+                raw_val = df[bbb_col].iloc[0]
+                val = safe_float(raw_val)
                 with c2:
-                    st.metric("BBB (Проницаемость)", f"{val:.2f}")
-                    if val > 0.5:
+                    st.metric("BBB (Проницаемость)", str(raw_val))
+                    if val > 0.5 or str(raw_val).lower() == 'yes':
                         st.warning("🧠 Проникает через ГЭБ.")
                     else:
-                        st.success("🛡️ Не проникает в мозг.")
+                        st.success("🛡️ Низкий риск для ЦНС.")
 
-            # 3. Токсичность (hERG)
-            herg_col = next((c for c in cols if 'herg' in c.lower()), None)
+            # 3. Токсичность (hERG / Toxicity)
+            herg_col = next((c for c in cols if 'herg' in c.lower() or 'tox' in c.lower()), None)
             if herg_col:
-                val = float(df[herg_col].iloc[0])
+                raw_val = df[herg_col].iloc[0]
+                val = safe_float(raw_val)
                 with c3:
-                    st.metric("hERG (Кардиотоксичность)", f"{val:.2f}")
-                    if val > 0.5:
+                    st.metric("Токсичность / hERG", str(raw_val))
+                    if val > 0.5 or str(raw_val).lower() == 'yes':
                         st.error("💔 Высокий риск.")
                     else:
                         st.success("❤️ Риск низкий.")
 
             st.divider()
             
-            # Анализ правил Липинского
+            # --- Анализ правил Липинского ---
             st.subheader("🧐 Соответствие правилам Drug-like")
             
-            mw_col = next((c for c in cols if any(word in c.lower() for word in ['mw', 'weight'])), None)
-            hbd_col = next((c for c in cols if 'hbd' in c.lower()), None)
-            hba_col = next((c for c in cols if 'hba' in c.lower()), None)
+            # Ищем колонки веса, доноров и акцепторов
+            mw_col = next((c for c in cols if any(w in c.lower() for w in ['mw', 'weight'])), None)
+            hbd_col = next((c for c in cols if 'hbd' in c.lower() or 'donor' in c.lower()), None)
+            hba_col = next((c for c in cols if 'hba' in c.lower() or 'acceptor' in c.lower()), None)
             
             violations = 0
-            if mw_col and float(df[mw_col].iloc[0]) > 500: violations += 1
-            if logp_col and float(df[logp_col].iloc[0]) > 5: violations += 1
-            if hbd_col and float(df[hbd_col].iloc[0]) > 5: violations += 1
-            if hba_col and float(df[hba_col].iloc[0]) > 10: violations += 1
+            if mw_col and safe_float(df[mw_col].iloc[0]) > 500: violations += 1
+            if logp_col and safe_float(df[logp_col].iloc[0]) > 5: violations += 1
+            if hbd_col and safe_float(df[hbd_col].iloc[0]) > 5: violations += 1
+            if hba_col and safe_float(df[hba_col].iloc[0]) > 10: violations += 1
             
             if violations == 0:
                 st.balloons()
                 st.success("🌟 Молекула полностью соответствует правилу Липинского!")
             else:
                 st.warning(f"⚠️ Нарушений правила Липинского: {violations}.")
+                st.info("💡 Напоминание: Допускается 1 нарушение для сохранения 'drug-likeness'.")
 
         except Exception as e:
-            st.error(f"❌ Ошибка при чтении файла: {e}")
+            st.error(f"❌ Ошибка интерпретации: {e}")
 with tab3:
     st.header("🛠️ Подготовка лиганда к докингу")
     
