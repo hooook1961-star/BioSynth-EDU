@@ -4,3 +4,4 @@ pubchempy
 py3Dmol
 pandas
 chembl_webresource_client
+meeko
