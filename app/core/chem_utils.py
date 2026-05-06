@@ -1,6 +1,7 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
 import pubchempy as pcp
+from meeko import MoleculePreparation
 
 def smiles_to_3d_block(smiles: str, optimize=False) -> str:
     try:
@@ -70,3 +71,29 @@ def get_chembl_data(inchikey: str):
     except Exception as e:
         print(f"ChEMBL Error: {e}")
     return None
+    
+def prepare_ligand_for_docking(smiles: str):
+    """
+    Профессиональная подготовка лиганда в формат PDBQT
+    с расчетом торсионов и зарядов.
+    """
+    try:
+        mol = Chem.MolFromSmiles(smiles)
+        if not mol: return None
+        mol = Chem.AddHs(mol)
+        
+        # 1. Генерация 3D и минимизация
+        AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
+        AllChem.MMFFOptimizeMolecule(mol)
+        
+        # 2. Подготовка через Meeko (аналог того, что делает AutoDockTools)
+        preparer = MoleculePreparation()
+        preparer.prepare(mol)
+        
+        # 3. Получение PDBQT текста (с ROOT, ENDROOT, TORSDOF и т.д.)
+        pdbqt_block = preparer.write_pdbqt_string()
+        
+        return pdbqt_block
+    except Exception as e:
+        print(f"Meeko Error: {e}")
+        return None
