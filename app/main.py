@@ -32,7 +32,7 @@ smiles = st.sidebar.text_input("Или вставьте SMILES ниже:", examp
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
 st.title("🧪 BioSynth-EDU: Исследовательская платформа")
 
-tab1, tab2, tab3 = st.tabs(["🔬 3D Структура и Кванты", "📊 ADMET Анализ", "📖 Обучение"])
+tab1, tab2, tab3, tab4 = st.tabs(["🔬 3D Структура", "📊 ADMET Анализ", "📖 Обучение", "🧬 Докинг"])
 
 with tab1:
     col1, col2 = st.columns([3, 1])
