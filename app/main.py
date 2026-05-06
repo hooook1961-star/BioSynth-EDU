@@ -66,15 +66,36 @@ with tab1:
         else:
             st.info("Выберите молекулу слева и нажмите 'Построить 3D'")
 
-    with col2:
-        st.subheader("Характеристики")
+with col2:
+        st.subheader("Инфо-центр")
         data = get_pubchem_data(smiles)
+        
         if data:
+            # Метрики
             st.metric("М. вес", f"{data['mw']} г/моль")
             st.metric("LogP", data['logp'])
-            st.write(f"**Формула:** {data['formula']}")
+            
+            # Дополнительные поля
+            with st.expander("🔍 Детали структуры"):
+                st.write(f"**Формула:** {data['formula']}")
+                # В chem_utils.py можно добавить получение InChIKey
+                st.write(f"**SMILES:** `{smiles}`")
+            
             st.divider()
-            st.caption("Данные подгружены из PubChem")
+            
+            # Блок внешних ссылок
+            st.write("🔗 **Базы данных:**")
+            
+            # Ссылка на PubChem (поиск по SMILES)
+            pubchem_url = f"https://pubchem.ncbi.nlm.nih.gov/#query={smiles}"
+            st.link_button("Открыть в PubChem", pubchem_url, use_container_width=True)
+            
+            # Кнопка поиска похожих в ChEMBL
+            # Параметр similarity=70 означает 70% сходства по коэффициенту Танимото
+            chembl_sim_url = f"https://www.ebi.ac.uk/chembl/g/#search_results/all/query={smiles}&search_type=similarity&similarity=70"
+            st.link_button("Найти похожие в ChEMBL", chembl_sim_url, use_container_width=True, type="primary")
+            
+            st.caption("Кнопка 'Найти похожие' полезна для изучения аналогов и поиска мишеней новых соединений.")
 
 # Вкладки ADMET и Обучение остаются такими же, как мы обсуждали ранее
 with tab2:
