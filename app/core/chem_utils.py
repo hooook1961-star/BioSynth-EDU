@@ -3,37 +3,38 @@ from rdkit.Chem import AllChem
 import pubchempy as pcp
 
 def smiles_to_3d_block(smiles: str, optimize=False) -> str:
-    """Генерирует 3D-молекулу с опциональной минимизацией энергии."""
     try:
         mol = Chem.MolFromSmiles(smiles)
-        if not mol:
-            return None
-        
-        # Добавляем неявные водороды (важно для правильной геометрии)
+        if not mol: return None
         mol = Chem.AddHs(mol)
-        
-        # Генерируем начальные 3D координаты
-        # ETKDG - современный стандарт генерации конформаций
         AllChem.EmbedMolecule(mol, AllChem.ETKDG())
-        
         if optimize:
-            # Используем силовое поле MMFF94 для минимизации энергии
             AllChem.MMFFOptimizeMolecule(mol)
-            
         return Chem.MolToMolBlock(mol)
-    except Exception:
-        return None
+    except: return None
 
 def get_pubchem_data(smiles: str):
-    """Запрос физико-химических констант."""
+    """
+    Получает расширенные данные из PubChem.
+    """
     try:
         compounds = pcp.get_compounds(smiles, namespace='smiles')
-        if compounds:
-            cmp = compounds[0]
-            return {
-                "mw": cmp.molecular_weight,
-                "logp": cmp.xlogp,
-                "formula": cmp.molecular_formula
-            }
-    except Exception:
+        if not compounds:
+            return None
+        
+        cmp = compounds[0]
+        
+        # Собираем расширенный словарь данных
+        return {
+            "mw": cmp.molecular_weight,
+            "logp": cmp.xlogp if cmp.xlogp else "Н/Д",
+            "formula": cmp.molecular_formula,
+            "iupac": cmp.iupac_name,
+            "inchikey": cmp.inchikey,
+            "canonical_smiles": cmp.canonical_smiles,
+            "rotatable_bonds": cmp.rotatable_bond_count,
+            "charge": cmp.charge
+        }
+    except Exception as e:
+        print(f"Ошибка PubChem: {e}")
         return None
