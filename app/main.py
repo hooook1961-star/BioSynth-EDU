@@ -2,7 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import py3Dmol
 import pandas as pd
-from core.chem_utils import smiles_to_3d_block, get_pubchem_data
+from core.chem_utils import smiles_to_3d_block, get_pubchem_data, get_chembl_data
 
 # 1. КОНФИГУРАЦИЯ
 st.set_page_config(page_title="BioSynth-EDU", layout="wide")
