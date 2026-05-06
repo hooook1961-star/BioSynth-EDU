@@ -67,35 +67,40 @@ with tab1:
             st.info("Выберите молекулу слева и нажмите 'Построить 3D'")
 
 with col2:
-        st.subheader("Инфо-центр")
+        st.subheader("📚 Справочник")
         data = get_pubchem_data(smiles)
         
         if data:
-            # Метрики
+            # Основные физико-химические свойства
             st.metric("М. вес", f"{data['mw']} г/моль")
             st.metric("LogP", data['logp'])
+            st.metric("Вращающихся связей", data['rotatable_bonds'])
             
-            # Дополнительные поля
-            with st.expander("🔍 Детали структуры"):
-                st.write(f"**Формула:** {data['formula']}")
-                # В chem_utils.py можно добавить получение InChIKey
-                st.write(f"**SMILES:** `{smiles}`")
-            
+            # Раскрывающийся список с идентификаторами
+            with st.expander("🆔 Идентификаторы"):
+                st.write(f"**IUPAC:** {data['iupac']}")
+                st.code(data['inchikey'], language=None)
+                st.caption("InChIKey — уникальный код для поиска в ChEMBL и UniProt")
+
             st.divider()
             
-            # Блок внешних ссылок
-            st.write("🔗 **Базы данных:**")
+            # Блок внешних ссылок (теперь более точный)
+            st.write("🔗 **Внешние базы:**")
             
-            # Ссылка на PubChem (поиск по SMILES)
-            pubchem_url = f"https://pubchem.ncbi.nlm.nih.gov/#query={smiles}"
-            st.link_button("Открыть в PubChem", pubchem_url, use_container_width=True)
+            # Ссылка на PubChem
+            pubchem_url = f"https://pubchem.ncbi.nlm.nih.gov/#query={data['inchikey']}"
+            st.link_button("Профиль в PubChem", pubchem_url, use_container_width=True)
             
-            # Кнопка поиска похожих в ChEMBL
-            # Параметр similarity=70 означает 70% сходства по коэффициенту Танимото
+            # Ссылка на ChEMBL (теперь используем InChIKey для точности)
+            chembl_url = f"https://www.ebi.ac.uk/chembl/g/#search_results/all/query={data['inchikey']}"
+            st.link_button("Данные ChEMBL (IC50/Ki)", chembl_url, use_container_width=True)
+            
+            # Кнопка сходства
             chembl_sim_url = f"https://www.ebi.ac.uk/chembl/g/#search_results/all/query={smiles}&search_type=similarity&similarity=70"
-            st.link_button("Найти похожие в ChEMBL", chembl_sim_url, use_container_width=True, type="primary")
-            
-            st.caption("Кнопка 'Найти похожие' полезна для изучения аналогов и поиска мишеней новых соединений.")
+            st.link_button("Найти похожие", chembl_sim_url, use_container_width=True, type="primary")
+
+        else:
+            st.warning("Данные в PubChem не найдены")
 
 # Вкладки ADMET и Обучение остаются такими же, как мы обсуждали ранее
 with tab2:
