@@ -174,6 +174,20 @@ with tab3:
                     mime="text/plain",
                     use_container_width=True
                 )
+                
+                # --- НОВЫЙ БЛОК: Визуализация подготовленного лиганда ---
+                st.write("🔍 **Просмотр подготовленной структуры:**")
+                import py3Dmol
+                
+                view = py3Dmol.view(width=300, height=300)
+                # Загружаем именно PDBQT данные
+                view.addModel(st.session_state.prepared_pdbqt, 'pdbqt')
+                view.setStyle({'stick': {'color': 'spectrum', 'radius': 0.2}, 'sphere': {'scale': 0.3}})
+                view.zoomTo()
+                
+                # Рендерим компонент в Streamlit
+                st.components.v1.html(view._make_html(), height=310)
+                st.caption("Подготовленный лиганд с водородами (H) и оптимизированными связями.")
             
         st.divider()
         st.subheader("🎓 Что дальше?")
