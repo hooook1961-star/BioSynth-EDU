@@ -162,7 +162,7 @@ with tab3:
         with col_prep2:
             st.info("ℹ️ **Заметка для студентов:** Докинг имитирует 'ключ и замок'. Чтобы ключ подошел, он должен иметь правильные углы связей.")
             
-          if 'prepared_pdbqt' in st.session_state:
+            if 'prepared_pdbqt' in st.session_state:
             st.download_button(
                 label="📥 Скачать готовый PDBQT",
                 data=st.session_state.prepared_pdbqt,
