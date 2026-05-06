@@ -7,3 +7,4 @@ chembl_webresource_client
 meeko
 scipy
 numpy
+gemmi
