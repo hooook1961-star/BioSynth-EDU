@@ -146,36 +146,42 @@ with tab3:
         with col_prep1:
             st.markdown("""
             **Чек-лист подготовки:**
-            1.  Добавление неявных водородов (H-atoms).
-            2.  Генерация 3D-конформации.
-            3.  Минимизация энергии (силовое поле MMFF94).
-            4.  Определение активных торсионных углов.
+            1. Добавление неявных водородов (H-atoms).
+            2. Генерация 3D-конформации.
+            3. Минимизация энергии (силовое поле MMFF94).
+            4. **Определение активных торсионных углов (PDBQT).**
             """)
             
             if st.button("⚙️ Запустить полную подготовку", use_container_width=True):
-                with st.spinner("Оптимизация геометрии..."):
-                    # Принудительно оптимизируем для докинга
-                    st.session_state.mol_block = smiles_to_3d_block(smiles, optimize=True)
-                st.balloons()
-                st.info("Лиганд оптимизирован. Теперь он находится в локальном минимуме энергии.")
+                with st.spinner("Работают Meeko и RDKit: расчет зарядов и торсионов..."):
+                    # Вызываем профессиональную подготовку
+                    pdbqt_data = prepare_ligand_for_docking(smiles)
+                    if pdbqt_data:
+                        st.session_state.prepared_pdbqt = pdbqt_data
+                        st.balloons()
+                        st.info("Лиганд готов! Рассчитаны торсионы и заряды.")
+                    else:
+                        st.error("Ошибка при подготовке PDBQT.")
 
         with col_prep2:
             st.info("ℹ️ **Заметка для студентов:** Докинг имитирует 'ключ и замок'. Чтобы ключ подошел, он должен иметь правильные углы связей.")
             
             if 'prepared_pdbqt' in st.session_state:
-            st.download_button(
-                label="📥 Скачать готовый PDBQT",
-                data=st.session_state.prepared_pdbqt,
-                file_name="ligand.pdbqt",
-                mime="text/plain"
+                st.download_button(
+                    label="📥 Скачать готовый PDBQT",
+                    data=st.session_state.prepared_pdbqt,
+                    file_name="ligand.pdbqt",
+                    mime="text/plain",
+                    use_container_width=True
+                )
             
         st.divider()
         st.subheader("🎓 Что дальше?")
         st.write("""
         После подготовки лиганда вам необходимо:
-        1.  Подготовить **белок-мишень** (удалить воду, добавить заряды).
-        2.  Определить **Grid Box** (координаты активного центра).
-        3.  Запустить расчет в AutoDock Vina или аналогичном ПО.
+        1. Подготовить **белок-мишень** (удалить воду, добавить заряды).
+        2. Определить **Grid Box** (координаты активного центра).
+        3. Запустить расчет в AutoDock Vina или аналогичном ПО.
         """)
         
     else:
