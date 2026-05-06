@@ -162,14 +162,13 @@ with tab3:
         with col_prep2:
             st.info("ℹ️ **Заметка для студентов:** Докинг имитирует 'ключ и замок'. Чтобы ключ подошел, он должен иметь правильные углы связей.")
             
-            # Предлагаем скачать файл в формате PDB (универсальный для докинга)
-            st.download_button(
-                label="📥 Скачать подготовленный PDB",
-                data=st.session_state.mol_block,
-                file_name=f"ligand_ready.pdb",
-                mime="chemical/x-pdb",
-                use_container_width=True
-            )
+          if 'prepared_pdbqt' in st.session_state:
+        st.download_button(
+            label="📥 Скачать готовый PDBQT (для Vina)",
+            data=st.session_state.prepared_pdbqt,
+            file_name="ligand.pdbqt",
+            mime="text/plain"
+        )
             
         st.divider()
         st.subheader("🎓 Что дальше?")
