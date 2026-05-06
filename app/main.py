@@ -124,7 +124,7 @@ with tab2:
     with serv_col1:
         st.link_button("Открыть SwissADME ↗️", "http://www.swissadme.ch/", use_container_width=True)
     with serv_col2:
-        st.link_button("Открыть ADMETlab 3.0 ↗️", "[https://admetlab3.scbdd.com/]", use_container_width=True)
+        st.link_button("Открыть ADMETlab 3.0 ↗️", "https://admetlab3.scbdd.com/", use_container_width=True)
 
     st.divider()
     uploaded_file = st.file_uploader("Загрузите CSV результат", type="csv")
