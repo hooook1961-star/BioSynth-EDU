@@ -163,12 +163,11 @@ with tab3:
             st.info("ℹ️ **Заметка для студентов:** Докинг имитирует 'ключ и замок'. Чтобы ключ подошел, он должен иметь правильные углы связей.")
             
           if 'prepared_pdbqt' in st.session_state:
-        st.download_button(
-            label="📥 Скачать готовый PDBQT (для Vina)",
-            data=st.session_state.prepared_pdbqt,
-            file_name="ligand.pdbqt",
-            mime="text/plain"
-        )
+            st.download_button(
+                label="📥 Скачать готовый PDBQT",
+                data=st.session_state.prepared_pdbqt,
+                file_name="ligand.pdbqt",
+                mime="text/plain"
             
         st.divider()
         st.subheader("🎓 Что дальше?")
