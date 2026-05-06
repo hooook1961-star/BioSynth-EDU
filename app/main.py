@@ -32,7 +32,7 @@ smiles = st.sidebar.text_input("Или вставьте SMILES ниже:", examp
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
 st.title("🧪 BioSynth-EDU: Исследовательская платформа")
 
-tab1, tab2, tab3, tab4 = st.tabs(["🔬 3D Структура", "📊 ADMET Анализ", "📖 Обучение", "🧬 Докинг"])
+tab1, tab2, tab3, tab4 = st.tabs(["🔬 3D Структура", "📊 ADMET Анализ", "🧬 Докинг", "📖 Обучение"])
 
 with tab1:
     col1, col2 = st.columns([3, 1])
@@ -135,8 +135,55 @@ with tab2:
             st.dataframe(df.T, use_container_width=True)
         except Exception as e:
             st.error(f"Ошибка: {e}")
-
 with tab3:
+    st.header("🛠️ Подготовка лиганда к докингу")
+    
+    if st.session_state.mol_block:
+        st.success("✅ 3D-структура обнаружена и готова к обработке.")
+        
+        col_prep1, col_prep2 = st.columns(2)
+        
+        with col_prep1:
+            st.markdown("""
+            **Чек-лист подготовки:**
+            1.  Добавление неявных водородов (H-atoms).
+            2.  Генерация 3D-конформации.
+            3.  Минимизация энергии (силовое поле MMFF94).
+            4.  Определение активных торсионных углов.
+            """)
+            
+            if st.button("⚙️ Запустить полную подготовку", use_container_width=True):
+                with st.spinner("Оптимизация геометрии..."):
+                    # Принудительно оптимизируем для докинга
+                    st.session_state.mol_block = smiles_to_3d_block(smiles, optimize=True)
+                st.balloons()
+                st.info("Лиганд оптимизирован. Теперь он находится в локальном минимуме энергии.")
+
+        with col_prep2:
+            st.info("ℹ️ **Заметка для студентов:** Докинг имитирует 'ключ и замок'. Чтобы ключ подошел, он должен иметь правильные углы связей.")
+            
+            # Предлагаем скачать файл в формате PDB (универсальный для докинга)
+            st.download_button(
+                label="📥 Скачать подготовленный PDB",
+                data=st.session_state.mol_block,
+                file_name=f"ligand_ready.pdb",
+                mime="chemical/x-pdb",
+                use_container_width=True
+            )
+            
+        st.divider()
+        st.subheader("🎓 Что дальше?")
+        st.write("""
+        После подготовки лиганда вам необходимо:
+        1.  Подготовить **белок-мишень** (удалить воду, добавить заряды).
+        2.  Определить **Grid Box** (координаты активного центра).
+        3.  Запустить расчет в AutoDock Vina или аналогичном ПО.
+        """)
+        
+    else:
+        st.warning("⚠️ Сначала постройте 3D модель на первой вкладке!")
+        
+with tab4:
     st.header("Курс лекций и тесты")
     st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
     st.markdown("### Мини-тест\nКак изменится липофильность (LogP) при добавлении -OH группы?")
