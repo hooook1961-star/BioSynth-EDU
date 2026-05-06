@@ -23,10 +23,10 @@ examples = {
     "Дофамин (Нейромедиатор)": "C1=CC(=C(C=C1CCN)O)O"
 }
 
-selected_name = st.sidebar.selectbox("Готовые примеры лекарственных веществ:", list(examples.keys()))
+selected_name = st.sidebar.selectbox("Примеры лекарственных веществ:", list(examples.keys()))
 
 st.sidebar.markdown("---")
-st.sidebar.header("✍️ Свой ввод")
+st.sidebar.header("✍️ Ввести SMILES")
 smiles = st.sidebar.text_input("Или вставьте SMILES ниже:", examples[selected_name])
 
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
@@ -97,14 +97,14 @@ with col2:
 
             st.divider()
             
-            # Блок внешних ссылок (теперь более точный)
+            # Блок внешних ссылок 
             st.write("🔗 **Внешние базы:**")
             
             # Ссылка на PubChem
             pubchem_url = f"https://pubchem.ncbi.nlm.nih.gov/#query={data['inchikey']}"
             st.link_button("Профиль в PubChem", pubchem_url, use_container_width=True)
             
-            # Ссылка на ChEMBL (теперь используем InChIKey для точности)
+            # Ссылка на ChEMBL 
             chembl_url = f"https://www.ebi.ac.uk/chembl/g/#search_results/all/query={data['inchikey']}"
             st.link_button("Данные ChEMBL (IC50/Ki)", chembl_url, use_container_width=True)
             
@@ -121,11 +121,11 @@ with tab2:
     
     # Блок с инструкциями и кнопками
     st.markdown("""
-    Для проведения глубокого анализа ADMET:
+    Для проведения анализа ADMET:
     1. Нажмите кнопку **«Открыть ADMETlab 3.0»** ниже.
-    2. Скопируйте ваш SMILES (из первой вкладки) и вставьте его в поле ввода на сайте.
+    2. Скопируйте ваш SMILES и вставьте его в поле ввода на сайте.
     3. После завершения расчета скачайте результат в формате **CSV**.
-    4. Загрузите файл сюда для автоматической интерпретации.
+    4. Загрузите файл с помощью кнопки Upload для автоматической интерпретации.
     """)
     
     # Кнопки со ссылками
@@ -166,7 +166,7 @@ with tab2:
                 val = safe_float(df[logp_col].iloc[0])
                 with c1:
                     st.metric("LogP (Липофильность)", f"{val:.2f}")
-                    if -1 < val < 5: # Расширили диапазон для полярных соединений
+                    if -1 < val < 5: 
                         st.success("✅ Оптимально.")
                     else:
                         st.warning("⚠️ Крайние значения.")
@@ -231,7 +231,7 @@ with tab3:
         with col_prep1:
             st.markdown("""
             **Чек-лист подготовки:**
-            1. Добавление неявных водородов (H-atoms).
+            1. Добавление неявных водородов.
             2. Генерация 3D-конформации.
             3. Минимизация энергии (силовое поле MMFF94).
             4. **Определение активных торсионных углов (PDBQT).**
@@ -260,19 +260,19 @@ with tab3:
                     use_container_width=True
                 )
                 
-                # --- НОВЫЙ БЛОК: Визуализация подготовленного лиганда ---
+                # --- БЛОК Визуализации подготовленного лиганда ---
                 st.write("🔍 **Просмотр подготовленной структуры:**")
                 import py3Dmol
                 
                 view = py3Dmol.view(width=300, height=300)
-                # Загружаем именно PDBQT данные
+                # Загружаем PDBQT данные
                 view.addModel(st.session_state.prepared_pdbqt, 'pdbqt')
                 view.setStyle({'stick': {'color': 'spectrum', 'radius': 0.2}, 'sphere': {'scale': 0.3}})
                 view.zoomTo()
                 
                 # Рендерим компонент в Streamlit
                 st.components.v1.html(view._make_html(), height=310)
-                st.caption("Подготовленный лиганд с водородами (H) и оптимизированными связями.")
+                st.caption("Подготовленный лиганд с оптимизированными связями.")
             
         st.divider()
         st.subheader("🎓 Что дальше?")
