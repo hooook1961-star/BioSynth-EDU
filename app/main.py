@@ -107,7 +107,7 @@ with tab1:
             view.setBackgroundColor('#ffffff')
             components.html(view._make_html(), height=550)
             
-if st.session_state.mol_block:
+    if st.session_state.mol_block:
             # 1. Формируем безопасное и уникальное имя файла
             # Пытаемся взять имя из выбора, если нет — используем "molecule"
             try:
