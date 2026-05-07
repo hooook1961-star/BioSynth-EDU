@@ -98,7 +98,12 @@ smiles = st.sidebar.text_input(t["sidebar_manual_label"], value=current_smiles)
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
 st.title("🧪 BioSynth-EDU: Исследовательская платформа")
 
-tab1, tab2, tab3, tab4 = st.tabs(["🔬 3D Структура", "📊 ADMET Анализ", "🧬 Докинг", "📖 Обучение"])
+tab1, tab2, tab3, tab4 = st.tabs([
+    t["tab_3d"], 
+    t["tab_admet"], 
+    t["tab_docking"], 
+    t["tab_edu"]
+])
 
 with tab1:
     col1, col2 = st.columns([3, 1])
