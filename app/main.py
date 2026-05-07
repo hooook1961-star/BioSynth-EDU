@@ -63,6 +63,36 @@ selected_kaz = st.sidebar.selectbox(
     t["sidebar_kaz_label"], 
     options=[t["select_placeholder"]] + list(kaz_options.keys())
 )
+
+# --- ГРУППА 2: СТАНДАРТНЫЕ ПРИМЕРЫ (ПОЛНЫЙ СПИСОК) ---
+st.sidebar.subheader(t["sidebar_world_cat"])
+world_examples = {
+    f"Аспирин ({t['cat_analgesic']})": "CC(=O)OC1=CC=CC=C1C(=O)O",
+    f"Кофеин ({t['cat_stimulant']})": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
+    f"Парацетамол ({t['cat_antipyretic']})": "CC(=O)NC1=CC=C(O)C=C1",
+    f"Ибупрофен ({t['cat_nsaid']})": "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
+    f"Пенициллин G ({t['cat_antibiotic']})": "CC1(C(N2C(S1)C(C2=O)NC(=O)CC3=CC=CC=C3)C(=O)O)C",
+    f"Никотин ({t['cat_alkaloid']})": "CN1CCCC1C2=CN=CC=C2",
+    f"Дофамин ({t['cat_neuro']})": "C1=CC(=C(C=C1CCN)O)O"
+}
+
+selected_world = st.sidebar.selectbox(
+    t["sidebar_world_label"], 
+    options=[t["select_placeholder"]] + list(world_examples.keys())
+)
+
+# --- ЛОГИКА ОПРЕДЕЛЕНИЯ SMILES ---
+current_smiles = "CC(=O)OC1=CC=CC=C1C(=O)O" # Default: Aspirin
+
+if selected_kaz != t["select_placeholder"]:
+    current_smiles = kaz_options[selected_kaz]
+elif selected_world != t["select_placeholder"]:
+    current_smiles = world_examples[selected_world]
+
+st.sidebar.markdown("---")
+st.sidebar.header(t["sidebar_manual"])
+smiles = st.sidebar.text_input(t["sidebar_manual_label"], value=current_smiles)
+
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
 st.title("🧪 BioSynth-EDU: Исследовательская платформа")
 
