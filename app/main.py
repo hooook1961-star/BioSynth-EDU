@@ -33,7 +33,20 @@ if 'mol_block' not in st.session_state:
     st.session_state.mol_block = None
 
 # 3. БОКОВАЯ ПАНЕЛЬ
-st.sidebar.header("🧪 Выберите молекулу")
+st.sidebar.header("🧪 Выбор молекулы")
+
+# --- ГРУППА 1: КАЗАХСТАНСКИЙ КАТАЛОГ (BioSynth-EDU) ---
+st.sidebar.subheader("🇰🇿 Разработки Казахстана")
+# Сохраняем названия и действия из JSON
+kaz_options = {f"{m['name']} ({m.get('classification', 'Биоактив')})": m['smiles'] for m in catalog}
+
+selected_kaz = st.sidebar.selectbox(
+    "Отечественные препараты и кейсы:", 
+    options=["-- Выберите из списка --"] + list(kaz_options.keys())
+)
+
+# --- ГРУППА 2: ПРИМЕРЫ ЛЕКАРСТВ ---
+st.sidebar.subheader("🌍 Стандартные примеры")
 examples = {
     "Аспирин (Анальгетик)": "CC(=O)OC1=CC=CC=C1C(=O)O",
     "Кофеин (Стимулятор)": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
@@ -44,11 +57,28 @@ examples = {
     "Дофамин (Нейромедиатор)": "C1=CC(=C(C=C1CCN)O)O"
 }
 
-selected_name = st.sidebar.selectbox("Примеры лекарственных веществ:", list(examples.keys()))
+selected_world = st.sidebar.selectbox(
+    "Примеры лекарственных веществ:", 
+    options=["-- Выберите из списка --"] + list(examples.keys())
+)
 
 st.sidebar.markdown("---")
+
+# --- ЛОГИКА ОПРЕДЕЛЕНИЯ ТЕКУЩЕГО SMILES ---
+# По умолчанию ставим первый элемент из мировых примеров (Аспирин)
+current_smiles = examples["Аспирин (Анальгетик)"]
+
+# Если выбран Казахстанский препарат - берем его
+if selected_kaz != "-- Выберите из списка --":
+    current_smiles = kaz_options[selected_kaz]
+# Если выбран Мировой пример - берем его
+elif selected_world != "-- Выберите из списка --":
+    current_smiles = examples[selected_world]
+
+# --- ПОЛЕ ВВОДА SMILES (ДЛЯ РЕДАКТИРОВАНИЯ) ---
 st.sidebar.header("✍️ Ввести SMILES")
-smiles = st.sidebar.text_input("Или вставьте SMILES ниже:", examples[selected_name])
+# Поле text_input динамически получает smiles из выбранного списка
+smiles = st.sidebar.text_input("Или вставьте SMILES ниже:", value=current_smiles)
 
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
 st.title("🧪 BioSynth-EDU: Исследовательская платформа")
