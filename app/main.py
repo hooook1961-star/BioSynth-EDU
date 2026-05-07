@@ -107,13 +107,26 @@ with tab1:
             view.setBackgroundColor('#ffffff')
             components.html(view._make_html(), height=550)
             
-            # Кнопка скачивания SDF
+if st.session_state.mol_block:
+            # 1. Формируем безопасное и уникальное имя файла
+            # Пытаемся взять имя из выбора, если нет — используем "molecule"
+            try:
+                # Берем первое слово из названия (например, "Просидол")
+                prefix = selected_name.split()[0]
+            except (NameError, IndexError, AttributeError):
+                prefix = "molecule"
+            
+            # Добавляем дату и время: ГГГГММДД_ЧЧММСС
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            unique_filename = f"{prefix}_{timestamp}.sdf"
+
+            # 2. Кнопка скачивания SDF
             st.download_button(
                 label="💾 Скачать структуру (SDF)",
                 data=st.session_state.mol_block,
-                file_name=f"{selected_name.split()[0]}.sdf",
+                file_name=unique_filename,
                 mime="chemical/x-mdl-sdfile",
-                help="SDF файл содержит 3D координаты атомов для работы в проф. софте"
+                help="SDF файл содержит 3D координаты атомов для работы в проф. софте (AutoDock, PyMOL и др.)"
             )
         else:
             st.info("Выберите молекулу слева и нажмите 'Построить 3D'")
