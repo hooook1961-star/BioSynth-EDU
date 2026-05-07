@@ -13,7 +13,8 @@ LANGUAGES = {
         "tab_admet": "📊 ADMET Анализ",
         "tab_docking": "🧬 Докинг",
         "tab_edu": "📚 Обучение",
-        "lang_label": "🌐 Выберите язык / Тіл таңдаңыз"
+        "lang_label": "🌐 Выберите язык / Тіл таңдаңыз", "cat_analgesic": "Анальгетик", "cat_stimulant": "Стимулятор", "cat_antipyretic": "Жаропонижающее", 
+"cat_nsaid": "НПВС", "cat_antibiotic": "Антибиотик", "cat_alkaloid": "Алкалоид", "cat_neuro": "Нейромедиатор"
     },
     "Қазақша": {
         "sidebar_select_mol": "🧪 Молекуланы таңдау",
@@ -28,7 +29,8 @@ LANGUAGES = {
         "tab_admet": "📊 ADMET Талдау",
         "tab_docking": "🧬 Докинг",
         "tab_edu": "📚 Оқыту",
-        "lang_label": "🌐 Тіл таңдаңыз / Выберите язык"
+        "lang_label": "🌐 Тіл таңдаңыз / Выберите язык", "cat_analgesic": "Анальгетик", "cat_stimulant": "Стимулятор", "cat_antipyretic": "Ыстықты түсіретін", 
+"cat_nsaid": "ҚАҚД", "cat_antibiotic": "Антибиотик", "cat_alkaloid": "Алкалоид", "cat_neuro": "Нейромедиатор"
     },
     "English": {
         "sidebar_select_mol": "🧪 Molecule Selection",
@@ -43,6 +45,7 @@ LANGUAGES = {
         "tab_admet": "📊 ADMET Analysis",
         "tab_docking": "🧬 Docking",
         "tab_edu": "📚 Education",
-        "lang_label": "🌐 Choose Language"
+        "lang_label": "🌐 Choose Language", "cat_analgesic": "Analgesic", "cat_stimulant": "Stimulant", "cat_antipyretic": "Antipyretic", 
+"cat_nsaid": "NSAID", "cat_antibiotic": "Antibiotic", "cat_alkaloid": "Alkaloid", "cat_neuro": "Neurotransmitter"
     }
 }
