@@ -8,22 +8,24 @@ import datetime
 from translations import LANGUAGES
 from core.chem_utils import smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking
 
-# --- 1. КОНФИГУРАЦИЯ СТРАНИЦЫ (ДОЛЖНА БЫТЬ ПЕРВОЙ) ---
-st.set_page_config(page_title="BioSynth-EDU", layout="wide")
+# --- ИНИЦИАЛИЗАЦИЯ ---
+if 'mol_block' not in st.session_state:
+    st.session_state.mol_block = None
 
-# --- 2. ИНИЦИАЛИЗАЦИЯ СОСТОЯНИЯ ЯЗЫКА ---
 if 'lang' not in st.session_state:
     st.session_state.lang = "Русский"
+    
+# --- 1. КОНФИГУРАЦИЯ СТРАНИЦЫ ---
+st.set_page_config(page_title="BioSynth-EDU", layout="wide")
 
-# Сначала создаем переключатель, чтобы определить текущий язык
-# Мы помещаем его в боковую панель, но ПЕРЕД использованием переменной 't'
+# Переключатель языка
 selected_lang = st.sidebar.selectbox(
     "🌐 Language / Тіл / Язык", 
     options=list(LANGUAGES.keys()),
     index=list(LANGUAGES.keys()).index(st.session_state.lang)
 )
 
-# Теперь, когда язык выбран, обновляем session_state и создаем переменную 't'
+# переменная 't'
 st.session_state.lang = selected_lang
 t = LANGUAGES[st.session_state.lang]
 
@@ -47,14 +49,14 @@ def load_catalog():
 
 catalog = load_catalog()
 
-# --- 4. ТЕПЕРЬ ОРИСОВКА БОКОВОЙ ПАНЕЛИ (ЗДЕСЬ 't' УЖЕ СУЩЕСТВУЕТ) ---
+# --- 4. ТЕПЕРЬ ОРИСОВКА БОКОВОЙ ПАНЕЛИ ---
 st.sidebar.header(t["sidebar_select_mol"])
 
 # --- ГРУППА 1: КАЗАХСТАНСКИЙ КАТАЛОГ ---
 st.sidebar.subheader(t["sidebar_kaz_cat"])
 kaz_options = {}
 for m in catalog:
-    # Пытаемся взять перевод из JSON, если его нет — берем стандартное имя
+    # перевод из JSON, если его нет — стандартное имя
     display_name = m.get('name_local', {}).get(L_CODE, m.get('name', 'Unknown'))
     class_name = m.get('classification_local', {}).get(L_CODE, m.get('classification', 'Bioactiv'))
     kaz_options[f"{display_name} ({class_name})"] = m['smiles']
