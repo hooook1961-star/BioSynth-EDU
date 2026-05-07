@@ -290,20 +290,22 @@ with tab3:
             st.markdown(t["docking_checklist_title"])
             st.markdown(t["docking_checklist_items"])
             
+            # Кнопка только запускает процесс
             if st.button(t["btn_run_prep"], use_container_width=True):
                 with st.spinner(t["spinner_meeko"]):
-                    pdbqt_data = prepare_ligand_for_docking(smiles)
-                    if pdbqt_data:
-                        st.session_state.prepared_pdbqt = pdbqt_data
+                    # Я проверяю: функция prepare_ligand_for_docking должна возвращать STRING (текст PDBQT)
+                    pdbqt_result = prepare_ligand_for_docking(smiles)
+                    if pdbqt_result:
+                        st.session_state.prepared_pdbqt = pdbqt_result
                         st.balloons()
-                        st.info(t["docking_success_info"])
                     else:
                         st.error(t["docking_error"])
 
         with col_prep2:
             st.info(t["docking_note_student"])
             
-            if 'prepared_pdbqt' in st.session_state:
+            # Виджеты скачивания и просмотра показываются, если в памяти ЕСТЬ данные
+            if 'prepared_pdbqt' in st.session_state and st.session_state.prepared_pdbqt:
                 st.download_button(
                     label=t["btn_download_pdbqt"],
                     data=st.session_state.prepared_pdbqt,
@@ -313,9 +315,25 @@ with tab3:
                 )
                 
                 st.write(t["docking_view_label"])
-                # (Блок визуализации остается техническим, меняем только подпись)
-                # ... ваш код py3Dmol ...
-                st.caption(t["docking_caption"])
+                
+                # ЛОГИКА ВИЗУАЛИЗАЦИИ (Вынесена из-под кнопки)
+                try:
+                    # Проверяем, что данные — это строка
+                    mol_data = str(st.session_state.prepared_pdbqt)
+                    
+                    view = py3Dmol.view(width=400, height=400)
+                    # PDBQT — это текстовый формат, py3Dmol его понимает напрямую
+                    view.addModel(mol_data, "pdbqt")
+                    view.setStyle({'stick': {'color': 'spectrum', 'radius': 0.15}, 'sphere': {'scale': 0.25}})
+                    view.zoomTo()
+                    view.setBackgroundColor('#ffffff')
+                    
+                    # Рендерим через компоненты
+                    import streamlit.components.v1 as components
+                    components.html(view._make_html(), height=410)
+                    st.caption(t["docking_caption"])
+                except Exception as e:
+                    st.error(f"Visual error: {e}")
             
         st.divider()
         st.subheader(t["docking_next_steps_header"])
