@@ -8,15 +8,20 @@ import datetime
 from translations import LANGUAGES
 from core.chem_utils import smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking
 
-# --- ИНИЦИАЛИЗАЦИЯ ---
+import streamlit as st
+import pandas as pd
+
+# --- 1. САМАЯ ПЕРВАЯ КОМАНДА (Настройка страницы) ---
+st.set_page_config(page_title="BioSynth-EDU", layout="wide")
+
+# --- 2. ИНИЦИАЛИЗАЦИЯ SESSION STATE (Память приложения) ---
 if 'mol_block' not in st.session_state:
     st.session_state.mol_block = None
 
 if 'lang' not in st.session_state:
     st.session_state.lang = "Русский"
-    
-# --- 1. КОНФИГУРАЦИЯ СТРАНИЦЫ ---
-st.set_page_config(page_title="BioSynth-EDU", layout="wide")
+
+# --- ДАЛЕЕ ВАШ ОСНОВНОЙ КОД (Загрузка каталога, файлов и т.д.) ---
 
 # Переключатель языка
 selected_lang = st.sidebar.selectbox(
