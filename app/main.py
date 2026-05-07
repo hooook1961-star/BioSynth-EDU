@@ -2,8 +2,42 @@ import streamlit as st
 import streamlit.components.v1 as components
 import py3Dmol
 import pandas as pd
+import json
+import os
 from core.chem_utils import smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking
 
+# --- 1. ТЕХНИЧЕСКИЙ БЛОК ЗАГРУЗКИ ---
+# Определяем путь к файлу catalog.json относительно main.py
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH = os.path.join(BASE_DIR, 'data', 'catalog.json')
+
+@st.cache_data  # Добавляем кэширование, чтобы приложение летало
+def load_data():
+    with open(DATA_PATH, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+# Загружаем данные в переменную catalog
+try:
+    catalog = load_data()
+except FileNotFoundError:
+    st.error(f"Файл не найден по пути: {DATA_PATH}")
+    catalog = []
+
+# --- 2. ЛОГИКА ПРИЛОЖЕНИЯ (Streamlit) ---
+st.title("BioSynth-EDU: Репозиторий препаратов РК")
+
+# Пример того, как теперь использовать этот каталог:
+names = [item["name"] for item in catalog]
+selected_name = st.selectbox("Выберите молекулу для изучения:", names)
+
+# Вывод данных о выбранном веществе
+for item in catalog:
+    if item["name"] == selected_name:
+        st.subheader(f"Препарат: {item['name']}")
+        st.info(f"**SMILES:** `{item['smiles']}`")
+        st.write(f"**Описание:** {item.get('description', 'Нет описания')}")
+        st.write(f"**Патент:** {item.get('patent', 'Информации нет')}")
+        
 # 1. КОНФИГУРАЦИЯ
 st.set_page_config(page_title="BioSynth-EDU", layout="wide")
 
