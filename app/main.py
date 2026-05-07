@@ -281,7 +281,7 @@ with tab2:
 with tab3:
     st.header(t["docking_header"])
     
-    if st.session_state.mol_block:
+    if st.session_state.get('mol_block') or smiles:
         st.success(t["docking_mol_ready"])
         
         col_prep1, col_prep2 = st.columns(2)
@@ -290,13 +290,14 @@ with tab3:
             st.markdown(t["docking_checklist_title"])
             st.markdown(t["docking_checklist_items"])
             
-            # Кнопка только запускает процесс
             if st.button(t["btn_run_prep"], use_container_width=True):
                 with st.spinner(t["spinner_meeko"]):
-                    # Я проверяю: функция prepare_ligand_for_docking должна возвращать STRING (текст PDBQT)
-                    pdbqt_result = prepare_ligand_for_docking(smiles)
-                    if pdbqt_result:
-                        st.session_state.prepared_pdbqt = pdbqt_result
+                    # Подготовка данных
+                    pdbqt_data = prepare_ligand_for_docking(smiles)
+                    if pdbqt_data:
+                        st.session_state.prepared_pdbqt = pdbqt_data
+                        # Обновление 3D-сетки для корректного отображения
+                        st.session_state.mol_block = smiles_to_3d_block(smiles, optimize=True)
                         st.balloons()
                     else:
                         st.error(t["docking_error"])
@@ -304,8 +305,8 @@ with tab3:
         with col_prep2:
             st.info(t["docking_note_student"])
             
-            # Виджеты скачивания и просмотра показываются, если в памяти ЕСТЬ данные
-            if 'prepared_pdbqt' in st.session_state and st.session_state.prepared_pdbqt:
+            # Отображение результатов при наличии в сессии
+            if st.session_state.get('prepared_pdbqt'):
                 st.download_button(
                     label=t["btn_download_pdbqt"],
                     data=st.session_state.prepared_pdbqt,
@@ -316,24 +317,19 @@ with tab3:
                 
                 st.write(t["docking_view_label"])
                 
-                # ЛОГИКА ВИЗУАЛИЗАЦИИ (Вынесена из-под кнопки)
+                # Визуализация SDF-блока (наиболее точного для связей)
                 try:
-                    # Проверяем, что данные — это строка
-                    mol_data = str(st.session_state.prepared_pdbqt)
-                    
                     view = py3Dmol.view(width=400, height=400)
-                    # PDBQT — это текстовый формат, py3Dmol его понимает напрямую
-                    view.addModel(mol_data, "pdbqt")
+                    view.addModel(st.session_state.mol_block, "sdf")
                     view.setStyle({'stick': {'color': 'spectrum', 'radius': 0.15}, 'sphere': {'scale': 0.25}})
                     view.zoomTo()
                     view.setBackgroundColor('#ffffff')
                     
-                    # Рендерим через компоненты
                     import streamlit.components.v1 as components
                     components.html(view._make_html(), height=410)
                     st.caption(t["docking_caption"])
                 except Exception as e:
-                    st.error(f"Visual error: {e}")
+                    st.error(f"Render error: {e}")
             
         st.divider()
         st.subheader(t["docking_next_steps_header"])
