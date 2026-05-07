@@ -1,44 +1,43 @@
 import streamlit as st
+import pandas as pd
 import streamlit.components.v1 as components
 import py3Dmol
-import pandas as pd
 import json
 import os
 import datetime
 from translations import LANGUAGES
 from core.chem_utils import smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking
 
-import streamlit as st
-import pandas as pd
-
-# --- 1. САМАЯ ПЕРВАЯ КОМАНДА (Настройка страницы) ---
 st.set_page_config(page_title="BioSynth-EDU", layout="wide")
 
-# --- 2. ИНИЦИАЛИЗАЦИЯ SESSION STATE (Память приложения) ---
+# --- 2. ИНИЦИАЛИЗАЦИЯ SESSION STATE ---
 if 'mol_block' not in st.session_state:
     st.session_state.mol_block = None
-
 if 'lang' not in st.session_state:
     st.session_state.lang = "Русский"
 
-# --- ДАЛЕЕ ВАШ ОСНОВНОЙ КОД (Загрузка каталога, файлов и т.д.) ---
+# --- 3. ФУНКЦИЯ ДЛЯ ТЕКСТА ПОСОБИЯ ---
+@st.cache_data
+def get_chapter_text(chapter_num):
+    chapters = {
+        "4": "### Глава 4. Методология QSAR\nТекст из вашего пособия...",
+        "5": "### Глава 5. Кодирование структур\nОписание дескрипторов...",
+        "6": "### Глава 6. Практикум\nИнструкции для Excel..."
+    }
+    return chapters.get(chapter_num, "Выберите главу")
 
-# Переключатель языка
+# --- 4. ЛОГИКА ЯЗЫКА И ЗАГРУЗКА КАТАЛОГА ---
 selected_lang = st.sidebar.selectbox(
     "🌐 Language / Тіл / Язык", 
     options=list(LANGUAGES.keys()),
     index=list(LANGUAGES.keys()).index(st.session_state.lang)
 )
-
-# переменная 't'
 st.session_state.lang = selected_lang
 t = LANGUAGES[st.session_state.lang]
 
-# Код языка для работы с JSON (ru, kz, en)
 lang_code_map = {"Русский": "ru", "Қазақша": "kz", "English": "en"}
 L_CODE = lang_code_map[st.session_state.lang]
 
-# --- 3. БЛОК ЗАГРУЗКИ ДАННЫХ ---
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(BASE_DIR, 'data', 'catalog.json')
 
@@ -49,8 +48,7 @@ def load_catalog():
             with open(DATA_PATH, 'r', encoding='utf-8') as f:
                 return json.load(f)
         return []
-    except Exception:
-        return []
+    except: return []
 
 catalog = load_catalog()
 
