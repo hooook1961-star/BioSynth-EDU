@@ -350,6 +350,20 @@ with tab3:
         st.warning("⚠️ Сначала постройте 3D модель на первой вкладке!")
         
 with tab4:
+    # --- БЛОК JSON ---
+    current_mol = next((m for m in catalog if m['smiles'] == smiles), None)
+    
+    if current_mol:
+        # данные из каталога
+        with st.expander("🇰🇿 Сведения о казахстанской разработке", expanded=True):
+            st.markdown(f"### Препарат: {current_mol['name']}")
+            st.write(f"**Авторы:** {', '.join(current_mol.get('authors', []))}")
+            st.write(f"**Патент:** {current_mol.get('patent', '—')}")
+            st.info(f"**Краткое описание:** {current_mol.get('description', '')}")
+        st.markdown("---") # Разделительная линия перед основным текстом
+    # -------------------------------------------------------------
+
+    st.write("Инструкции для студентов...")
     st.header("Курс лекций и тесты")
     st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
     st.markdown("### Мини-тест\nКак изменится липофильность (LogP) при добавлении -OH группы?")
