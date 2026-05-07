@@ -44,7 +44,34 @@ LANGUAGES = {
         "btn_pubchem": "Профиль в PubChem",
         "btn_chembl": "Данные ChEMBL (IC50/Ki)",
         "btn_similarity": "Найти похожие",
-        "warn_no_pubchem": "Данные в PubChem не найдены"
+        "warn_no_pubchem": "Данные в PubChem не найдены",
+        "admet_header": "📊 ADMET Анализ и интерпретация",
+        "admet_instructions": """
+        Для проведения анализа ADMET:
+        1. Нажмите кнопку **«Открыть ADMETlab 3.0»** ниже.
+        2. Скопируйте ваш SMILES и вставьте его в поле ввода на сайте.
+        3. После завершения расчета скачайте результат в формате **CSV**.
+        4. Загрузите файл с помощью кнопки Upload для автоматической интерпретации.
+        """,
+        "btn_open_admetlab": "🌐 Открыть ADMETlab 3.0",
+        "btn_open_swissadme": "🧪 Альтернатива: SwissADME",
+        "uploader_label": "📥 Загрузите CSV файл с результатами ADMETlab",
+        "expander_raw": "👁️ Посмотреть все сырые данные CSV",
+        "subheader_interp": "📝 Краткая интерпретация ключевых параметров",
+        "metric_lipophilicity": "LogP (Липофильность)",
+        "metric_bbb": "BBB (Проницаемость)",
+        "metric_tox": "Токсичность / hERG",
+        "status_optimal": "✅ Оптимально.",
+        "status_extreme": "⚠️ Крайние значения.",
+        "status_bbb_yes": "🧠 Проникает через ГЭБ.",
+        "status_bbb_no": "🛡️ Низкий риск для ЦНС.",
+        "status_tox_high": "💔 Высокий риск.",
+        "status_tox_low": "❤️ Риск низкий.",
+        "header_lipinski": "🧐 Соответствие правилам Drug-like",
+        "lipinski_success": "🌟 Молекула полностью соответствует правилу Липинского!",
+        "lipinski_warn": "⚠️ Нарушений правила Липинского: ",
+        "lipinski_info": "💡 Напоминание: Допускается 1 нарушение для сохранения 'drug-likeness'.",
+        "error_interp": "❌ Ошибка интерпретации: ",
     },
     "Қазақша": {
         "lang_label": "🌐 Тілді таңдаңыз",
@@ -90,7 +117,34 @@ LANGUAGES = {
         "btn_pubchem": "PubChem профилі",
         "btn_chembl": "ChEMBL деректері (IC50/Ki)",
         "btn_similarity": "Ұқсастарды табу",
-        "warn_no_pubchem": "PubChem-нен деректер табылмады"
+        "warn_no_pubchem": "PubChem-нен деректер табылмады",
+        "admet_header": "📊 ADMET талдау және интерпретация",
+        "admet_instructions": """
+        ADMET талдауын жүргізу үшін:
+        1. Төмендегі **«ADMETlab 3.0 ашу»** батырмасын басыңыз.
+        2. SMILES кодын көшіріп, сайттағы енгізу өрісіне қойыңыз.
+        3. Есептеу аяқталғаннан кейін нәтижені **CSV** форматында жүктеңіз.
+        4. Автоматты интерпретация үшін файлды Upload батырмасы арқылы жүктеңіз.
+        """,
+        "btn_open_admetlab": "🌐 ADMETlab 3.0 ашу",
+        "btn_open_swissadme": "🧪 Балама: SwissADME",
+        "uploader_label": "📥 ADMETlab нәтижелері бар CSV файлын жүктеңіз",
+        "expander_raw": "👁️ Барлық шикі CSV деректерін көру",
+        "subheader_interp": "📝 Негізгі параметрлердің қысқаша интерпретациясы",
+        "metric_lipophilicity": "LogP (Липофильділік)",
+        "metric_bbb": "BBB (Өтімділік)",
+        "metric_tox": "Токсикология / hERG",
+        "status_optimal": "✅ Оңтайлы.",
+        "status_extreme": "⚠️ Шеткі мәндер.",
+        "status_bbb_yes": "🧠 ГЭБ арқылы өтеді.",
+        "status_bbb_no": "🛡️ ОЖЖ үшін қауіп төмен.",
+        "status_tox_high": "💔 Жоғары қауіп.",
+        "status_tox_low": "❤️ Қауіп төмен.",
+        "header_lipinski": "🧐 Drug-like ережелеріне сәйкестігі",
+        "lipinski_success": "🌟 Молекула Липинский ережесіне толық сәйкес келеді!",
+        "lipinski_warn": "⚠️ Липинский ережесін бұзу саны: ",
+        "lipinski_info": "💡 Ескерту: 'drug-likeness' қасиетін сақтау үшін 1 бұзушылыққа жол беріледі.",
+        "error_interp": "❌ Интерпретация қатесі: ",
     },
     "English": {
         "lang_label": "🌐 Select Language",
@@ -136,6 +190,33 @@ LANGUAGES = {
         "btn_pubchem": "PubChem Profile",
         "btn_chembl": "ChEMBL Data (IC50/Ki)",
         "btn_similarity": "Find Similar",
-        "warn_no_pubchem": "Data not found in PubChem"
+        "warn_no_pubchem": "Data not found in PubChem",
+        "admet_header": "📊 ADMET Analysis & Interpretation",
+        "admet_instructions": """
+        To conduct ADMET analysis:
+        1. Click the **"Open ADMETlab 3.0"** button below.
+        2. Copy your SMILES and paste it into the input field on the website.
+        3. Once the calculation is complete, download the result in **CSV** format.
+        4. Upload the file using the Upload button for automatic interpretation.
+        """,
+        "btn_open_admetlab": "🌐 Open ADMETlab 3.0",
+        "btn_open_swissadme": "🧪 Alternative: SwissADME",
+        "uploader_label": "📥 Upload ADMETlab CSV results",
+        "expander_raw": "👁️ View raw CSV data",
+        "subheader_interp": "📝 Brief interpretation of key parameters",
+        "metric_lipophilicity": "LogP (Lipophilicity)",
+        "metric_bbb": "BBB (Permeability)",
+        "metric_tox": "Toxicity / hERG",
+        "status_optimal": "✅ Optimal.",
+        "status_extreme": "⚠️ Extreme values.",
+        "status_bbb_yes": "🧠 Crosses the BBB.",
+        "status_bbb_no": "🛡️ Low CNS risk.",
+        "status_tox_high": "💔 High risk.",
+        "status_tox_low": "❤️ Low risk.",
+        "header_lipinski": "🧐 Drug-like Rules Compliance",
+        "lipinski_success": "🌟 Molecule fully complies with Lipinski's Rule!",
+        "lipinski_warn": "⚠️ Lipinski's Rule violations: ",
+        "lipinski_info": "💡 Note: 1 violation is allowed to maintain 'drug-likeness'.",
+        "error_interp": "❌ Interpretation error: ",
     }
 }
