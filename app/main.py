@@ -49,7 +49,7 @@ def load_catalog():
 
 catalog = load_catalog()
 
-# --- 4. ТЕПЕРЬ ОРИСОВКА БОКОВОЙ ПАНЕЛИ ---
+# --- 4. БОКОВАЯ ПАНЕЛЬ ---
 st.sidebar.header(t["sidebar_select_mol"])
 
 # --- ГРУППА 1: КАЗАХСТАНСКИЙ КАТАЛОГ ---
@@ -105,11 +105,11 @@ with tab1:
     
     with col1:
         c1, c2 = st.columns(2)
-        if c1.button("🏗️ Построить 3D", use_container_width=True):
+        if c1.button(t["btn_build_3d"], use_container_width=True):
             st.session_state.mol_block = smiles_to_3d_block(smiles, optimize=False)
         
-        if c2.button("✨ Оптимизировать (MMFF94)", use_container_width=True):
-            with st.spinner("Минимизация энергии..."):
+        if c2.button(t["btn_optimize"], use_container_width=True):
+            with st.spinner(t["spinner_optimize"]):
                 st.session_state.mol_block = smiles_to_3d_block(smiles, optimize=True)
 
         if st.session_state.mol_block:
@@ -120,77 +120,74 @@ with tab1:
             view.zoomTo()
             view.setBackgroundColor('#ffffff')
             components.html(view._make_html(), height=550)
-            # 1. Формируем безопасное и уникальное имя файла
-            # Пытаемся взять имя из выбора, если нет — используем "molecule"
+            
+            # 1. безопасное имя файла
             try:
-                # Берем первое слово из названия (например, "Просидол")
-                prefix = selected_name.split()[0]
-            except (NameError, IndexError, AttributeError):
+                # Локализованное имя из выбора
+                prefix = selected_kaz.split()[0] if selected_kaz != t["select_placeholder"] else "molecule"
+            except:
                 prefix = "molecule"
             
-            # Добавляем дату и время: ГГГГММДД_ЧЧММСС
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             unique_filename = f"{prefix}_{timestamp}.sdf"
 
             # 2. Кнопка скачивания SDF
             st.download_button(
-                label="💾 Скачать структуру (SDF)",
+                label=t["download_sdf"],
                 data=st.session_state.mol_block,
                 file_name=unique_filename,
                 mime="chemical/x-mdl-sdfile",
-                help="SDF файл содержит 3D координаты атомов для работы в проф. софте (AutoDock, PyMOL и др.)"
+                help=t["download_help"]
             )
         else:
-            st.info("Выберите молекулу слева и нажмите 'Построить 3D'")
+            st.info(t["info_select_mol"])
 
-with col2:
-        st.subheader("📚 Справочник")
+    with col2:
+        st.subheader(t["header_ref"])
         data = get_pubchem_data(smiles)
         
         if data:
-            st.metric("М. вес", f"{data['mw']} г/моль")
-            st.metric("LogP", data['logp'])
-            st.metric("Вращающихся связей", data['rotatable_bonds'])
+            st.metric(t["metric_mw"], f"{data['mw']} g/mol")
+            st.metric(t["metric_logp"], data['logp'])
+            st.metric(t["metric_rot_bonds"], data['rotatable_bonds'])
             
-            # --- НОВЫЙ БЛОК: Данные ChEMBL ---
             st.divider()
-            with st.spinner("Запрос к ChEMBL..."):
+            with st.spinner(t["spinner_chembl"]):
                 chembl_info = get_chembl_data(data['inchikey'])
             
             if chembl_info:
                 st.write(f"🧬 **ChEMBL ID:** `{chembl_info['chembl_id']}`")
                 
-                # Статус одобрения
                 phase = chembl_info['max_phase']
                 status_color = "green" if phase == 4 else "orange"
-                st.markdown(f"**Статус:** <span style='color:{status_color}'>Phase {phase} (Одобрено)</span>" if phase == 4 else f"**Статус:** Phase {phase}", unsafe_allow_html=True)
                 
-                # Механизмы
-                with st.expander("🔬 Механизм действия"):
+                # Локализация статуса
+                status_text = f"Phase {phase}"
+                if phase == 4:
+                    status_text += f" ({t['status_approved']})"
+                
+                st.markdown(f"**{t['status_label']}** <span style='color:{status_color}'>{status_text}</span>", unsafe_allow_html=True)
+                
+                with st.expander(t["mechanism_label"]):
                     for m in chembl_info['mechanisms']:
                         st.write(f"• {m}")
             else:
-                st.caption("Биологическая активность в ChEMBL не найдена")
+                st.caption(t["no_chembl"])
 
             st.divider()
+            st.write(t["ext_links"])
             
-            # Блок внешних ссылок 
-            st.write("🔗 **Внешние базы:**")
-            
-            # Ссылка на PubChem
             pubchem_url = f"https://pubchem.ncbi.nlm.nih.gov/#query={data['inchikey']}"
-            st.link_button("Профиль в PubChem", pubchem_url, use_container_width=True)
+            st.link_button(t["btn_pubchem"], pubchem_url, use_container_width=True)
             
-            # Ссылка на ChEMBL 
             chembl_url = f"https://www.ebi.ac.uk/chembl/g/#search_results/all/query={data['inchikey']}"
-            st.link_button("Данные ChEMBL (IC50/Ki)", chembl_url, use_container_width=True)
+            st.link_button(t["btn_chembl"], chembl_url, use_container_width=True)
             
-            # Кнопка сходства
             chembl_sim_url = f"https://www.ebi.ac.uk/chembl/g/#search_results/all/query={smiles}&search_type=similarity&similarity=70"
-            st.link_button("Найти похожие", chembl_sim_url, use_container_width=True, type="primary")
+            st.link_button(t["btn_similarity"], chembl_sim_url, use_container_width=True, type="primary")
 
         else:
-            st.warning("Данные в PubChem не найдены")
+            st.warning(t["warn_no_pubchem"])
 
 # Вкладка ADMET 
 with tab2:
