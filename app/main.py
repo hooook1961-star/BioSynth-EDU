@@ -93,7 +93,20 @@ elif selected_world != t["select_placeholder"]:
 
 st.sidebar.markdown("---")
 st.sidebar.header(t["sidebar_manual"])
+
+# Итоговое определение SMILES через ввод или выбор
 smiles = st.sidebar.text_input(t["sidebar_manual_label"], value=current_smiles)
+
+# --- ВСТАВКА: АВТОМАТИЧЕСКАЯ ОЧИСТКА ПАМЯТИ ---
+if "active_smiles" not in st.session_state:
+    st.session_state.active_smiles = smiles
+
+# Если текущий smiles не совпадает с тем, что в памяти 
+if st.session_state.active_smiles != smiles:
+    st.session_state.prepared_pdbqt = None
+    st.session_state.mol_block = None
+    st.session_state.active_smiles = smiles
+# ----------------------------------------------
 
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
 st.title("🧪 BioSynth-EDU: Исследовательская платформа")
