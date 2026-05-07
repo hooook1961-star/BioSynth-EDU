@@ -12,7 +12,7 @@ LANGUAGES = {
         "sidebar_manual": "✍️ Ввести SMILES",
         "sidebar_manual_label": "Или вставьте SMILES ниже:",
         # Tabs
-        "tab_3d": "🔍 Поиск и 3D",
+        "tab_3d": "🔬 Структура и свойства",
         "tab_admet": "📊 ADMET Анализ",
         "tab_docking": "🧬 Докинг",
         "tab_edu": "📚 Обучение",
@@ -58,7 +58,7 @@ LANGUAGES = {
         "sidebar_manual": "✍️ SMILES енгізу",
         "sidebar_manual_label": "Немесе төмендегі SMILES-ті қойыңыз:",
         # Tabs
-        "tab_3d": "🔍 Іздеу және 3D",
+        "tab_3d": "🔬 Құрылымы мен қасиеттері",
         "tab_admet": "📊 ADMET Талдау",
         "tab_docking": "🧬 Докинг",
         "tab_edu": "📚 Оқыту",
@@ -104,10 +104,10 @@ LANGUAGES = {
         "sidebar_manual": "✍️ Enter SMILES",
         "sidebar_manual_label": "Or paste SMILES below:",
         # Tabs
-        "tab_3d": "🔍 Search & 3D",
+        "tab_3d": "🔬 Structure & Properties",
         "tab_admet": "📊 ADMET Analysis",
         "tab_docking": "🧬 Docking",
-        "tab_edu": "📚 Education",
+        "tab_edu": "📚 Learning",
         # Categories (World Examples)
         "cat_analgesic": "Analgesic",
         "cat_stimulant": "Stimulant",
