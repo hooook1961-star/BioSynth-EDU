@@ -268,30 +268,30 @@ LANGUAGES = {
         "lipinski_warn": "⚠️ Lipinski's Rule violations: ",
         "lipinski_info": "💡 Note: 1 violation is allowed to maintain 'drug-likeness'.",
         "error_interp": "❌ Interpretation error: ",
-        "docking_header": "🛠️ Лигандты докингке дайындау",
-        "docking_mol_ready": "✅ 3D-құрылым табылды және өңдеуге дайын.",
-        "docking_checklist_title": "**Дайындық тізімі (чек-лист):**",
+        "docking_header": "🛠️ Ligand Preparation for Docking",
+        "docking_mol_ready": "✅ 3D structure detected and ready for processing.",
+        "docking_checklist_title": "**Preparation Checklist:**",
         "docking_checklist_items": """
-        1. Жасырын сутегілерді қосу.
-        2. 3D-конформацияны генерациялау.
-        3. Энергияны минимизациялау (MMFF94 күш өрісі).
-        4. **Белсенді торсиондық бұрыштарды анықтау (PDBQT).**
+        1. Adding implicit hydrogens.
+        2. 3D conformation generation.
+        3. Energy minimization (MMFF94 force field).
+        4. **Defining active torsion angles (PDBQT).**
         """,
-        "btn_run_prep": "⚙️ Толық дайындықты бастау",
-        "spinner_meeko": "Meeko және RDKit жұмыс істеуде: зарядтар мен торсиондарды есептеу...",
-        "docking_success_info": "Лиганд дайын! Торсиондар мен зарядтар есептелді.",
-        "docking_error": "PDBQT дайындау кезінде қате кетті.",
-        "docking_note_student": "ℹ️ **Студенттерге ескертпе:** Докинг 'кілт пен құлып' принципін имитациялайды. Кілт сәйкес келуі үшін оның байланыс бұрыштары дұрыс болуы керек.",
-        "btn_download_pdbqt": "📥 Дайын PDBQT жүктеу",
-        "docking_view_label": "🔍 **Дайындалған құрылымды қарау:**",
-        "docking_caption": "Оңтайландырылған 3D-модель (талдауға дайындалған).",
-        "docking_next_steps_header": "🎓 Әрі қарай не істеу керек?",
+        "btn_run_prep": "⚙️ Run Full Preparation",
+        "spinner_meeko": "Meeko and RDKit at work: calculating charges and torsions...",
+        "docking_success_info": "Ligand ready! Torsions and charges calculated.",
+        "docking_error": "Error during PDBQT preparation.",
+        "docking_note_student": "ℹ️ **Note for students:** Docking simulates a 'lock and key' mechanism. For the key to fit, it must have the correct bond angles.",
+        "btn_download_pdbqt": "📥 Download Ready PDBQT",
+        "docking_view_label": "🔍 **View Prepared Structure:**",
+        "docking_caption": "Optimized 3D model (prepared for analysis).",
+        "docking_next_steps_header": "🎓 What's Next?",
         "docking_next_steps_text": """
-        Лигандты дайындағаннан кейін сізге:
-        1. **Нысана-белокты** дайындау (суды жою, зарядтарды қосу).
-        2. **Grid Box** анықтау (белсенді орталықтың координаттары).
-        3. AutoDock Vina немесе ұқсас БҚ-да есептеуді іске қосу қажет.
+        After preparing the ligand, you need to:
+        1. Prepare the **target protein** (remove water, add charges).
+        2. Define the **Grid Box** (active site coordinates).
+        3. Run the calculation in AutoDock Vina or similar software.
         """,
-        "docking_warn_no_3d": "⚠️ Алдымен бірінші қосымша бетте 3D модельді құрастырыңыз!",
+        "docking_warn_no_3d": "⚠️ Build the 3D model on the first tab first!",
     }
 }
