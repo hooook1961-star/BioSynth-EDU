@@ -323,19 +323,28 @@ with tab3:
                     use_container_width=True
                 )
                 
-                # --- БЛОК Визуализации подготовленного лиганда ---
+# --- БЛОК Визуализации подготовленного лиганда ---
                 st.write("🔍 **Просмотр подготовленной структуры:**")
                 import py3Dmol
                 
-                view = py3Dmol.view(width=300, height=300)
-                # Загружаем PDBQT данные
-                view.addModel(st.session_state.prepared_pdbqt, 'pdbqt')
-                view.setStyle({'stick': {'color': 'spectrum', 'radius': 0.2}, 'sphere': {'scale': 0.3}})
+                # Используем SDF блок, так как он лучше отображает связи в py3Dmol
+                # Если SDF хранится в mol_block, берем его. Если нет - оставляем pdbqt, но с фиксом.
+                mol_data = st.session_state.get('mol_block', st.session_state.prepared_pdbqt)
+                mol_format = 'sdf' if st.session_state.get('mol_block') else 'pdbqt'
+
+                view = py3Dmol.view(width=400, height=400) 
+                view.addModel(mol_data, mol_format)
+                
+                # Добавляем настройку для корректного отображения связей
+                view.setStyle({'stick': {'color': 'spectrum', 'radius': 0.15}, 'sphere': {'scale': 0.25}})
                 view.zoomTo()
                 
                 # Рендерим компонент в Streamlit
-                st.components.v1.html(view._make_html(), height=310)
-                st.caption("Подготовленный лиганд с оптимизированными связями.")
+                # Используем полное название, так как import streamlit.components.v1 as components в начале файла
+                import streamlit.components.v1 as components
+                components.html(view._make_html(), height=410)
+                
+                st.caption("Оптимизированная 3D-модель (подготовлено для анализа).")
             
         st.divider()
         st.subheader("🎓 Что дальше?")
