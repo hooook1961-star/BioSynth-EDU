@@ -63,68 +63,6 @@ selected_kaz = st.sidebar.selectbox(
     t["sidebar_kaz_label"], 
     options=[t["select_placeholder"]] + list(kaz_options.keys())
 )
-# --- БОКОВАЯ ПАНЕЛЬ: ВЫБОР ЯЗЫКА ---
-st.sidebar.markdown(f"### {t['lang_label']}")
-selected_lang = st.sidebar.selectbox(
-    "Lang Select", 
-    options=list(LANGUAGES.keys()),
-    index=list(LANGUAGES.keys()).index(st.session_state.lang),
-    label_visibility="collapsed"
-)
-st.session_state.lang = selected_lang
-t = LANGUAGES[st.session_state.lang]
-
-st.sidebar.header(t["sidebar_select_mol"])
-
-# --- ГРУППА 1: КАЗАХСТАНСКИЙ КАТАЛОГ (BioSynth-EDU) ---
-st.sidebar.subheader(t["sidebar_kaz_cat"])
-kaz_options = {}
-for m in catalog:
-    # Используем локализованное имя из JSON или дефолтное
-    display_name = m.get('name_local', {}).get(L_CODE, m['name'])
-    # Локализованная классификация
-    class_name = m.get('classification_local', {}).get(L_CODE, m.get('classification', 'Bioactiv'))
-    kaz_options[f"{display_name} ({class_name})"] = m['smiles']
-
-selected_kaz = st.sidebar.selectbox(
-    t["sidebar_kaz_label"], 
-    options=[t["select_placeholder"]] + list(kaz_options.keys()),
-    key="kaz_select"
-)
-
-# --- ГРУППА 2: ПРИМЕРЫ ЛЕКАРСТВ (ВСЕ ВЕРНУЛ!) ---
-st.sidebar.subheader(t["sidebar_world_cat"])
-world_examples = {
-    f"Аспирин ({t['cat_analgesic']})": "CC(=O)OC1=CC=CC=C1C(=O)O",
-    f"Кофеин ({t['cat_stimulant']})": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
-    f"Парацетамол ({t['cat_antipyretic']})": "CC(=O)NC1=CC=C(O)C=C1",
-    f"Ибупрофен ({t['cat_nsaid']})": "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
-    f"Пенициллин G ({t['cat_antibiotic']})": "CC1(C(N2C(S1)C(C2=O)NC(=O)CC3=CC=CC=C3)C(=O)O)C",
-    f"Никотин ({t['cat_alkaloid']})": "CN1CCCC1C2=CN=CC=C2",
-    f"Дофамин ({t['cat_neuro']})": "C1=CC(=C(C=C1CCN)O)O"
-}
-
-selected_world = st.sidebar.selectbox(
-    t["sidebar_world_label"], 
-    options=[t["select_placeholder"]] + list(world_examples.keys()),
-    key="world_select"
-)
-
-st.sidebar.markdown("---")
-
-# --- ЛОГИКА ОПРЕДЕЛЕНИЯ ТЕКУЩЕГО SMILES ---
-# Значение по умолчанию
-current_smiles = "CC(=O)OC1=CC=CC=C1C(=O)O" # Аспирин
-
-if selected_kaz != t["select_placeholder"]:
-    current_smiles = kaz_options[selected_kaz]
-elif selected_world != t["select_placeholder"]:
-    current_smiles = world_examples[selected_world]
-
-# --- ПОЛЕ ВВОДА SMILES ---
-st.sidebar.header(t["sidebar_manual"])
-smiles = st.sidebar.text_input(t["sidebar_manual_label"], value=current_smiles)
-
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
 st.title("🧪 BioSynth-EDU: Исследовательская платформа")
 
