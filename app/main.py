@@ -112,7 +112,7 @@ if st.session_state.active_smiles != smiles:
 # ----------------------------------------------
 
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
-# --- АДАПТИВНЫЙ ЗАГОЛОВОК ---
+# --- ЗАГОЛОВОК ---
 st.markdown("""
     <style>
     /* Стиль для основного заголовка */
@@ -132,7 +132,8 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.markdown(f'<p class="responsive-title">🧪 {t["title_main"]}</p>', unsafe_allow_html=True)
+title_text = t.get("title_main", "BioSynth-EDU")
+st.markdown(f'<p class="responsive-title">🧪 {title_text}</p>', unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4 = st.tabs([
     t["tab_3d"], 
