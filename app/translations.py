@@ -17,6 +17,7 @@ LANGUAGES = {
         "tab_admet": "📊 ADMET Анализ",
         "tab_docking": "🧬 Докинг",
         "tab_edu": "📚 Обучение",
+        "tab_project": "🚀 Исследовательский проект",
         # Categories (World Examples)
         "cat_analgesic": "Анальгетик",
         "cat_stimulant": "Стимулятор",
@@ -116,7 +117,8 @@ LANGUAGES = {
         "tab_admet": "📊 ADMET Талдау",
         "tab_docking": "🧬 Докинг",
         "tab_edu": "📚 Оқыту",
-        # Categories (World Examples)
+        "tab_project": "🚀Зерттеу жоба",
+        # Caterogies (World Examples)
         "cat_analgesic": "Анальгетик",
         "cat_stimulant": "Стимулятор",
         "cat_antipyretic": "Ыстықты түсіретін",
@@ -214,6 +216,7 @@ LANGUAGES = {
         "tab_3d": "🔬 Structure & Properties",
         "tab_admet": "📊 ADMET Analysis",
         "tab_docking": "🧬 Docking",
+        "tab_project": "🚀 Research Project"
         "tab_edu": "📚 Learning",
         # Categories (World Examples)
         "cat_analgesic": "Analgesic",
