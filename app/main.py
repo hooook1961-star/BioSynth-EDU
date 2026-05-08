@@ -112,7 +112,27 @@ if st.session_state.active_smiles != smiles:
 # ----------------------------------------------
 
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
-st.title("🧪 BioSynth-EDU: Исследовательская платформа")
+# --- АДАПТИВНЫЙ ЗАГОЛОВОК ---
+st.markdown("""
+    <style>
+    /* Стиль для основного заголовка */
+    .responsive-title {
+        font-size: 2.5rem; /* Размер для ПК по умолчанию */
+        font-weight: bold;
+        line-height: 1.2;
+        margin-bottom: 1rem;
+    }
+
+    /* Настройки для мобильных экранов (ширина менее 768px) */
+    @media (max-width: 768px) {
+        .responsive-title {
+            font-size: 5.5vw; /* Шрифт будет подстраиваться под ширину экрана */
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+st.markdown(f'<p class="responsive-title">🧪 {t["title_main"]}</p>', unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4 = st.tabs([
     t["tab_3d"], 
