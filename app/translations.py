@@ -1,6 +1,7 @@
 # translations.py
 LANGUAGES = {
     "Русский": {
+        "nav_title": "BioSynth-EDU",
         "lang_label": "🌐 Выберите язык",
         "select_placeholder": "-- Выберите из списка --",
         # Sidebar
@@ -99,6 +100,7 @@ LANGUAGES = {
         "docking_warn_no_3d": "⚠️ Сначала постройте 3D модель на первой вкладке!",
     },
     "Қазақша": {
+        "nav_title": "BioSynth-EDU",
         "lang_label": "🌐 Тілді таңдаңыз",
         "select_placeholder": "-- Тізімнен таңдаңыз --",
         # Sidebar
@@ -197,6 +199,7 @@ LANGUAGES = {
         "docking_warn_no_3d": "⚠️ Алдымен бірінші қосымша бетте 3D модельді құрастырыңыз!",
     },
     "English": {
+        "nav_title": "BioSynth-EDU",
         "lang_label": "🌐 Select Language",
         "select_placeholder": "-- Select from list --",
         # Sidebar
