@@ -116,11 +116,12 @@ if st.session_state.active_smiles != smiles:
 # --- ЗАГОЛОВОК ---
 st.title(f"🧪 {t.get('title_main', 'BioSynth-EDU')}")
 
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     t["tab_3d"], 
     t["tab_admet"], 
     t["tab_docking"], 
-    t["tab_edu"]
+    t["tab_edu"],
+    t["tab_project"]  # Новая вкладка для проекта
 ])
 
 with tab1:
