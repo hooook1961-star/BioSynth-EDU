@@ -1,4 +1,4 @@
-зimport streamlit as st
+import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
 from streamlit_ketcher import st_ketcher
