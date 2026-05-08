@@ -395,3 +395,48 @@ with tab4:
     with itabs[3]:
         st.info("Кейсы")
         
+with tab5:
+    st.header(t.get("tab_project", "🚀 BioSynth-Challenge"))
+    
+    if 'current_mol' in st.session_state and st.session_state['current_mol'] is not None:
+        mol_data = st.session_state['current_mol']
+        smiles = mol_data.get('smiles', '')
+        
+        # Заголовок с названием выбранного объекта
+        st.subheader(f"🔬 {t.get('project_mol_header', 'Объект')}: {mol_data.get('name', 'Unknown')}")
+        
+        col1, col2 = st.columns([1, 2])
+        
+        with col1:
+            st.info(f"**{t.get('project_smiles_label', 'SMILES')}:**")
+            st.code(smiles)
+            
+            # Внешние сервисы для работы студента
+            st.markdown("### 🛠 Внешние сервисы")
+            st.link_button("🌐 PASS Online (Activity)", "http://www.way2drug.com/passonline/")
+            st.link_button("🧪 SwissADME (ADMET)", "http://www.swissadme.ch/")
+            
+            # Методическое задание
+            with st.expander(f"📝 {t.get('project_task_header', 'Задание')}", expanded=True):
+                st.write(t.get("project_task_1", "1. Проведите прогноз биологической активности."))
+                st.write(t.get("project_task_2", "2. Оцените параметры ADME по правилу Липинского."))
+                st.write(t.get("project_task_3", "3. Сформируйте выводы для постерного доклада."))
+        
+        with col2:
+            st.markdown(f"**{t.get('project_ketcher_header', 'Визуализация структуры')}**")
+            
+            # Редактор, синхронизированный с базой
+            edited = st_ketcher(smiles)
+            
+            # Если студент изменил молекулу в редакторе
+            if edited != smiles:
+                st.warning(t.get("project_mod_warning", "Структура изменена"))
+                
+                # Кнопка для быстрого анализа новой (измененной) структуры
+                if st.button("🧪 Анализировать измененную структуру"):
+                    st.session_state['current_mol']['smiles'] = edited
+                    st.rerun()
+    else:
+        st.warning(t.get("project_warning", "Выберите соединение в боковой панели"))
+
+        
