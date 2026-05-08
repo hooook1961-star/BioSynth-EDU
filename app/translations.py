@@ -218,7 +218,7 @@ LANGUAGES = {
         "tab_3d": "🔬 Structure & Properties",
         "tab_admet": "📊 ADMET Analysis",
         "tab_docking": "🧬 Docking",
-        "tab_project": "🚀 Research Project"
+        "tab_project": "🚀 Research Project",
         "tab_edu": "📚 Learning",
         # Categories (World Examples)
         "cat_analgesic": "Analgesic",
