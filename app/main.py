@@ -113,27 +113,7 @@ if st.session_state.active_smiles != smiles:
 
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
 # --- ЗАГОЛОВОК ---
-st.markdown("""
-    <style>
-    .responsive-title {
-        font-size: 3rem; /* Крупнее для ПК */
-        font-weight: bold;
-        line-height: 1.2;
-        margin-bottom: 1rem;
-        color: #1E1E1E; /*можно настраивать */
-    }
-
-    @media (max-width: 768px) {
-        .responsive-title {
-            /* 14vw — можно менять */
-            font-size: clamp(1.8rem, 8vw, 2.5rem); 
-        }
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-title_text = t.get("title_main", "BioSynth-EDU")
-st.markdown(f'<p class="responsive-title">🧪 {title_text}</p>', unsafe_allow_html=True)
+st.title(f"🧪 {t.get('title_main', 'BioSynth-EDU')}")
 
 tab1, tab2, tab3, tab4 = st.tabs([
     t["tab_3d"], 
