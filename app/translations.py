@@ -99,7 +99,7 @@ LANGUAGES = {
         3. Запустить расчет в AutoDock Vina или аналогичном ПО.
         """,
         "docking_warn_no_3d": "⚠️ Сначала постройте 3D модель на первой вкладке!",
-        "select_placeholder": "Выберите соединение в боковой панели",
+        "project_warning": "👈 Пожалуйста, выберите соединение в боковой панели (База KZ), чтобы начать проект.",
     },
     "Қазақша": {
         "nav_title": "BioSynth-EDU",
@@ -200,7 +200,7 @@ LANGUAGES = {
         3. AutoDock Vina немесе ұқсас БҚ-да есептеуді іске қосу қажет.
         """,
         "docking_warn_no_3d": "⚠️ Алдымен бірінші қосымша бетте 3D модельді құрастырыңыз!",
-        "select_placeholder": "Бүйірлік панельде қосылысты таңдаңыз",
+        "project_warning": "👈 Жобаны бастау үшін бүйірлік панельден қосылысты таңдаңыз (KZ базасы).",
     },
     "English": {
         "nav_title": "BioSynth-EDU",
@@ -301,6 +301,6 @@ LANGUAGES = {
         3. Run the calculation in AutoDock Vina or similar software.
         """,
         "docking_warn_no_3d": "⚠️ Build the 3D model on the first tab first!",
-        "select_placeholder": "Select a compound in the sidebar",
+        "project_warning": "👈 Please select a compound in the sidebar (KZ Base) to start the project.",
     }
 }
