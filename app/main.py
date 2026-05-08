@@ -1,4 +1,4 @@
-import streamlit as st
+зimport streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
 from streamlit_ketcher import st_ketcher
@@ -121,7 +121,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     t["tab_admet"], 
     t["tab_docking"], 
     t["tab_edu"],
-    t["tab_project"]  # Новая вкладка для проекта
+    t["tab_project"]
 ])
 
 with tab1:
