@@ -54,51 +54,63 @@ def load_catalog():
 catalog = load_catalog()
 
 # --- 4. БОКОВАЯ ПАНЕЛЬ ---
+st.sidebar.header(t["sidebar_select_mol"])
 
-import streamlit as st
+# --- ГРУППА 1: КАЗАХСТАНСКИЙ КАТАЛОГ ---
+st.sidebar.subheader(t["sidebar_kaz_cat"])
+kaz_options = {}
+for m in catalog:
+    # перевод из JSON, если его нет — стандартное имя
+    display_name = m.get('name_local', {}).get(L_CODE, m.get('name', 'Unknown'))
+    class_name = m.get('classification_local', {}).get(L_CODE, m.get('classification', 'Bioactiv'))
+    kaz_options[f"{display_name} ({class_name})"] = m['smiles']
 
-# --- БОКОВАЯ ПАНЕЛЬ ---
-with st.sidebar:
-    st.title("BioSynth-EDU")
-    
-    # Логика выбора языка
-    if 'lang' not in st.session_state:
-        st.session_state.lang = "Русский"
-    
-    selected_lang = st.selectbox("Language / Тіл / Язык", options=["Русский", "Қазақша", "English"], index=["Русский", "Қазақша", "English"].index(st.session_state.lang))
-    st.session_state.lang = selected_lang
-    t = LANGUAGES[selected_lang]
+selected_kaz = st.sidebar.selectbox(
+    t["sidebar_kaz_label"], 
+    options=[t["select_placeholder"]] + list(kaz_options.keys())
+)
 
-    st.divider()
+# --- ГРУППА 2: СТАНДАРТНЫЕ ПРИМЕРЫ (ПОЛНЫЙ СПИСОК) ---
+st.sidebar.subheader(t["sidebar_world_cat"])
+world_examples = {
+    f"Аспирин ({t['cat_analgesic']})": "CC(=O)OC1=CC=CC=C1C(=O)O",
+    f"Кофеин ({t['cat_stimulant']})": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
+    f"Парацетамол ({t['cat_antipyretic']})": "CC(=O)NC1=CC=C(O)C=C1",
+    f"Ибупрофен ({t['cat_nsaid']})": "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
+    f"Пенициллин G ({t['cat_antibiotic']})": "CC1(C(N2C(S1)C(C2=O)NC(=O)CC3=CC=CC=C3)C(=O)O)C",
+    f"Никотин ({t['cat_alkaloid']})": "CN1CCCC1C2=CN=CC=C2",
+    f"Дофамин ({t['cat_neuro']})": "C1=CC(=C(C=C1CCN)O)O"
+}
 
-    # Логика работы с базой данных
-    if "database" in st.session_state and st.session_state.database:
-        st.header(t.get("sidebar_kaz_cat", "Казахстанский каталог"))
-        
-        mol_names = [mol['name'] for mol in st.session_state.database]
-        
-        selected_name = st.selectbox(
-            t.get("sidebar_kaz_label", "Выберите соединение"),
-            options=["---"] + mol_names,
-            key="selector_v1"
-        )
+selected_world = st.sidebar.selectbox(
+    t["sidebar_world_label"], 
+    options=[t["select_placeholder"]] + list(world_examples.keys())
+)
 
-        if selected_name != "---":
-            mol_data = next((m for m in st.session_state.database if m['name'] == selected_name), None)
-            # Запись данных для всех вкладок
-            st.session_state['selected_mol'] = mol_data
-            st.session_state['current_mol'] = mol_data 
-        else:
-            st.session_state['selected_mol'] = None
-            st.session_state['current_mol'] = None
+# --- ЛОГИКА ОПРЕДЕЛЕНИЯ SMILES ---
+current_smiles = "CC(=O)OC1=CC=CC=C1C(=O)O" # Default: Aspirin
 
-    st.divider()
-    
-    # Кнопка сброса
-    if st.button(t.get("btn_reset", "Сбросить")):
-        st.session_state['selected_mol'] = None
-        st.session_state['current_mol'] = None
-        st.rerun()
+if selected_kaz != t["select_placeholder"]:
+    current_smiles = kaz_options[selected_kaz]
+elif selected_world != t["select_placeholder"]:
+    current_smiles = world_examples[selected_world]
+
+st.sidebar.markdown("---")
+st.sidebar.header(t["sidebar_manual"])
+
+# Итоговое определение SMILES через ввод или выбор
+smiles = st.sidebar.text_input(t["sidebar_manual_label"], value=current_smiles)
+
+# --- ВСТАВКА: АВТОМАТИЧЕСКАЯ ОЧИСТКА ПАМЯТИ ---
+if "active_smiles" not in st.session_state:
+    st.session_state.active_smiles = smiles
+
+# Если текущий smiles не совпадает с тем, что в памяти 
+if st.session_state.active_smiles != smiles:
+    st.session_state.prepared_pdbqt = None
+    st.session_state.mol_block = None
+    st.session_state.active_smiles = smiles
+# ----------------------------------------------
 
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
 # --- ЗАГОЛОВОК ---
