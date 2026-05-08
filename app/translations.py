@@ -1,12 +1,12 @@
 # translations.py
 LANGUAGES = {
     "Русский": {
-        "nav_title": "BioSynth-EDU",
+        "nav_title": "🧪BioSynth-EDU",
         "lang_label": "🌐 Выберите язык",
         "select_placeholder": "-- Выберите из списка --",
         # Sidebar
         "sidebar_select_mol": "🧪 Выбор молекулы",
-        "sidebar_kaz_cat": "🇰🇿 Разработки Казахстана",
+        "sidebar_kaz_cat": "🇰🇿 База KZ",
         "sidebar_kaz_label": "Отечественные препараты и кейсы:",
         "sidebar_world_cat": "🌍 Стандартные примеры",
         "sidebar_world_label": "Примеры лекарственных веществ:",
