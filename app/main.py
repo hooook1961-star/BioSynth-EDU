@@ -61,7 +61,7 @@ import streamlit as st
 with st.sidebar:
     st.title("BioSynth-EDU")
     
-    # Выбор языка
+    # Язык
     lang_options = ["Русский", "Қазақша", "English"]
     selected_lang = st.selectbox("Language / Тіл / Язык", options=lang_options)
     st.session_state.lang = selected_lang
@@ -69,31 +69,24 @@ with st.sidebar:
 
     st.divider()
     
-    # Работа с вашей базой данных (st.session_state.database)
-    if "database" in st.session_state and st.session_state.database:
+    # Оригинальная логика базы KZ
+    if "database" in st.session_state:
         st.header(t.get("sidebar_kaz_cat", "Казахстанский каталог"))
-        
-        # Получаем список названий из вашей базы
         mol_names = [mol['name'] for mol in st.session_state.database]
         
-        # Выбор молекулы
         selected_name = st.selectbox(
             t.get("sidebar_kaz_label", "Выберите молекулу"),
-            options=["---"] + mol_names,
-            key="kz_mol_selector"
+            options=["---"] + mol_names
         )
         
-        # Если молекула выбрана — сохраняем её для вкладки 5
+        # Просто связываем выбор с вкладкой 5
         if selected_name != "---":
-            mol_data = next((m for m in st.session_state.database if m['name'] == selected_name), None)
-            st.session_state['current_mol'] = mol_data
+            st.session_state['current_mol'] = next((m for m in st.session_state.database if m['name'] == selected_name), None)
         else:
             st.session_state['current_mol'] = None
 
     st.divider()
-    
-    # Кнопка сброса сессии
-    if st.button(t.get("btn_reset", "Сбросить всё")):
+    if st.button(t.get("btn_reset", "Сбросить")):
         st.session_state['current_mol'] = None
         st.rerun()
 
