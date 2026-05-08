@@ -116,13 +116,15 @@ if st.session_state.active_smiles != smiles:
 # --- ЗАГОЛОВОК ---
 st.title(f"🧪 {t.get('title_main', 'BioSynth-EDU')}")
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    t["tab_3d"], 
-    t["tab_admet"], 
-    t["tab_docking"], 
-    t["tab_edu"],
-    t["tab_project"]
-])
+# блок вкладок:
+tab_names = [
+    t.get("tab_3d", "3D"), 
+    t.get("tab_admet", "ADMET"), 
+    t.get("tab_docking", "Docking"), 
+    t.get("tab_edu", "Education"),
+    t.get("tab_project", "Project") # .get не вызывает KeyError
+]
+tab1, tab2, tab3, tab4, tab5 = st.tabs(tab_names)
 
 with tab1:
     col1, col2 = st.columns([3, 1])
