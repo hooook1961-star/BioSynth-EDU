@@ -389,6 +389,47 @@ with tab4:
 
     # РАЗДЕЛ 3 и 4: ПОКА ПУСТЫЕ (ДЛЯ ЛАБ И КЕЙСОВ)
     with itabs[2]:
-        st.info("Место для лабораторных работ из главы 6 вашего файла")
+        st.info("Лабораторные работы")
     with itabs[3]:
-        st.info("Раздел для кейсов магистрантов")
+        st.info("Кейсы")
+        
+with tab5:
+    st.header(t["tab_project"])
+    
+    # Проверка наличия выбранного объекта в состоянии сессии
+    if 'current_mol' in st.session_state and st.session_state['current_mol'] is not None:
+        
+        mol_data = st.session_state['current_mol']
+        molecule_smiles = mol_data.get('smiles', '')
+        
+        st.subheader(f"🔬 {mol_data.get('name', '')}")
+        
+        col_text, col_edit = st.columns([1, 2])
+        
+        with col_text:
+            st.info("ℹ️ Справочные данные")
+            st.markdown("**SMILES:**")
+            st.code(molecule_smiles)
+            
+            st.write("Код для внешних сервисов (PASS Online, SwissADME):")
+            st.link_button("🌐 PASS Online", "http://www.way2drug.com/passonline/")
+            st.link_button("🧪 SwissADME", "http://www.swissadme.ch/")
+            
+            with st.expander("📝 Задание"):
+                st.write("1. Провести прогноз биологической активности.")
+                st.write("2. Оценить соответствие дескрипторов правилу Липинского.")
+                st.write("3. Подготовить данные для постерного доклада.")
+        
+        with col_edit:
+            st.markdown("**Молекулярный редактор**")
+            
+            # Передача SMILES из базы в компонент Ketcher для визуализации
+            edited_smiles = st_ketcher(molecule_smiles)
+            
+            # Логика отслеживания изменений структуры пользователем
+            if edited_smiles != molecule_smiles:
+                st.warning("⚠️ Структура изменена. Прогнозы для исходного соединения могут быть неактуальны.")
+                
+    else:
+        # Сообщение при отсутствии выбранных данных в sidebar
+        st.warning(t.get("select_placeholder", "Выберите соединение в боковой панели"))
