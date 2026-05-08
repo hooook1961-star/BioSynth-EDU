@@ -115,18 +115,18 @@ if st.session_state.active_smiles != smiles:
 # --- ЗАГОЛОВОК ---
 st.markdown("""
     <style>
-    /* Стиль для основного заголовка */
     .responsive-title {
-        font-size: 2.5rem; /* Размер для ПК по умолчанию */
+        font-size: 3rem; /* Крупнее для ПК */
         font-weight: bold;
         line-height: 1.2;
         margin-bottom: 1rem;
+        color: #1E1E1E; /*можно настраивать */
     }
 
-    /* Настройки для мобильных экранов (ширина менее 768px) */
     @media (max-width: 768px) {
         .responsive-title {
-            font-size: 5.5vw; /* Шрифт будет подстраиваться под ширину экрана */
+            /* 8vw — можно менять */
+            font-size: clamp(1.8rem, 8vw, 2.5rem); 
         }
     }
     </style>
