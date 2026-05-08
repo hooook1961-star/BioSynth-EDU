@@ -61,32 +61,42 @@ import streamlit as st
 with st.sidebar:
     st.title("BioSynth-EDU")
     
-    # Язык
-    lang_options = ["Русский", "Қазақша", "English"]
-    selected_lang = st.selectbox("Language / Тіл / Язык", options=lang_options)
+    # Логика выбора языка
+    if 'lang' not in st.session_state:
+        st.session_state.lang = "Русский"
+    
+    selected_lang = st.selectbox("Language / Тіл / Язык", options=["Русский", "Қазақша", "English"], index=["Русский", "Қазақша", "English"].index(st.session_state.lang))
     st.session_state.lang = selected_lang
     t = LANGUAGES[selected_lang]
 
     st.divider()
-    
-    # Оригинальная логика базы KZ
-    if "database" in st.session_state:
+
+    # Логика работы с базой данных
+    if "database" in st.session_state and st.session_state.database:
         st.header(t.get("sidebar_kaz_cat", "Казахстанский каталог"))
+        
         mol_names = [mol['name'] for mol in st.session_state.database]
         
         selected_name = st.selectbox(
-            t.get("sidebar_kaz_label", "Выберите молекулу"),
-            options=["---"] + mol_names
+            t.get("sidebar_kaz_label", "Выберите соединение"),
+            options=["---"] + mol_names,
+            key="selector_v1"
         )
-        
-        # Просто связываем выбор с вкладкой 5
+
         if selected_name != "---":
-            st.session_state['current_mol'] = next((m for m in st.session_state.database if m['name'] == selected_name), None)
+            mol_data = next((m for m in st.session_state.database if m['name'] == selected_name), None)
+            # Запись данных для всех вкладок
+            st.session_state['selected_mol'] = mol_data
+            st.session_state['current_mol'] = mol_data 
         else:
+            st.session_state['selected_mol'] = None
             st.session_state['current_mol'] = None
 
     st.divider()
+    
+    # Кнопка сброса
     if st.button(t.get("btn_reset", "Сбросить")):
+        st.session_state['selected_mol'] = None
         st.session_state['current_mol'] = None
         st.rerun()
 
