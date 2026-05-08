@@ -125,7 +125,7 @@ st.markdown("""
 
     @media (max-width: 768px) {
         .responsive-title {
-            /* 8vw — можно менять */
+            /* 14vw — можно менять */
             font-size: clamp(1.8rem, 8vw, 2.5rem); 
         }
     }
