@@ -8,4 +8,5 @@ meeko
 scipy
 numpy
 gemmi
-st-ketcher
+streamlit-ketcher
+
