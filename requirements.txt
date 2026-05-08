@@ -8,3 +8,4 @@ meeko
 scipy
 numpy
 gemmi
+st-ketcher
