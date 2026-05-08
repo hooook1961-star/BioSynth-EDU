@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
+from streamlit_ketcher import st_ketcher
 import py3Dmol
 import json
 import os
