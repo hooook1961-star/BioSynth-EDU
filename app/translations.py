@@ -100,6 +100,16 @@ LANGUAGES = {
         """,
         "docking_warn_no_3d": "⚠️ Сначала постройте 3D модель на первой вкладке!",
         "project_warning": "👈 Пожалуйста, выберите соединение в боковой панели (База KZ), чтобы начать проект.",
+        "project_mol_header": "Объект исследования",
+        "project_smiles_label": "SMILES код",
+        "project_task_header": "Задание для выполнения",
+        "project_task_1": "1. Проведите прогноз биологической активности (PASS Online).",
+        "project_task_2": "2. Оцените соответствие правилу Липинского (вкладка ADMET).",
+        "project_task_3": "3. Подготовьте данные для итогового отчета.",
+        "project_ketcher_header": "Редактор молекул (Ketcher)",
+        "project_mod_warning": "Внимание: структура была изменена!",
+        "project_btn_analyze": "🧪 Анализировать новую структуру",
+
     },
     "Қазақша": {
         "nav_title": "BioSynth-EDU",
@@ -201,6 +211,16 @@ LANGUAGES = {
         """,
         "docking_warn_no_3d": "⚠️ Алдымен бірінші қосымша бетте 3D модельді құрастырыңыз!",
         "project_warning": "👈 Жобаны бастау үшін бүйірлік панельден қосылысты таңдаңыз (KZ базасы).",
+        "project_mol_header": "Зерттеу нысаны",
+        "project_smiles_label": "SMILES коды",
+        "project_task_header": "Орындалатын тапсырма",
+        "project_task_1": "1. Биологиялық белсенділікті болжау (PASS Online).",
+        "project_task_2": "2. Липинский ережесіне сәйкестігін бағалау (ADMET қойындысы).",
+        "project_task_3": "3. Қорытынды есеп үшін мәліметтерді дайындаңыз.",
+        "project_ketcher_header": "Молекулалық редактор (Ketcher)",
+        "project_mod_warning": "Назар аударыңыз: құрылым өзгертілді!",
+        "project_btn_analyze": "🧪 Жаңа құрылымды талдау",
+        
     },
     "English": {
         "nav_title": "BioSynth-EDU",
@@ -302,5 +322,15 @@ LANGUAGES = {
         """,
         "docking_warn_no_3d": "⚠️ Build the 3D model on the first tab first!",
         "project_warning": "👈 Please select a compound in the sidebar (KZ Base) to start the project.",
+        "project_mol_header": "Research Object",
+        "project_smiles_label": "SMILES code",
+        "project_task_header": "Project Task",
+        "project_task_1": "1. Perform bioactivity prediction (PASS Online).",
+        "project_task_2": "2. Evaluate Lipinski's Rule of Five (ADMET tab).",
+        "project_task_3": "3. Prepare data for the final report.",
+        "project_ketcher_header": "Molecule Editor (Ketcher)",
+        "project_mod_warning": "Warning: Structure has been modified!",
+        "project_btn_analyze": "🧪 Analyze New Structure",
+
     }
 }
