@@ -416,87 +416,89 @@ with tab4:
     with itabs[3]:
         st.info("Кейсы")
         
-# --- ВКЛАДКА 5: ИССЛЕДОВАТЕЛЬСКИЙ ПРОЕКТ ---
+# ====================== ВКЛАДКА 5: ИССЛЕДОВАТЕЛЬСКИЙ ПРОЕКТ ======================
 with tab5:
     st.header(t.get("tab_project", "🚀 Исследовательский проект"))
     
     mol_data = st.session_state.get('current_mol')
-    
-    if mol_data is not None:
-        smiles_for_project = mol_data.get('smiles', smiles)
+    current_smiles_project = mol_data.get('smiles', smiles) if mol_data else smiles
+
+    if current_smiles_project and current_smiles_project.strip():
         
-        # 1. Название вещества
-        st.subheader(f"🔬 {mol_data.get('name', 'Неизвестное соединение')}")
-        if mol_data.get('name_local'):
-            st.caption(mol_data.get('name_local', {}).get(L_CODE, ''))
-        
-        # 2. Информация о веществе из каталога
-        st.markdown("### 🇰🇿 Сведения о казахстанской разработке")
-        col_info1, col_info2 = st.columns([2, 1])
-        
-        with col_info1:
-            st.write(f"**Авторы:** {', '.join(mol_data.get('authors', ['—']))}")
-            st.info(f"**Описание:** {mol_data.get('description', 'Информация отсутствует')}")
-        
-        with col_info2:
-            if mol_data.get('classification'):
-                st.metric("Классификация", mol_data.get('classification', '—'))
-            if mol_data.get('year'):
-                st.metric("Год разработки", mol_data.get('year', '—'))
-        
-        st.divider()
-        
-        # 3. Задание на проект
+        # 1. Название
+        if mol_data:
+            title = mol_data.get('name', 'Выбранное соединение')
+            st.subheader(f"🔬 {title}")
+            if mol_data.get('name_local'):
+                st.caption(mol_data.get('name_local', {}).get(L_CODE, ''))
+        else:
+            st.subheader("🔬 Введённая структура")
+            st.caption("Ручной ввод SMILES")
+
+        # 2. SMILES
+        st.info(f"**SMILES:** `{current_smiles_project}`")
+
+        # 3. Информация из каталога (только если есть)
+        if mol_data:
+            st.markdown("### 🇰🇿 Сведения о казахстанской разработке")
+            col_info1, col_info2 = st.columns([2, 1])
+            with col_info1:
+                st.write(f"**Авторы:** {', '.join(mol_data.get('authors', ['—']))}")
+                st.info(f"**Описание:** {mol_data.get('description', 'Информация отсутствует')}")
+            with col_info2:
+                if mol_data.get('classification'):
+                    st.metric("Классификация", mol_data.get('classification'))
+                if mol_data.get('year'):
+                    st.metric("Год", mol_data.get('year'))
+            st.divider()
+
+        # 4. Задание
         st.subheader("📝 Задание на исследовательский проект")
         with st.expander("Открыть полное задание", expanded=True):
-            st.markdown(t.get("project_task_1", "**1.** Проведите прогноз спектра биологической активности с помощью **PASS Online**."))
-            st.markdown(t.get("project_task_2", "**2.** Оцените ADMET-свойства на **SwissADME** и проверьте правило Липинского."))
-            st.markdown("**3.** Измените структуру молекулы в редакторе ниже и проанализируйте, как внесённые изменения влияют на свойства соединения.")
-            st.markdown(t.get("project_task_3", "**4.** Сформулируйте выводы и рекомендации для постерного доклада."))
-        
+            st.markdown("**1.** Проведите прогноз спектра биологической активности с помощью **PASS Online**.")
+            st.markdown("**2.** Оцените фармакологические свойства (вкладка ADMET) и проверьте выполнение правила Липинского.")
+            st.markdown("**3.** В редакторе ниже **измените структуру молекулы** (добавьте/уберите функциональные группы, измените заместители) и проанализируйте, как это повлияло на свойства, повторив шаги 1 и 2 для нового соединения.")
+            st.markdown("**4.** Сформулируйте выводы и рекомендации для доклада.")
+
         st.divider()
-        
-        # 4. Редактор структуры
-        st.subheader("🧪 Редактор структуры молекулы")
-        st.markdown("**Задание:** Измените структуру (добавьте/уберите функциональные группы) и нажмите кнопку ниже.")
-        
-        edited = st_ketcher(smiles_for_project, key="project_ketcher")
-        
-        if edited != smiles_for_project and edited is not None:
-            st.success("✅ Структура успешно изменена!")
-            col_btn1, col_btn2 = st.columns(2)
-            with col_btn1:
-                if st.button("🔄 Применить изменения и обновить", use_container_width=True):
-                    st.session_state.current_mol['smiles'] = edited
+
+        # 5. Редактор структуры
+        st.subheader("🧪 Редактор структуры молекулы (Ketcher)")
+        st.markdown("**Задание:** Измените структуру молекулы и нажмите кнопку «Применить изменения».")
+
+        edited = st_ketcher(current_smiles_project, key="project_ketcher")
+
+        if edited != current_smiles_project and edited is not None:
+            st.success("✅ Структура изменена!")
+            col_b1, col_b2 = st.columns(2)
+            with col_b1:
+                if st.button("🔄 Применить изменения", use_container_width=True):
+                    if mol_data:
+                        st.session_state.current_mol['smiles'] = edited
                     st.rerun()
-            with col_btn2:
+            with col_b2:
                 st.download_button(
-                    label="💾 Скачать изменённую структуру (SMILES)",
+                    label="💾 Скачать SMILES",
                     data=edited,
-                    file_name=f"modified_{mol_data.get('name', 'mol')}.smi",
+                    file_name="modified_molecule.smi",
                     mime="text/plain",
                     use_container_width=True
                 )
-        
+
         st.divider()
-        
-        # 5. Внешние сервисы
-        st.subheader("🛠 Внешние сервисы для выполнения задания")
-        col_serv1, col_serv2, col_serv3 = st.columns(3)
-        
-        with col_serv1:
-            st.link_button("🌐 PASS Online", 
-                          "http://www.way2drug.com/passonline/", 
-                          use_container_width=True)
-        with col_serv2:
-            st.link_button("🧪 SwissADME", 
-                          "http://www.swissadme.ch/", 
-                          use_container_width=True)
-        with col_serv3:
+
+        # 6. Внешние сервисы
+        st.subheader("🛠 Внешние сервисы")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.link_button("🌐 PASS Online", "http://www.way2drug.com/passonline/", use_container_width=True)
+        with col2:
+            st.link_button("🧪 SwissADME", "http://www.swissadme.ch/", use_container_width=True)
+        with col3:
             st.link_button("📊 PubChem", 
-                          f"https://pubchem.ncbi.nlm.nih.gov/#query={smiles_for_project}", 
+                          f"https://pubchem.ncbi.nlm.nih.gov/#query={current_smiles_project}", 
                           use_container_width=True)
-            
+
     else:
-        st.warning(t.get("project_warning", "Выберите соединение в боковой панели"))
-        st.info("После выбора препарата из **Казахстанского каталога** здесь появится полный интерфейс исследовательского проекта.")
+        st.warning("Введите SMILES или выберите соединение из боковой панели")
+        st.info("После ввода/выбора молекулы здесь появится интерфейс исследовательского проекта.")
