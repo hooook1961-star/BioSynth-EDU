@@ -484,8 +484,9 @@ with tab5:
             st.divider()
 
         # 3. Задание
+        # Найти секцию 3. Задание и заменить строку с expander:
         st.subheader(t.get("task_title"))
-        with st.expander(t.get("task_full"), expanded=True):
+        with st.expander(t.get("task_full", "Task / Задание"), expanded=True):
             st.markdown(t.get("task_step_1"))
             st.markdown(t.get("task_step_2"))
             st.markdown(t.get("task_step_3"))
