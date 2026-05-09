@@ -111,7 +111,7 @@ if st.session_state.active_smiles != smiles:
     st.session_state.mol_block = None
     st.session_state.active_smiles = smiles
 
-# ====================== АВТОМАТИЧЕСКОЕ ОПРЕДЕЛЕНИЕ current_mol ======================
+# -- АВТОМАТИЧЕСКОЕ ОПРЕДЕЛЕНИЕ current_mol ---
 if 'current_mol' not in st.session_state:
     st.session_state.current_mol = None
 
@@ -419,6 +419,11 @@ with tab4:
 # --- ВКЛАДКА 5: ИССЛЕДОВАТЕЛЬСКИЙ ПРОЕКТ ---
 with tab5:
     st.header(t.get("tab_project", "🚀 Исследовательский проект"))
+        st.markdown("""
+    **Задание по органической химии для студентов**
+
+    Выполните задание ниже, чтобы провести исследование лекарственного или биологически активного соединения.
+    """)
     
     mol_data = st.session_state.get('current_mol')
     project_smiles = mol_data.get('smiles', smiles) if mol_data else smiles
