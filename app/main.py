@@ -558,6 +558,45 @@ with tab5:
         with s_col3:
             st.link_button("📊 PubChem Search", f"https://pubchem.ncbi.nlm.nih.gov/#query={project_smiles}", use_container_width=True, type="primary")
 
+        # --- ТЕСТ ---
+        st.divider()
+        # Кнопка запуска
+        if st.button("📝 Пройти тест и получить вопросы к защите", use_container_width=True, type="primary"):
+            tests, open_qs, cols = get_assessment_data()
+            
+            if tests:
+                @st.dialog("Интеллектуальный тренажер BioSynth-EDU", width="large")
+                def run_quiz_dialog():
+                    score = 0
+                    st.write("### Часть 1: Тестирование")
+                    
+                    for i, item in enumerate(tests):
+                        q_text = item[cols['q_test']]
+                        # В твоих файлах варианты разделены через ";"
+                        raw_options = str(item[cols['opt_test']]).split(';')
+                        # Правильный ответ в твоих исходниках всегда первый
+                        correct_answer = raw_options[0].strip()
+                        
+                        # Перемешиваем список для студента
+                        shuffled = random.sample(raw_options, len(raw_options))
+                        shuffled = [opt.strip() for opt in shuffled]
+                        
+                        st.write(f"**{i+1}. {q_text}**")
+                        ans = st.radio(f"Вопрос {i}", options=shuffled, key=f"q_idx_{i}", label_visibility="collapsed")
+                        if ans == correct_answer:
+                            score += 1
+                        st.divider()
+                    
+                    if st.button("Показать результат и вопросы к защите"):
+                        st.success(f"Ваш результат: {score} из {len(tests)}")
+                        st.write("### Часть 2: Вопросы для подготовки к докладу")
+                        for q in open_qs:
+                            st.info(q)
+                        if st.button("Завершить"):
+                            st.rerun()
+
+                run_quiz_dialog()    
+
     else:
         st.warning("⚠️ Молекула не выбрана")
         st.info("""**Как начать:**
