@@ -134,6 +134,11 @@ LANGUAGES = {
         "download_btn": "💾 Скачать изменённый SMILES",
         "mol_not_selected": "⚠️ Молекула не выбрана",
         "quiz_btn": "📝 Пройти тест и получить вопросы к защите",
+        "check_result": "Проверить результат",
+        "defense_questions": "Вопросы для подготовки к докладу",
+        "close": "Завершить и закрыть",
+        "structure_changed": "Структура изменена в редакторе!",
+
     },
     "Қазақша": {
         "nav_title": "BioSynth-EDU",
@@ -269,6 +274,11 @@ LANGUAGES = {
         "download_btn": "💾 Өзгертілген SMILES-ті жүктеп алу",
         "mol_not_selected": "⚠️ Молекула таңдалмады",
         "quiz_btn": "📝 Тесттен өтіп, қорғауға арналған сұрақтарды алу",
+        "check_result": "Нәтижені тексеру",
+        "defense_questions": "Баяндамаға дайындалу сұрақтары",
+        "close": "Аяқтау және жабу",
+        "structure_changed": "Редакторда құрылым өзгертілді!",
+
     },
     "English": {
         "nav_title": "BioSynth-EDU",
@@ -404,6 +414,11 @@ LANGUAGES = {
         "download_btn": "💾 Download Modified SMILES",
         "mol_not_selected": "⚠️ No molecule selected",
         "quiz_btn": "📝 Take the Quiz & Get Defense Questions",
+        "check_result": "Check result",
+        "defense_questions": "Report preparation questions",
+        "close": "Finish and Close",
+        "structure_changed": "Structure changed in the editor!",
+
 
     }
 }
