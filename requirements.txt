@@ -8,5 +8,5 @@ meeko
 scipy
 numpy
 gemmi
-streamlit-ketcherimport 
+streamlit-ketcher
 openpyxl
