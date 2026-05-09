@@ -565,7 +565,7 @@ with tab5:
             tests, open_qs, cols = get_assessment_data()
             
             if tests:
-                                @st.dialog("Интеллектуальный тренажер BioSynth-EDU", width="large")
+                @st.dialog("Интеллектуальный тренажер BioSynth-EDU", width="large")
                 def run_quiz_dialog(t, o, c):
                     st.write("### Часть 1: Тестирование")
                     
