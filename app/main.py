@@ -556,7 +556,11 @@ with tab5:
             f"**{t.get('editor_task', 'Задание: Измените структуру ниже и нажмите «Применить изменения».')}**"
         )
 
-        editor_key = f"project_ketcher_{hash(project_smiles) % 100000}"
+        editor_key = (
+            f"project_ketcher_"
+            f"{hash(project_smiles) % 100000}_"
+            f"{st.session_state.lang}"
+        )
 
         edited = st_ketcher(
             project_smiles,
