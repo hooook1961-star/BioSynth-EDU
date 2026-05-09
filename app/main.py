@@ -509,21 +509,27 @@ with tab5:
 
         st.divider()
 
-        # 5. Внешние сервисы
-        st.subheader("🛠 Внешние сервисы")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.link_button("🌐 PASS Online", 
-                          "http://www.way2drug.com/passonline/", 
-                          use_container_width=True)
-        with col2:
-            st.link_button("🧪 SwissADME", 
-                          "http://www.swissadme.ch/", 
-                          use_container_width=True)
-        with col3:
-            st.link_button("📊 PubChem", 
-                          f"https://pubchem.ncbi.nlm.nih.gov/#query={project_smiles}", 
-                          use_container_width=True)
+        # --- 5. ОБУЧАЮЩИЕ МАТЕРИАЛЫ И СЕРВИСЫ ---
+        st.subheader("📚 Обучение и инструменты")
+        
+        # Ряд кнопок с лекциями
+        st.markdown(f"**📺 {t.get('lectures_header', 'Видео-лекции по теме')}:**")
+        l_col1, l_col2, l_col3 = st.columns(3)
+        with l_col1:
+            st.link_button("🎥 Лекция: PASS", "https://youtube.com/...", use_container_width=True, type="secondary")
+        with l_col2:
+            st.link_button("🎥 Лекция: ADME", "https://youtube.com/...", use_container_width=True, type="secondary")
+        with l_col3:
+            st.link_button("🎥 Лекция: PubChem", "https://youtube.com/...", use_container_width=True, type="secondary")
+
+        st.markdown(f"**🛠 {t.get('tools_header', 'Инструменты анализа')}:**")
+        s_col1, s_col2, s_col3 = st.columns(3)
+        with s_col1:
+            st.link_button("🌐 PASS Online", "http://www.way2drug.com/passonline/", use_container_width=True, type="primary")
+        with s_col2:
+            st.link_button("🧪 SwissADME", "http://www.swissadme.ch/", use_container_width=True, type="primary")
+        with s_col3:
+            st.link_button("📊 PubChem Search", f"https://pubchem.ncbi.nlm.nih.gov/#query={project_smiles}", use_container_width=True, type="primary")
 
     else:
         st.warning("⚠️ Молекула не выбрана")
