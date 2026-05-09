@@ -571,27 +571,29 @@ with tab5:
                     
                     with st.form("quiz_form"):
                         user_answers = []
+                    
                         for i, item in enumerate(t_data):
-                            # 1. Достаем правильные названия колонок из маппинга
-                            col_q = c_map['q_test']   # например, 'question_kz'
-                            col_opt = c_map['opt_test'] # например, 'options_kz'
+                            col_q = c_map['q_test']
+                            col_opt = c_map['opt_test']
                             
-                            # 2. Извлекаем текст вопроса и строку ответов
                             q_text = item[col_q]
-                            raw_options_str = str(item[col_opt]) # Берем именно ту колонку, что в маппинге!
-                            
-                            # 3. Разбиваем ответы
+                            raw_options_str = str(item[col_opt])
                             raw_options = [opt.strip() for opt in raw_options_str.split(';')]
                             correct_answer = raw_options[0]
                             
-                            if f"shuffled_{i}" not in st.session_state:
-                                st.session_state[f"shuffled_{i}"] = random.sample(raw_options, len(raw_options))
+                            # Уникальные ключи для изоляции языков
+                            state_key = f"shuffled_{i}_{col_opt}"
+                            radio_key = f"quiz_radio_{i}_{col_opt}"
+                            
+                            if state_key not in st.session_state:
+                                st.session_state[state_key] = random.sample(raw_options, len(raw_options))
                             
                             st.write(f"**{i+1}. {q_text}**")
+                            
                             ans = st.radio(
                                 f"Вопрос {i}", 
-                                options=st.session_state[f"shuffled_{i}"], 
-                                key=f"quiz_radio_{i}", 
+                                options=st.session_state[state_key], 
+                                key=radio_key, 
                                 index=None, 
                                 label_visibility="collapsed"
                             )
@@ -599,7 +601,7 @@ with tab5:
                             st.divider()
                         
                         submit_quiz = st.form_submit_button("Проверить результат", use_container_width=True)
-                
+
                     if submit_quiz:
                         score = sum(1 for ans, correct in user_answers if ans == correct)
                         st.success(f"Ваш результат: {score} из {len(t_data)}")
