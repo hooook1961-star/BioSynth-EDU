@@ -459,34 +459,44 @@ with tab5:
 
         st.divider()
 
-        # 4. Редактор структуры — ВАЖНО: всегда вне expander'а и с уникальным ключом
+        # --- РЕДАКТОР СТРУКТУРЫ ---
         st.subheader("🧪 Редактор структуры молекулы")
-        st.markdown("**Задание:** Измените структуру молекулы ниже и нажмите кнопку «Применить изменения».")
+        st.markdown("**Задание:** Измените структуру молекулы ниже. После изменений нажмите нужную кнопку.")
 
         edited = st_ketcher(
             project_smiles, 
-            key="project_ketcher_key"   # фиксированный уникальный ключ
+            key="project_ketcher_key"
         )
 
         if edited and edited != project_smiles:
-            st.success("✅ Структура успешно изменена!")
-            col_b1, col_b2 = st.columns(2)
-            with col_b1:
-                if st.button("🔄 Применить изменения и обновить", use_container_width=True):
+            st.success("✅ **Структура изменена!** Теперь вы можете:")
+            
+            col_btn1, col_btn2 = st.columns(2)
+            
+            with col_btn1:
+                if st.button("🔄 Применить изменения и продолжить работу с новой структурой", 
+                           use_container_width=True, type="primary"):
                     if mol_data:
                         st.session_state.current_mol['smiles'] = edited
+                    # Обновляем основной smiles тоже
+                    st.session_state.active_smiles = edited
                     st.rerun()
-            with col_b2:
+            
+            with col_btn2:
                 st.download_button(
-                    label="💾 Скачать изменённый SMILES",
+                    label="💾 Скачать SMILES изменённой молекулы",
                     data=edited,
-                    file_name=f"modified_{mol_data.get('name', 'molecule') if mol_data else 'molecule'}.smi",
+                    file_name=f"modified_{mol_data.get('name', 'molecule') if mol_data else 'molecule'}_{datetime.datetime.now().strftime('%H%M')}.smi",
                     mime="text/plain",
                     use_container_width=True
                 )
-
-        st.divider()
-
+            
+            # новый SMILES
+            st.info(f"**Новый SMILES:**\n`{edited}`")
+            
+        else:
+            st.caption("Отредактируйте молекулу выше, чтобы появились кнопки сохранения")
+            
         # 5. Внешние сервисы
         st.subheader("🛠 Внешние сервисы")
         col1, col2, col3 = st.columns(3)
