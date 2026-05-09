@@ -421,24 +421,21 @@ with tab5:
     st.header(t.get("tab_project", "🚀 Исследовательский проект"))
     
     mol_data = st.session_state.get('current_mol')
-    current_smiles_project = mol_data.get('smiles', smiles) if mol_data else smiles
+    project_smiles = mol_data.get('smiles', smiles) if mol_data else smiles
 
-    if current_smiles_project and current_smiles_project.strip():
+    if project_smiles and project_smiles.strip():
         
-        # 1. Название
+        # 1. Название и SMILES
         if mol_data:
-            title = mol_data.get('name', 'Выбранное соединение')
-            st.subheader(f"🔬 {title}")
+            st.subheader(f"🔬 {mol_data.get('name', 'Выбранное соединение')}")
             if mol_data.get('name_local'):
                 st.caption(mol_data.get('name_local', {}).get(L_CODE, ''))
         else:
             st.subheader("🔬 Введённая структура")
-            st.caption("Ручной ввод SMILES")
 
-        # 2. SMILES
-        st.info(f"**SMILES:** `{current_smiles_project}`")
+        st.info(f"**SMILES:** `{project_smiles}`")
 
-        # 3. Информация из каталога (только если есть)
+        # 2. Информация из каталога (только если выбрано из KZ)
         if mol_data:
             st.markdown("### 🇰🇿 Сведения о казахстанской разработке")
             col_info1, col_info2 = st.columns([2, 1])
@@ -447,47 +444,50 @@ with tab5:
                 st.info(f"**Описание:** {mol_data.get('description', 'Информация отсутствует')}")
             with col_info2:
                 if mol_data.get('classification'):
-                    st.metric("Классификация", mol_data.get('classification'))
+                    st.metric("Классификация", mol_data.get('classification', '—'))
                 if mol_data.get('year'):
-                    st.metric("Год", mol_data.get('year'))
+                    st.metric("Год", mol_data.get('year', '—'))
             st.divider()
 
-        # 4. Задание
+        # 3. Задание
         st.subheader("📝 Задание на исследовательский проект")
         with st.expander("Открыть полное задание", expanded=True):
-            st.markdown("**1.** Проведите прогноз спектра биологической активности с помощью **PASS Online**.")
-            st.markdown("**2.** Оцените фармакологические свойства (вкладка ADMET) и проверьте выполнение правила Липинского.")
-            st.markdown("**3.** В редакторе ниже **измените структуру молекулы** (добавьте/уберите функциональные группы, измените заместители) и проанализируйте, как это повлияло на свойства, повторив шаги 1 и 2 для нового соединения.")
-            st.markdown("**4.** Сформулируйте выводы и рекомендации для доклада.")
+            st.markdown("""**1.** Проведите прогноз спектра биологической активности с помощью **PASS Online**.""")
+            st.markdown("""**2.** Оцените фармакологические свойства (во вкладке **ADMET**) и проверьте выполнение правила Липинского.""")
+            st.markdown("""**3.** В редакторе ниже **измените структуру молекулы** (добавьте/уберите функциональные группы, измените заместители) и проанализируйте, как это повлияло на свойства, повторив шаги 1 и 2 для нового соединения.""")
+            st.markdown("""**4.** Сформулируйте выводы и рекомендации для доклада.""")
 
         st.divider()
 
-        # 5. Редактор структуры
-        st.subheader("🧪 Редактор структуры молекулы (Ketcher)")
-        st.markdown("**Задание:** Измените структуру молекулы и нажмите кнопку «Применить изменения».")
+        # 4. Редактор структуры — ВАЖНО: всегда вне expander'а и с уникальным ключом
+        st.subheader("🧪 Редактор структуры молекулы")
+        st.markdown("**Задание:** Измените структуру молекулы ниже и нажмите кнопку «Применить изменения».")
 
-        edited = st_ketcher(current_smiles_project, key="project_ketcher")
+        edited = st_ketcher(
+            project_smiles, 
+            key="project_ketcher_key"   # фиксированный уникальный ключ
+        )
 
-        if edited != current_smiles_project and edited is not None:
-            st.success("✅ Структура изменена!")
+        if edited and edited != project_smiles:
+            st.success("✅ Структура успешно изменена!")
             col_b1, col_b2 = st.columns(2)
             with col_b1:
-                if st.button("🔄 Применить изменения", use_container_width=True):
+                if st.button("🔄 Применить изменения и обновить", use_container_width=True):
                     if mol_data:
                         st.session_state.current_mol['smiles'] = edited
                     st.rerun()
             with col_b2:
                 st.download_button(
-                    label="💾 Скачать SMILES",
+                    label="💾 Скачать изменённый SMILES",
                     data=edited,
-                    file_name="modified_molecule.smi",
+                    file_name=f"modified_{mol_data.get('name', 'molecule') if mol_data else 'molecule'}.smi",
                     mime="text/plain",
                     use_container_width=True
                 )
 
         st.divider()
 
-        # 6. Внешние сервисы
+        # 5. Внешние сервисы
         st.subheader("🛠 Внешние сервисы")
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -496,9 +496,14 @@ with tab5:
             st.link_button("🧪 SwissADME", "http://www.swissadme.ch/", use_container_width=True)
         with col3:
             st.link_button("📊 PubChem", 
-                          f"https://pubchem.ncbi.nlm.nih.gov/#query={current_smiles_project}", 
+                          f"https://pubchem.ncbi.nlm.nih.gov/#query={project_smiles}", 
                           use_container_width=True)
 
     else:
-        st.warning("Введите SMILES или выберите соединение из боковой панели")
-        st.info("После ввода/выбора молекулы здесь появится интерфейс исследовательского проекта.")
+        # Сообщение, если ничего не выбрано
+        st.warning("⚠️ Молекула не выбрана")
+        st.info("""**Как начать работу:**
+        
+• Выберите соединение из **«Казахстанский каталог»** в боковой панели  
+• Или введите SMILES вручную в поле **«Ручной ввод SMILES»** в боковой панели
+        """)
