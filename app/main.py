@@ -444,184 +444,391 @@ with tab4:
     with itabs[3]:
         st.info("Кейсы")
         
- # --- ВКЛАДКА 5: ИССЛЕДОВАТЕЛЬСКИЙ ПРОЕКТ ---
+# --- ВКЛАДКА 5: ИССЛЕДОВАТЕЛЬСКИЙ ПРОЕКТ ---
 with tab5:
     st.header(t.get("tab_project", "🚀 Исследовательский проект"))
-        # -- ОПИСАНИЕ ПРОЕКТА ---
-    st.markdown("""
-**Исследовательский проект по органической химии для студентов и учащихся**
 
-Выполните задание, чтобы исследовать лекарственное или биологически активное соединение
+    # -- ОПИСАНИЕ ПРОЕКТА ---
+    st.markdown(t.get(
+        "project_desc",
+        "**Исследовательский проект по органической химии для студентов и учащихся**"
+    ))
 
-**👈 Для начала работы выберите молекулу в боковой панели**  
-(раздел «База kz» или поле ручного ввода SMILES)
-    """)
-    
+    st.markdown(t.get(
+        "project_start_hint",
+        "👈 Для начала работы выберите молекулу в боковой панели\n(раздел «База kz» или поле ручного ввода SMILES)"
+    ))
+
     st.divider()
-    
+
     mol_data = st.session_state.get('current_mol')
     project_smiles = mol_data.get('smiles', smiles) if mol_data else smiles
 
     if project_smiles and project_smiles.strip():
-        
+
         # 1. Название и SMILES
         if mol_data:
-            st.subheader(f"🔬 {mol_data.get('name', 'Выбранное соединение')}")
-            if mol_data.get('name_local'):
-                st.caption(mol_data.get('name_local', {}).get(L_CODE, ''))
-        else:
-            st.subheader("🔬 Введённая структура")
+            st.subheader(
+                f"🔬 {mol_data.get('name', t.get('selected_mol', 'Выбранное соединение'))}"
+            )
 
-        st.info(f"**Текущий SMILES:** `{project_smiles}`")
+            if mol_data.get('name_local'):
+                st.caption(
+                    mol_data.get('name_local', {}).get(L_CODE, '')
+                )
+
+        else:
+            st.subheader(t.get("input_struct", "🔬 Введённая структура"))
+
+        st.info(
+            f"**{t.get('current_smiles', 'Текущий SMILES')}:** `{project_smiles}`"
+        )
 
         # 2. Информация из каталога
         if mol_data:
-            st.markdown("### 🇰🇿 Сведения о казахстанской разработке")
+            st.markdown(f"### {t.get('kz_info', '🇰🇿 Сведения о казахстанской разработке')}")
+
             col_info1, col_info2 = st.columns([2, 1])
+
             with col_info1:
-                st.write(f"**Авторы:** {', '.join(mol_data.get('authors', ['—']))}")
-                st.info(f"**Описание:** {mol_data.get('description', 'Информация отсутствует')}")
+                st.write(
+                    f"**{t.get('authors', 'Авторы')}:** "
+                    f"{', '.join(mol_data.get('authors', ['—']))}"
+                )
+
+                st.info(
+                    f"**{t.get('description', 'Описание')}:** "
+                    f"{mol_data.get('description', t.get('info_missing', 'Информация отсутствует'))}"
+                )
+
             with col_info2:
                 if mol_data.get('classification'):
-                    st.metric("Классификация", mol_data.get('classification', '—'))
+                    st.metric(
+                        t.get('classification', 'Классификация'),
+                        mol_data.get('classification', '—')
+                    )
+
                 if mol_data.get('year'):
-                    st.metric("Год", mol_data.get('year', '—'))
+                    st.metric(
+                        t.get('year', 'Год'),
+                        mol_data.get('year', '—')
+                    )
+
             st.divider()
 
         # 3. Задание
-        st.subheader("📝 Задание на исследовательский проект")
-        with st.expander("Открыть полное задание", expanded=True):
-            st.markdown("""**1.** Проведите прогноз спектра биологической активности с помощью **PASS Online**.""")
-            st.markdown("""**2.** Оцените фармакологические свойства (во вкладке **ADMET**) и проверьте выполнение правила Липинского.""")
-            st.markdown("""**3.** В редакторе ниже **измените структуру молекулы** (добавьте/уберите функциональные группы, измените заместители) и проанализируйте, как это повлияло на свойства, повторив шаги 1 и 2.""")
-            st.markdown("""**4.** Сформулируйте выводы и рекомендации для доклада.""")
+        st.subheader(
+            t.get("task_title", "📝 Задание на исследовательский проект")
+        )
+
+        with st.expander(
+            t.get("task_full", "Открыть полное задание"),
+            expanded=True
+        ):
+            st.markdown(t.get(
+                "task_step_1",
+                "1. Проведите прогноз спектра биологической активности с помощью **PASS Online**."
+            ))
+
+            st.markdown(t.get(
+                "task_step_2",
+                "2. Оцените фармакологические свойства (во вкладке **ADMET**) и проверьте выполнение правила Липинского."
+            ))
+
+            st.markdown(t.get(
+                "task_step_3",
+                "3. В редакторе ниже **измените структуру молекулы** и проанализируйте изменения."
+            ))
+
+            st.markdown(t.get(
+                "task_step_4",
+                "4. Сформулируйте выводы и рекомендации для доклада."
+            ))
 
         st.divider()
 
         # 4. Редактор структуры
-        st.subheader("🧪 Редактор структуры молекулы")
-        st.markdown("**Задание:** Измените структуру ниже и нажмите «Применить изменения».")
+        st.subheader(
+            t.get("editor_title", "🧪 Редактор структуры молекулы")
+        )
+
+        st.markdown(
+            f"**{t.get('editor_task', 'Задание: Измените структуру ниже и нажмите «Применить изменения».')}**"
+        )
 
         editor_key = f"project_ketcher_{hash(project_smiles) % 100000}"
 
         edited = st_ketcher(
-            project_smiles, 
+            project_smiles,
             key=editor_key
         )
 
         if edited and edited != project_smiles:
-            st.success("✅ **Структура изменена в редакторе!**")
-            st.info(f"**Новый SMILES:**\n`{edited}`")
+
+            st.success(
+                t.get("structure_changed", "✅ Структура изменена в редакторе!")
+            )
+
+            st.info(
+                f"**{t.get('new_smiles', 'Новый SMILES')}:**\n`{edited}`"
+            )
 
             col_btn1, col_btn2 = st.columns(2)
+
             with col_btn1:
-                if st.button("🔄 Применить изменения и обновить проект", 
-                           use_container_width=True, type="primary"):
+                if st.button(
+                    t.get(
+                        "apply_btn",
+                        "🔄 Применить изменения и обновить проект"
+                    ),
+                    use_container_width=True,
+                    type="primary"
+                ):
+
                     if mol_data:
                         st.session_state.current_mol['smiles'] = edited
+
                     st.session_state.active_smiles = edited
-                    st.success("✅ Изменения применены!")
+
+                    st.success(
+                        t.get("change_applied", "✅ Изменения применены!")
+                    )
+
                     st.rerun()
-            
+
             with col_btn2:
                 st.download_button(
-                    label="💾 Скачать изменённый SMILES",
+                    label=t.get(
+                        "download_btn",
+                        "💾 Скачать изменённый SMILES"
+                    ),
                     data=edited,
-                    file_name=f"modified_molecule_{datetime.datetime.now().strftime('%H%M')}.smi",
+                    file_name=(
+                        f"{t.get('download_filename', 'modified_molecule')}_"
+                        f"{datetime.datetime.now().strftime('%H%M')}.smi"
+                    ),
                     mime="text/plain",
                     use_container_width=True
                 )
 
         else:
-            st.caption("👆 Измените молекулу в редакторе выше")
+            st.caption(
+                t.get(
+                    "change_editor_hint",
+                    "👆 Измените молекулу в редакторе выше"
+                )
+            )
 
         st.divider()
 
         # --- 5. ОБУЧАЮЩИЕ МАТЕРИАЛЫ И СЕРВИСЫ ---
-        st.subheader("📚 Обучение и инструменты")
-        
-        # Ряд кнопок с лекциями
-        st.markdown(f"**📺 {t.get('lectures_header', 'Видео-лекции по теме')}:**")
+        st.subheader("📚 " + t.get(
+            "tools_header",
+            "Обучение и инструменты"
+        ))
+
+        # Лекции
+        st.markdown(
+            f"**📺 {t.get('lectures_header', 'Видео-лекции по теме')}:**"
+        )
+
         l_col1, l_col2, l_col3 = st.columns(3)
+
         with l_col1:
-            st.link_button("🎥 Лекция: PASS", "https://youtube.com/...", use_container_width=True, type="secondary")
+            st.link_button(
+                t.get("pass_lecture", "🎥 Лекция: PASS"),
+                "https://youtube.com/...",
+                use_container_width=True,
+                type="secondary"
+            )
+
         with l_col2:
-            st.link_button("🎥 Лекция: ADME", "https://youtube.com/...", use_container_width=True, type="secondary")
+            st.link_button(
+                t.get("adme_lecture", "🎥 Лекция: ADME"),
+                "https://youtube.com/...",
+                use_container_width=True,
+                type="secondary"
+            )
+
         with l_col3:
-            st.link_button("🎥 Лекция: PubChem", "https://youtube.com/...", use_container_width=True, type="secondary")
+            st.link_button(
+                t.get("pubchem_lecture", "🎥 Лекция: PubChem"),
+                "https://youtube.com/...",
+                use_container_width=True,
+                type="secondary"
+            )
 
-        st.markdown(f"**🛠 {t.get('tools_header', 'Инструменты анализа')}:**")
+        # Инструменты
+        st.markdown(
+            f"**🛠 {t.get('tools_header', 'Инструменты анализа')}:**"
+        )
+
         s_col1, s_col2, s_col3 = st.columns(3)
-        with s_col1:
-            st.link_button("🌐 PASS Online", "http://www.way2drug.com/passonline/", use_container_width=True, type="primary")
-        with s_col2:
-            st.link_button("🧪 SwissADME", "http://www.swissadme.ch/", use_container_width=True, type="primary")
-        with s_col3:
-            st.link_button("📊 PubChem Search", f"https://pubchem.ncbi.nlm.nih.gov/#query={project_smiles}", use_container_width=True, type="primary")
 
-# --- ТЕСТ ---
+        with s_col1:
+            st.link_button(
+                t.get("pass_online", "🌐 PASS Online"),
+                "http://www.way2drug.com/passonline/",
+                use_container_width=True,
+                type="primary"
+            )
+
+        with s_col2:
+            st.link_button(
+                t.get("swissadme", "🧪 SwissADME"),
+                "http://www.swissadme.ch/",
+                use_container_width=True,
+                type="primary"
+            )
+
+        with s_col3:
+            st.link_button(
+                t.get("pubchem_search", "📊 PubChem Search"),
+                f"https://pubchem.ncbi.nlm.nih.gov/#query={project_smiles}",
+                use_container_width=True,
+                type="primary"
+            )
+
+        # --- ТЕСТ ---
         st.divider()
-        if st.button("📝 Пройти тест и получить вопросы к защите", use_container_width=True, type="primary"):
+
+        if st.button(
+            t.get(
+                "quiz_btn",
+                "📝 Пройти тест и получить вопросы к защите"
+            ),
+            use_container_width=True,
+            type="primary"
+        ):
+
             tests, open_qs, cols = get_assessment_data()
-            
+
             if tests:
-                @st.dialog("Интеллектуальный тренажер BioSynth-EDU", width="large")
+
+                @st.dialog(
+                    t.get(
+                        "quiz_title",
+                        "Интеллектуальный тренажер BioSynth-EDU"
+                    ),
+                    width="large"
+                )
                 def run_quiz_dialog(t_data, o_qs, c_map):
-                    st.write("### Часть 1: Тестирование")
-                    
+
+                    st.write(
+                        "### " + t.get(
+                            "quiz_part_1",
+                            "Часть 1: Тестирование"
+                        )
+                    )
+
                     with st.form("quiz_form"):
+
                         user_answers = []
-                    
+
                         for i, item in enumerate(t_data):
+
                             col_q = c_map['q_test']
                             col_opt = c_map['opt_test']
-                            
+
                             q_text = item[col_q]
+
                             raw_options_str = str(item[col_opt])
-                            raw_options = [opt.strip() for opt in raw_options_str.split(';')]
+
+                            raw_options = [
+                                opt.strip()
+                                for opt in raw_options_str.split(';')
+                            ]
+
                             correct_answer = raw_options[0]
-                            
-                            # Уникальные ключи для изоляции языков
+
                             state_key = f"shuffled_{i}_{col_opt}"
                             radio_key = f"quiz_radio_{i}_{col_opt}"
-                            
+
                             if state_key not in st.session_state:
-                                st.session_state[state_key] = random.sample(raw_options, len(raw_options))
-                            
+                                st.session_state[state_key] = random.sample(
+                                    raw_options,
+                                    len(raw_options)
+                                )
+
                             st.write(f"**{i+1}. {q_text}**")
-                            
+
                             ans = st.radio(
-                                f"Вопрос {i}", 
-                                options=st.session_state[state_key], 
-                                key=radio_key, 
-                                index=None, 
+                                f"{t.get('question_label', 'Вопрос')} {i}",
+                                options=st.session_state[state_key],
+                                key=radio_key,
+                                index=None,
                                 label_visibility="collapsed"
                             )
-                            user_answers.append((ans, correct_answer))
+
+                            user_answers.append(
+                                (ans, correct_answer)
+                            )
+
                             st.divider()
-                        
-                        submit_quiz = st.form_submit_button("Проверить результат", use_container_width=True)
+
+                        submit_quiz = st.form_submit_button(
+                            t.get(
+                                "check_result",
+                                "Проверить результат"
+                            ),
+                            use_container_width=True
+                        )
 
                     if submit_quiz:
-                        score = sum(1 for ans, correct in user_answers if ans == correct)
-                        st.success(f"Ваш результат: {score} из {len(t_data)}")
-                        
-                        st.write("### Часть 2: Вопросы для подготовки к докладу")
+
+                        score = sum(
+                            1
+                            for ans, correct in user_answers
+                            if ans == correct
+                        )
+
+                        st.success(
+                            f"{t.get('quiz_score', 'Ваш результат')}: "
+                            f"{score} / {len(t_data)}"
+                        )
+
+                        st.write(
+                            "### " + t.get(
+                                "quiz_part_2",
+                                "Часть 2: Вопросы для подготовки к докладу"
+                            )
+                        )
+
                         for q in o_qs:
                             st.info(q)
-                        
-                        if st.button("Закрыть"):
+
+                        if st.button(
+                            t.get("close", "Закрыть")
+                        ):
+
                             for i in range(len(t_data)):
-                                if f"shuffled_{i}" in st.session_state:
-                                    del st.session_state[f"shuffled_{i}"]
+
+                                state_key = (
+                                    f"shuffled_{i}_{c_map['opt_test']}"
+                                )
+
+                                if state_key in st.session_state:
+                                    del st.session_state[state_key]
+
                             st.rerun()
 
-                # Вызываем с передачей всех переменных
                 run_quiz_dialog(tests, open_qs, cols)
 
-
     else:
-        st.warning("⚠️ Молекула не выбрана")
-        st.info("""**Как начать:**
-• Выберите соединение из **Казахстанского каталога** в боковой панели  
-• Или введите SMILES вручную в боковой панели""")
+
+        st.warning(
+            t.get(
+                "mol_not_selected",
+                "⚠️ Молекула не выбрана"
+            )
+        )
+
+        st.info(
+            f"""
+**{t.get('how_start', 'Как начать:')}**
+
+{t.get('start_step_1', '• Выберите соединение из Казахстанского каталога в боковой панели')}
+
+{t.get('start_step_2', '• Или введите SMILES вручную в боковой панели')}
+"""
+        )
