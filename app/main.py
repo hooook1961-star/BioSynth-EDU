@@ -559,37 +559,29 @@ with tab5:
         with s_col3:
             st.link_button("📊 PubChem Search", f"https://pubchem.ncbi.nlm.nih.gov/#query={project_smiles}", use_container_width=True, type="primary")
 
-        # --- ТЕСТ ---
+# --- ТЕСТ ---
         st.divider()
-        # Кнопка запуска
         if st.button("📝 Пройти тест и получить вопросы к защите", use_container_width=True, type="primary"):
             tests, open_qs, cols = get_assessment_data()
             
             if tests:
                 @st.dialog("Интеллектуальный тренажер BioSynth-EDU", width="large")
-                def run_quiz_dialog():
-                    # Инициализация баллов в session_state
-                    if 'current_score' not in st.session_state:
-                        st.session_state.current_score = 0
-                    
+                def run_quiz_dialog(t, o, c):
                     st.write("### Часть 1: Тестирование")
                     
-                    # Форма
+                    # форма, чтобы радио-кнопки не перезагружали диалог
                     with st.form("quiz_form"):
                         user_answers = []
-                        for i, item in enumerate(tests):
-                            q_text = item[cols['q_test']]
-                            raw_options = str(item[cols['opt_test']]).split(';')
+                        for i, item in enumerate(t):
+                            q_text = item[c['q_test']]
+                            raw_options = str(item[c['opt_test']]).split(';')
                             correct_answer = raw_options[0].strip()
                             
-                            # Перемешивание вариантов
+                            # порядок ответов, чтобы они не тусовали при каждом клике
                             if f"shuffled_{i}" not in st.session_state:
-                                shuffled = [opt.strip() for opt in random.sample(raw_options, len(raw_options))]
-                                st.session_state[f"shuffled_{i}"] = shuffled
+                                st.session_state[f"shuffled_{i}"] = [opt.strip() for opt in random.sample(raw_options, len(raw_options))]
                             
                             st.write(f"**{i+1}. {q_text}**")
-                            
-                            # уникальный key=f"quiz_q_{i}" и index=None
                             ans = st.radio(
                                 f"Вопрос {i}", 
                                 options=st.session_state[f"shuffled_{i}"], 
@@ -603,20 +595,21 @@ with tab5:
                         submit_quiz = st.form_submit_button("Проверить результат", use_container_width=True)
                 
                     if submit_quiz:
-                        # баллы
-                        final_score = sum(1 for ans, correct in user_answers if ans == correct)
-                        st.success(f"Ваш результат: {final_score} из {len(tests)}")
+                        score = sum(1 for ans, correct in user_answers if ans == correct)
+                        st.success(f"Ваш результат: {score} из {len(t)}")
                         
                         st.write("### Часть 2: Вопросы для подготовки к докладу")
-                        for q in open_qs:
+                        for q in o:
                             st.info(q)
-                            
-                        if st.button("Завершить и закрыть"):
-                            # Очистка временных ключей перемешивания перед выходом
-                            for i in range(len(tests)):
+                        
+                        if st.button("Закрыть"):
+                            # Очистка ключей перемешивания
+                            for i in range(len(t)):
                                 if f"shuffled_{i}" in st.session_state:
                                     del st.session_state[f"shuffled_{i}"]
                             st.rerun()
+             
+                run_quiz_dialog(tests, open_qs, cols)
 
     else:
         st.warning("⚠️ Молекула не выбрана")
