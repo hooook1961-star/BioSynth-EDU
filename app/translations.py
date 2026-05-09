@@ -138,6 +138,7 @@ LANGUAGES = {
         "defense_questions": "Вопросы для подготовки к докладу",
         "close": "Завершить и закрыть",
         "structure_changed": "Структура изменена в редакторе!",
+        "task_full": "Открыть полное задание",
 
     },
     "Қазақша": {
@@ -278,6 +279,7 @@ LANGUAGES = {
         "defense_questions": "Баяндамаға дайындалу сұрақтары",
         "close": "Аяқтау және жабу",
         "structure_changed": "Редакторда құрылым өзгертілді!",
+        "task_full": "Толық тапсырманы ашу",
 
     },
     "English": {
@@ -418,7 +420,7 @@ LANGUAGES = {
         "defense_questions": "Report preparation questions",
         "close": "Finish and Close",
         "structure_changed": "Structure changed in the editor!",
-
+        "task_full": "Open full task",
 
     }
 }
