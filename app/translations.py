@@ -157,7 +157,6 @@ LANGUAGES = {
         "start_step_1": "• Выберите соединение из Казахстанского каталога в боковой панели",
         "start_step_2": "• Или введите SMILES вручную в боковой панели",
         "download_filename": "modified_molecule"
-}
     },
     "Қазақша": {
         "nav_title": "BioSynth-EDU",
@@ -316,8 +315,6 @@ LANGUAGES = {
         "start_step_1": "• Бүйірлік панельдегі Қазақстан каталогынан қосылысты таңдаңыз",
         "start_step_2": "• Немесе SMILES мәнін қолмен енгізіңіз",
         "download_filename": "modified_molecule",
-}
-
     },
     "English": {
         "nav_title": "BioSynth-EDU",
@@ -476,6 +473,5 @@ LANGUAGES = {
         "start_step_1": "• Select a compound from the Kazakhstan catalog in the sidebar",
         "start_step_2": "• Or enter a SMILES string manually in the sidebar",
         "download_filename": "modified_molecule",
-
     }
 }
