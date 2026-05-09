@@ -566,57 +566,57 @@ with tab5:
             tests, open_qs, cols = get_assessment_data()
             
             if tests:
-            @st.dialog("Интеллектуальный тренажер BioSynth-EDU", width="large")
-            def run_quiz_dialog():
-                # Инициализация баллов в session_state
-                if 'current_score' not in st.session_state:
-                    st.session_state.current_score = 0
-                
-                st.write("### Часть 1: Тестирование")
-                
-                # Форма
-                with st.form("quiz_form"):
-                    user_answers = []
-                    for i, item in enumerate(tests):
-                        q_text = item[cols['q_test']]
-                        raw_options = str(item[cols['opt_test']]).split(';')
-                        correct_answer = raw_options[0].strip()
-                        
-                        # Перемешивание вариантов
-                        if f"shuffled_{i}" not in st.session_state:
-                            shuffled = [opt.strip() for opt in random.sample(raw_options, len(raw_options))]
-                            st.session_state[f"shuffled_{i}"] = shuffled
-                        
-                        st.write(f"**{i+1}. {q_text}**")
-                        
-                        # уникальный key=f"quiz_q_{i}" и index=None
-                        ans = st.radio(
-                            f"Вопрос {i}", 
-                            options=st.session_state[f"shuffled_{i}"], 
-                            key=f"quiz_radio_{i}", 
-                            index=None, 
-                            label_visibility="collapsed"
-                        )
-                        user_answers.append((ans, correct_answer))
-                        st.divider()
+                @st.dialog("Интеллектуальный тренажер BioSynth-EDU", width="large")
+                def run_quiz_dialog():
+                    # Инициализация баллов в session_state
+                    if 'current_score' not in st.session_state:
+                        st.session_state.current_score = 0
                     
-                    submit_quiz = st.form_submit_button("Проверить результат", use_container_width=True)
-            
-                if submit_quiz:
-                    # баллы
-                    final_score = sum(1 for ans, correct in user_answers if ans == correct)
-                    st.success(f"Ваш результат: {final_score} из {len(tests)}")
+                    st.write("### Часть 1: Тестирование")
                     
-                    st.write("### Часть 2: Вопросы для подготовки к докладу")
-                    for q in open_qs:
-                        st.info(q)
+                    # Форма
+                    with st.form("quiz_form"):
+                        user_answers = []
+                        for i, item in enumerate(tests):
+                            q_text = item[cols['q_test']]
+                            raw_options = str(item[cols['opt_test']]).split(';')
+                            correct_answer = raw_options[0].strip()
+                            
+                            # Перемешивание вариантов
+                            if f"shuffled_{i}" not in st.session_state:
+                                shuffled = [opt.strip() for opt in random.sample(raw_options, len(raw_options))]
+                                st.session_state[f"shuffled_{i}"] = shuffled
+                            
+                            st.write(f"**{i+1}. {q_text}**")
+                            
+                            # уникальный key=f"quiz_q_{i}" и index=None
+                            ans = st.radio(
+                                f"Вопрос {i}", 
+                                options=st.session_state[f"shuffled_{i}"], 
+                                key=f"quiz_radio_{i}", 
+                                index=None, 
+                                label_visibility="collapsed"
+                            )
+                            user_answers.append((ans, correct_answer))
+                            st.divider()
                         
-                    if st.button("Завершить и закрыть"):
-                        # Очистка временных ключей перемешивания перед выходом
-                        for i in range(len(tests)):
-                            if f"shuffled_{i}" in st.session_state:
-                                del st.session_state[f"shuffled_{i}"]
-                        st.rerun()
+                        submit_quiz = st.form_submit_button("Проверить результат", use_container_width=True)
+                
+                    if submit_quiz:
+                        # баллы
+                        final_score = sum(1 for ans, correct in user_answers if ans == correct)
+                        st.success(f"Ваш результат: {final_score} из {len(tests)}")
+                        
+                        st.write("### Часть 2: Вопросы для подготовки к докладу")
+                        for q in open_qs:
+                            st.info(q)
+                            
+                        if st.button("Завершить и закрыть"):
+                            # Очистка временных ключей перемешивания перед выходом
+                            for i in range(len(tests)):
+                                if f"shuffled_{i}" in st.session_state:
+                                    del st.session_state[f"shuffled_{i}"]
+                            st.rerun()
 
     else:
         st.warning("⚠️ Молекула не выбрана")
