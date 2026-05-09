@@ -545,7 +545,7 @@ with tab5:
 
         # --- ТЕСТ ---
         st.divider()
-        # Кнопка запуска теста (теперь переведена)
+        # Кнопка запуска теста 
         if st.button(t.get("quiz_btn"), use_container_width=True, type="primary"):
             tests, open_qs, cols = get_assessment_data()
             if tests:
@@ -569,7 +569,7 @@ with tab5:
                             user_answers.append((ans, raw_opts[0]))
                             st.divider()
                         
-                        # Кнопка внутри формы (используем ключ "check_result")
+                        # Кнопка внутри формы (ключ "check_result")
                         submit = st.form_submit_button(t.get("check_result", "Check"))
 
                     if submit:
@@ -581,7 +581,7 @@ with tab5:
                         for q in o_qs: 
                             st.info(q)
                             
-                        # Кнопка закрытия (используем ключ "close")
+                        # Кнопка закрытия (ключ "close")
                         if st.button(t.get("close", "Close")):
                             keys_to_del = [k for k in st.session_state.keys() if "sh_v2_" in k or "rb_v2_" in k]
                             for k in keys_to_del: del st.session_state[k]
