@@ -416,48 +416,55 @@ with tab4:
     with itabs[3]:
         st.info("Кейсы")
         
+# ====================== ВКЛАДКА 5: ИССЛЕДОВАТЕЛЬСКИЙ ПРОЕКТ ======================
 with tab5:
-    st.header(t.get("tab_project", "🚀 BioSynth-Challenge"))
+    st.header(t.get("tab_project", "🚀 Исследовательский проект"))
     
-    if 'current_mol' in st.session_state and st.session_state['current_mol'] is not None:
-        mol_data = st.session_state['current_mol']
-        smiles = mol_data.get('smiles', '')
+    mol_data = st.session_state.get('current_mol')
+    
+    if mol_data is not None:
+        smiles_for_project = mol_data.get('smiles', smiles)
         
-        # Заголовок с названием выбранного объекта
-        st.subheader(f"🔬 {t.get('project_mol_header', 'Объект')}: {mol_data.get('name', 'Unknown')}")
-        
+        st.subheader(f"🔬 {mol_data.get('name', 'Неизвестное соединение')}")
+        if mol_data.get('name_local'):
+            st.caption(mol_data.get('name_local', {}).get(L_CODE, ''))
+
         col1, col2 = st.columns([1, 2])
         
         with col1:
-            st.info(f"**{t.get('project_smiles_label', 'SMILES')}:**")
-            st.code(smiles)
+            st.info("**SMILES**")
+            st.code(smiles_for_project)
             
-            # Внешние сервисы для работы студента
             st.markdown("### 🛠 Внешние сервисы")
-            st.link_button("🌐 PASS Online (Activity)", "http://www.way2drug.com/passonline/")
-            st.link_button("🧪 SwissADME (ADMET)", "http://www.swissadme.ch/")
+            st.link_button("🌐 PASS Online (Прогноз активности)", 
+                          "http://www.way2drug.com/passonline/", 
+                          use_container_width=True)
+            st.link_button("🧪 SwissADME (ADMET)", 
+                          "http://www.swissadme.ch/", 
+                          use_container_width=True)
+            st.link_button("📊 PubChem", 
+                          f"https://pubchem.ncbi.nlm.nih.gov/#query={smiles_for_project}", 
+                          use_container_width=True)
             
-            # Методическое задание
-            with st.expander(f"📝 {t.get('project_task_header', 'Задание')}", expanded=True):
-                st.write(t.get("project_task_1", "1. Проведите прогноз биологической активности."))
-                st.write(t.get("project_task_2", "2. Оцените параметры ADME по правилу Липинского."))
-                st.write(t.get("project_task_3", "3. Сформируйте выводы для постерного доклада."))
+            with st.expander("📝 Задание на проект", expanded=True):
+                st.markdown(t.get("project_task_1", "1. Проведите прогноз спектра биологической активности (PASS Online)."))
+                st.markdown(t.get("project_task_2", "2. Оцените ADMET-свойства и выполните правило Липинского."))
+                st.markdown(t.get("project_task_3", "3. Сформулируйте выводы и рекомендации для постерного доклада."))
         
         with col2:
-            st.markdown(f"**{t.get('project_ketcher_header', 'Визуализация структуры')}**")
+            st.markdown("**🧪 Редактор структуры (Ketcher)**")
+            edited = st_ketcher(smiles_for_project, key="project_ketcher")
             
-            # Редактор, синхронизированный с базой
-            edited = st_ketcher(smiles)
-            
-            # Если студент изменил молекулу в редакторе
-            if edited != smiles:
-                st.warning(t.get("project_mod_warning", "Структура изменена"))
-                
-                # Кнопка для быстрого анализа новой (измененной) структуры
-                if st.button("🧪 Анализировать измененную структуру"):
-                    st.session_state['current_mol']['smiles'] = edited
+            if edited != smiles_for_project and edited is not None:
+                st.warning("⚠️ Структура изменена в редакторе")
+                if st.button("🔄 Применить изменения", use_container_width=True):
+                    # Обновляем SMILES в current_mol
+                    st.session_state.current_mol['smiles'] = edited
                     st.rerun()
+                    
     else:
         st.warning(t.get("project_warning", "Выберите соединение в боковой панели"))
-
+        st.info("После выбора молекулы из каталога здесь откроется полноценный интерфейс исследовательского проекта.")
         
+        # Подсказка
+        st.markdown("**💡 Подсказка:** Выберите препарат из раздела **«Казахстанский каталог»**")
