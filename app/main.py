@@ -15,7 +15,7 @@ from core.chem_utils import smiles_to_3d_block, get_pubchem_data, get_chembl_dat
 def get_assessment_data():
     lang = st.session_state.get('lang', 'Русский')
     
-    # Маппинг колонок по CSV
+    # Маппинг колонок
     lang_map = {
         "Русский": {"q_test": "question_ru", "opt_test": "options_ru", "q_open": "Вопрос (RU)"},
         "Қазақша": {"q_test": "question_kz", "opt_test": "options_kz", "q_open": "Сұрақ (KZ)"},
@@ -24,17 +24,17 @@ def get_assessment_data():
     cols = lang_map.get(lang)
 
     try:
-        # Чтение
-        df_tests = pd.read_csv('data/quiz_data.csv')
-        df_open = pd.read_csv('data/project_questions.csv')
+        # Чтение EXCEL
+        df_tests = pd.read_excel('data/Тесты.xlsx')
+        df_open = pd.read_excel('data/Открытые вопросы.xlsx')
 
-        # Выборка данных
+        # Выборка случайных данных
         sampled_tests = df_tests.sample(n=min(10, len(df_tests))).to_dict('records')
         sampled_open = df_open.sample(n=min(3, len(df_open)))[cols['q_open']].tolist()
 
         return sampled_tests, sampled_open, cols
     except Exception as e:
-        st.error(f"Ошибка загрузки тестов: {e}")
+        st.error(f"Ошибка загрузки Excel: {e}")
         return None, None, None
         
 st.set_page_config(page_title="BioSynth-EDU", layout="wide")
