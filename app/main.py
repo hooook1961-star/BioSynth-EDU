@@ -565,21 +565,27 @@ with tab5:
             tests, open_qs, cols = get_assessment_data()
             
             if tests:
-                @st.dialog("Интеллектуальный тренажер BioSynth-EDU", width="large")
+                                @st.dialog("Интеллектуальный тренажер BioSynth-EDU", width="large")
                 def run_quiz_dialog(t, o, c):
                     st.write("### Часть 1: Тестирование")
                     
-                    # форма, чтобы радио-кнопки не перезагружали диалог
                     with st.form("quiz_form"):
                         user_answers = []
                         for i, item in enumerate(t):
+                            # Берем вопрос и ВАРИАНТЫ согласно выбранному языку (c['opt_test'])
                             q_text = item[c['q_test']]
-                            raw_options = str(item[c['opt_test']]).split(';')
-                            correct_answer = raw_options[0].strip()
                             
-                            # порядок ответов, чтобы они не тусовали при каждом клике
+                            # Вот здесь была ошибка (раньше могло стоять 'options_ru' вместо c['opt_test'])
+                            raw_options_str = str(item[c['opt_test']])
+                            
+                            # Разбиваем строку по точке с запятой
+                            raw_options = [opt.strip() for opt in raw_options_str.split(';')]
+                            
+                            # Правильный ответ в Excel всегда первый в своей ячейке
+                            correct_answer = raw_options[0]
+                            
                             if f"shuffled_{i}" not in st.session_state:
-                                st.session_state[f"shuffled_{i}"] = [opt.strip() for opt in random.sample(raw_options, len(raw_options))]
+                                st.session_state[f"shuffled_{i}"] = random.sample(raw_options, len(raw_options))
                             
                             st.write(f"**{i+1}. {q_text}**")
                             ans = st.radio(
