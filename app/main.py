@@ -101,7 +101,7 @@ st.sidebar.header(t["sidebar_manual"])
 # Итоговое определение SMILES через ввод или выбор
 smiles = st.sidebar.text_input(t["sidebar_manual_label"], value=current_smiles)
 
-# --- ВСТАВКА: АВТОМАТИЧЕСКАЯ ОЧИСТКА ПАМЯТИ ---
+# --- АВТОМАТИЧЕСКАЯ ОЧИСТКА ПАМЯТИ ---
 if "active_smiles" not in st.session_state:
     st.session_state.active_smiles = smiles
 
@@ -110,6 +110,27 @@ if st.session_state.active_smiles != smiles:
     st.session_state.prepared_pdbqt = None
     st.session_state.mol_block = None
     st.session_state.active_smiles = smiles
+
+# ====================== АВТОМАТИЧЕСКОЕ ОПРЕДЕЛЕНИЕ current_mol ======================
+if 'current_mol' not in st.session_state:
+    st.session_state.current_mol = None
+
+# Обновлерие current_mol при изменении smiles
+current_mol_candidate = None
+
+# 1. Поиск в казахстанском каталоге
+if selected_kaz != t["select_placeholder"]:
+    current_mol_candidate = next((m for m in catalog if m['smiles'] == current_smiles), None)
+
+# 2. Если не нашли — можно добавить поиск по другим источникам позже
+
+if current_mol_candidate:
+    st.session_state.current_mol = current_mol_candidate
+elif smiles != st.session_state.get('last_smiles'):
+    # Если SMILES изменился вручную — сбрасываем current_mol
+    st.session_state.current_mol = None
+
+st.session_state.last_smiles = smiles
 # ----------------------------------------------
 
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
