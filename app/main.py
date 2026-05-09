@@ -416,7 +416,7 @@ with tab4:
     with itabs[3]:
         st.info("Кейсы")
         
-# ====================== ВКЛАДКА 5: ИССЛЕДОВАТЕЛЬСКИЙ ПРОЕКТ ======================
+# --- ВКЛАДКА 5: ИССЛЕДОВАТЕЛЬСКИЙ ПРОЕКТ ---
 with tab5:
     st.header(t.get("tab_project", "🚀 Исследовательский проект"))
     
@@ -433,9 +433,9 @@ with tab5:
         else:
             st.subheader("🔬 Введённая структура")
 
-        st.info(f"**SMILES:** `{project_smiles}`")
+        st.info(f"**Текущий SMILES:** `{project_smiles}`")
 
-        # 2. Информация из каталога (только если выбрано из KZ)
+        # 2. Информация из каталога
         if mol_data:
             st.markdown("### 🇰🇿 Сведения о казахстанской разработке")
             col_info1, col_info2 = st.columns([2, 1])
@@ -454,81 +454,68 @@ with tab5:
         with st.expander("Открыть полное задание", expanded=True):
             st.markdown("""**1.** Проведите прогноз спектра биологической активности с помощью **PASS Online**.""")
             st.markdown("""**2.** Оцените фармакологические свойства (во вкладке **ADMET**) и проверьте выполнение правила Липинского.""")
-            st.markdown("""**3.** В редакторе ниже **измените структуру молекулы** (добавьте/уберите функциональные группы, измените заместители) и проанализируйте, как это повлияло на свойства, повторив шаги 1 и 2 для нового соединения.""")
+            st.markdown("""**3.** В редакторе ниже **измените структуру молекулы** (добавьте/уберите функциональные группы, измените заместители) и проанализируйте, как это повлияло на свойства, повторив шаги 1 и 2.""")
             st.markdown("""**4.** Сформулируйте выводы и рекомендации для доклада.""")
 
         st.divider()
 
-                # ====================== РЕДАКТОР СТРУКТУРЫ ======================
+        # 4. Редактор структуры
         st.subheader("🧪 Редактор структуры молекулы")
-        st.markdown("**Задание:** Измените структуру молекулы ниже. После изменений нажмите кнопку «Применить изменения».")
+        st.markdown("**Задание:** Измените структуру ниже и нажмите «Применить изменения».")
 
-        # Используем session_state для более стабильной работы
-        if "project_edited_smiles" not in st.session_state:
-            st.session_state.project_edited_smiles = project_smiles
+        editor_key = f"project_ketcher_{hash(project_smiles) % 100000}"
 
         edited = st_ketcher(
-            st.session_state.project_edited_smiles, 
-            key="project_ketcher_key"
+            project_smiles, 
+            key=editor_key
         )
 
-        # Обновляем session_state, если компонент вернул новое значение
-        if edited and edited != st.session_state.project_edited_smiles:
-            st.session_state.project_edited_smiles = edited
-
-        # Показываем текущую версию в редакторе
-        if st.session_state.project_edited_smiles != project_smiles:
+        if edited and edited != project_smiles:
             st.success("✅ **Структура изменена в редакторе!**")
-            
-            st.info(f"**Новый SMILES:**\n`{st.session_state.project_edited_smiles}`")
+            st.info(f"**Новый SMILES:**\n`{edited}`")
 
             col_btn1, col_btn2 = st.columns(2)
-            
             with col_btn1:
                 if st.button("🔄 Применить изменения и обновить проект", 
-                           use_container_width=True, 
-                           type="primary"):
-                    # Применяем изменения
+                           use_container_width=True, type="primary"):
                     if mol_data:
-                        st.session_state.current_mol['smiles'] = st.session_state.project_edited_smiles
-                    
-                    # Обновляем основной smiles во всём приложении
-                    st.session_state.active_smiles = st.session_state.project_edited_smiles
-                    
-                    # Сбрасываем для следующего редактирования
-                    st.session_state.project_edited_smiles = st.session_state.project_edited_smiles
-                    
-                    st.success("✅ Изменения применены ко всему проекту!")
+                        st.session_state.current_mol['smiles'] = edited
+                    st.session_state.active_smiles = edited
+                    st.success("✅ Изменения применены!")
                     st.rerun()
             
             with col_btn2:
                 st.download_button(
                     label="💾 Скачать изменённый SMILES",
-                    data=st.session_state.project_edited_smiles,
-                    file_name=f"modified_molecule_{datetime.datetime.now().strftime('%H%M%S')}.smi",
+                    data=edited,
+                    file_name=f"modified_molecule_{datetime.datetime.now().strftime('%H%M')}.smi",
                     mime="text/plain",
                     use_container_width=True
                 )
+
         else:
-            st.caption("Измените молекулу в редакторе выше — после этого появятся кнопки")
-            
+            st.caption("👆 Измените молекулу в редакторе выше")
+
+        st.divider()
+
         # 5. Внешние сервисы
         st.subheader("🛠 Внешние сервисы")
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.link_button("🌐 PASS Online", "http://www.way2drug.com/passonline/", use_container_width=True)
+            st.link_button("🌐 PASS Online", 
+                          "http://www.way2drug.com/passonline/", 
+                          use_container_width=True)
         with col2:
-            st.link_button("🧪 SwissADME", "http://www.swissadme.ch/", use_container_width=True)
+            st.link_button("🧪 SwissADME", 
+                          "http://www.swissadme.ch/", 
+                          use_container_width=True)
         with col3:
             st.link_button("📊 PubChem", 
                           f"https://pubchem.ncbi.nlm.nih.gov/#query={project_smiles}", 
                           use_container_width=True)
 
     else:
-        # Сообщение, если ничего не выбрано
         st.warning("⚠️ Молекула не выбрана")
-        st.info("""**Как начать работу:**
-        
-• Выберите соединение из **«Казахстанский каталог»** в боковой панели  
-• Или введите SMILES вручную в поле **«Ручной ввод SMILES»** в боковой панели
-        """)
+        st.info("""**Как начать:**
+• Выберите соединение из **Казахстанского каталога** в боковой панели  
+• Или введите SMILES вручную в боковой панели""")
