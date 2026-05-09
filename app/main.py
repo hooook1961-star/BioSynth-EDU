@@ -459,43 +459,58 @@ with tab5:
 
         st.divider()
 
-        # --- РЕДАКТОР СТРУКТУРЫ ---
+                # ====================== РЕДАКТОР СТРУКТУРЫ ======================
         st.subheader("🧪 Редактор структуры молекулы")
-        st.markdown("**Задание:** Измените структуру молекулы ниже. После изменений нажмите нужную кнопку.")
+        st.markdown("**Задание:** Измените структуру молекулы ниже. После изменений нажмите кнопку «Применить изменения».")
+
+        # Используем session_state для более стабильной работы
+        if "project_edited_smiles" not in st.session_state:
+            st.session_state.project_edited_smiles = project_smiles
 
         edited = st_ketcher(
-            project_smiles, 
+            st.session_state.project_edited_smiles, 
             key="project_ketcher_key"
         )
 
-        if edited and edited != project_smiles:
-            st.success("✅ **Структура изменена!** Теперь вы можете:")
+        # Обновляем session_state, если компонент вернул новое значение
+        if edited and edited != st.session_state.project_edited_smiles:
+            st.session_state.project_edited_smiles = edited
+
+        # Показываем текущую версию в редакторе
+        if st.session_state.project_edited_smiles != project_smiles:
+            st.success("✅ **Структура изменена в редакторе!**")
             
+            st.info(f"**Новый SMILES:**\n`{st.session_state.project_edited_smiles}`")
+
             col_btn1, col_btn2 = st.columns(2)
             
             with col_btn1:
-                if st.button("🔄 Применить изменения и продолжить работу с новой структурой", 
-                           use_container_width=True, type="primary"):
+                if st.button("🔄 Применить изменения и обновить проект", 
+                           use_container_width=True, 
+                           type="primary"):
+                    # Применяем изменения
                     if mol_data:
-                        st.session_state.current_mol['smiles'] = edited
-                    # Обновляем основной smiles тоже
-                    st.session_state.active_smiles = edited
+                        st.session_state.current_mol['smiles'] = st.session_state.project_edited_smiles
+                    
+                    # Обновляем основной smiles во всём приложении
+                    st.session_state.active_smiles = st.session_state.project_edited_smiles
+                    
+                    # Сбрасываем для следующего редактирования
+                    st.session_state.project_edited_smiles = st.session_state.project_edited_smiles
+                    
+                    st.success("✅ Изменения применены ко всему проекту!")
                     st.rerun()
             
             with col_btn2:
                 st.download_button(
-                    label="💾 Скачать SMILES изменённой молекулы",
-                    data=edited,
-                    file_name=f"modified_{mol_data.get('name', 'molecule') if mol_data else 'molecule'}_{datetime.datetime.now().strftime('%H%M')}.smi",
+                    label="💾 Скачать изменённый SMILES",
+                    data=st.session_state.project_edited_smiles,
+                    file_name=f"modified_molecule_{datetime.datetime.now().strftime('%H%M%S')}.smi",
                     mime="text/plain",
                     use_container_width=True
                 )
-            
-            # новый SMILES
-            st.info(f"**Новый SMILES:**\n`{edited}`")
-            
         else:
-            st.caption("Отредактируйте молекулу выше, чтобы появились кнопки сохранения")
+            st.caption("Измените молекулу в редакторе выше — после этого появятся кнопки")
             
         # 5. Внешние сервисы
         st.subheader("🛠 Внешние сервисы")
