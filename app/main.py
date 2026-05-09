@@ -709,13 +709,12 @@ with tab5:
 
             if tests:
 
-                @st.dialog(
-                    t.get(
-                        "quiz_title",
-                        "Интеллектуальный тренажер BioSynth-EDU"
-                    ),
-                    width="large"
+                dialog_title = t.get(
+                    "quiz_title",
+                    "Интеллектуальный тренажер BioSynth-EDU"
                 )
+                
+                @st.dialog(dialog_title, width="large")
                 def run_quiz_dialog(t_data, o_qs, c_map):
 
                     st.write(
