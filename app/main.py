@@ -6,9 +6,36 @@ import py3Dmol
 import json
 import os
 import datetime
+import random
 from translations import LANGUAGES
 from core.chem_utils import smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking
 
+# --- ФУНКЦИЯ ЗАГРУЗКИ ---
+def get_assessment_data():
+    lang = st.session_state.get('lang', 'Русский')
+    
+    # Маппинг колонок по CSV
+    lang_map = {
+        "Русский": {"q_test": "question_ru", "opt_test": "options_ru", "q_open": "Вопрос (RU)"},
+        "Қазақша": {"q_test": "question_kz", "opt_test": "options_kz", "q_open": "Сұрақ (KZ)"},
+        "English": {"q_test": "question_en", "opt_test": "options_en", "q_open": "Question (EN)"}
+    }
+    cols = lang_map.get(lang)
+
+    try:
+        # Чтение
+        df_tests = pd.read_csv('data/quiz_data.csv')
+        df_open = pd.read_csv('data/project_questions.csv')
+
+        # Выборка данных
+        sampled_tests = df_tests.sample(n=min(10, len(df_tests))).to_dict('records')
+        sampled_open = df_open.sample(n=min(3, len(df_open)))[cols['q_open']].tolist()
+
+        return sampled_tests, sampled_open, cols
+    except Exception as e:
+        st.error(f"Ошибка загрузки тестов: {e}")
+        return None, None, None
+        
 st.set_page_config(page_title="BioSynth-EDU", layout="wide")
 
 # --- 2. ИНИЦИАЛИЗАЦИЯ SESSION STATE ---
