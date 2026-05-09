@@ -566,22 +566,22 @@ with tab5:
             
             if tests:
                 @st.dialog("Интеллектуальный тренажер BioSynth-EDU", width="large")
-                def run_quiz_dialog(t, o, c):
+                def run_quiz_dialog(t_data, o_qs, c_map):
                     st.write("### Часть 1: Тестирование")
                     
                     with st.form("quiz_form"):
                         user_answers = []
-                        for i, item in enumerate(t):
-                            # Берем вопрос и ВАРИАНТЫ согласно выбранному языку (c['opt_test'])
-                            q_text = item[c['q_test']]
+                        for i, item in enumerate(t_data):
+                            # 1. Достаем правильные названия колонок из маппинга
+                            col_q = c_map['q_test']   # например, 'question_kz'
+                            col_opt = c_map['opt_test'] # например, 'options_kz'
                             
-                            # Вот здесь была ошибка (раньше могло стоять 'options_ru' вместо c['opt_test'])
-                            raw_options_str = str(item[c['opt_test']])
+                            # 2. Извлекаем текст вопроса и строку ответов
+                            q_text = item[col_q]
+                            raw_options_str = str(item[col_opt]) # Берем именно ту колонку, что в маппинге!
                             
-                            # Разбиваем строку по точке с запятой
+                            # 3. Разбиваем ответы
                             raw_options = [opt.strip() for opt in raw_options_str.split(';')]
-                            
-                            # Правильный ответ в Excel всегда первый в своей ячейке
                             correct_answer = raw_options[0]
                             
                             if f"shuffled_{i}" not in st.session_state:
@@ -602,20 +602,21 @@ with tab5:
                 
                     if submit_quiz:
                         score = sum(1 for ans, correct in user_answers if ans == correct)
-                        st.success(f"Ваш результат: {score} из {len(t)}")
+                        st.success(f"Ваш результат: {score} из {len(t_data)}")
                         
                         st.write("### Часть 2: Вопросы для подготовки к докладу")
-                        for q in o:
+                        for q in o_qs:
                             st.info(q)
                         
                         if st.button("Закрыть"):
-                            # Очистка ключей перемешивания
-                            for i in range(len(t)):
+                            for i in range(len(t_data)):
                                 if f"shuffled_{i}" in st.session_state:
                                     del st.session_state[f"shuffled_{i}"]
                             st.rerun()
-             
+
+                # Вызываем с передачей всех переменных
                 run_quiz_dialog(tests, open_qs, cols)
+
 
     else:
         st.warning("⚠️ Молекула не выбрана")
