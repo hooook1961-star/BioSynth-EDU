@@ -839,30 +839,33 @@ with tab5:
         
 # 1. Функция обращения к нейросети
 def get_llm_answer(user_prompt, knowledge_base):
-    client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"]) # Ключ храним в secrets
+    client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"]) # Ключ в secrets
     
-    # Формируем контекст из вашего JSON
-    # Мы передаем только нужные части, чтобы не перегружать контекст
+    #  контекст из JSON
     context = json.dumps(knowledge_base, ensure_ascii=False)
     
-    response = client.chat.completions.create(
-        model="meta-llama/llama-3.1-8b-instruct"
-        messages=[
-            {"role": "system", "content": f"""
-            Ты — ИИ-Тьютор платформы BioSynth-EDU. 
-            Твоя база знаний: {context}
-            
-            Твои задачи:
-            1. Помогать с навигацией (названия кнопок, вкладок).
-            2. Объяснять химическую теорию (PASS, ADMET, свойства соединений).
-            3. Если студент спрашивает про SMILES: отвечай, что его нужно выбрать в каталоге и скопировать из текстового поля.
-            
-            Отвечай кратко, профессионально, на языке пользователя.
-            """},
-            {"role": "user", "content": user_prompt}
-        ],
-        temperature=0.3 # Низкая температура, чтобы ИИ не фантазировал
-    )
+        # Формируем запрос к OpenRouter
+        response = client.chat.completions.create(
+            model="google/gemini-flash-1.5-8b", # Заменил на стабильную, запятая на месте
+            messages=[
+                {"role": "system", "content": f"""
+                Ты — ИИ-Тьютор платформы BioSynth-EDU. 
+                Твоя база знаний: {context}
+                
+                Твои задачи:
+                1. Помогать с навигацией (названия кнопок, вкладок).
+                2. Объяснять химическую теорию (PASS, ADMET, свойства соединений).
+                3. Если студент спрашивает про SMILES: отвечай, что его нужно выбрать в каталоге и скопировать из текстового поля.
+                
+                Отвечай кратко, профессионально, на языке пользователя (KZ/RU/EN).
+                """},
+                {"role": "user", "content": user_query} # переменная из функции
+            ],
+            temperature=0.3, 
+            extra_headers={
+                "HTTP-Referer": "https://biosynth-edu.streamlit.app/",
+            }
+        )
     return response.choices[0].message.content
 
 # 2. Обновленное диалоговое окно
