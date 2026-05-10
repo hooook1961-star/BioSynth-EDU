@@ -850,7 +850,7 @@ def load_tutor_knowledge():
         return None
 
 # --- 2. ЛОГИКА ДИАЛОГОВОГО ОКНА ---
-@st.experimental_dialog("🤖 Ассистент BioSynth-EDU")
+@st.dialog("🤖 Ассистент BioSynth-EDU")
 def tutor_dialog():
     kb = load_tutor_knowledge()
     
