@@ -890,7 +890,7 @@ def ask_ai_tutor(user_query, kb):
                 "HTTP-Referer": "https://biosynth-edu-fdgwzio63udjwre4tospup.streamlit.app//",
                 "X-OpenRouter-Title": "BioSynth-EDU",
             },
-            model="google/gemini-flash-1.5",
+            model="google/gemini-2.5-flash",
             messages=[
                 {
                     "role": "system",
