@@ -837,12 +837,8 @@ with tab5:
 """
         )
         
-import os
-import json
-import openai
-import streamlit as st
-
-# --- 1. КЕШИРОВАННАЯ ЗАГРУЗКА БАЗЫ (Чтобы не читать файл постоянно) ---
+#---ИИ ассистент ---
+# --- 1. КЕШИРОВАННАЯ ЗАГРУЗКА БАЗЫ ---
 @st.cache_data
 def load_tutor_knowledge():
     possible_paths = ["data/bot_knowledge_new.json", "../data/bot_knowledge_new.json", "app/data/bot_knowledge_new.json"]
@@ -863,7 +859,7 @@ def ask_ai_tutor(user_query, kb):
             api_key=st.secrets["OPENROUTER_API_KEY"],
         )
 
-        # Собираем контекст (только нужные ключи, чтобы не перегружать память ИИ)
+        # контекст 
         context = {
             "state": {
                 "tab": st.session_state.get('main_tabs_active', 'Main'),
@@ -875,7 +871,7 @@ def ask_ai_tutor(user_query, kb):
         }
 
         response = client.chat.completions.create(
-            model="google/gemini-flash-1.5-8b", # Заменили на стабильную
+            model="google/gemini-flash-1.5-8b", 
             messages=[
                 {
                     "role": "system",
