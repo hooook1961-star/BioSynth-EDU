@@ -869,55 +869,50 @@ def ask_ai_tutor(user_query, kb):
             api_key=st.secrets["OPENROUTER_API_KEY"],
         )
 
-        # Текущее состояние приложения
         current_state = {
             "active_tab": st.session_state.get('main_tabs_active', 'Не определена'),
             "selected_molecule": st.session_state.get('selected_mol_name', 'Не выбрана'),
-            "smiles_input": st.session_state.get('smiles_input', '')[:100] + "..." 
-                          if st.session_state.get('smiles_input', '') else "Пусто"
+            "smiles_input": bool(st.session_state.get('smiles_input', ''))
         }
 
-        # Контекст для модели
-        kb_context = json.dumps(kb, ensure_ascii=False)[:2000] if kb else "База знаний пуста"
-
-        full_context = f"""
-        ТЕКУЩЕЕ СОСТОЯНИЕ ИНТЕРФЕЙСА: {json.dumps(current_state, ensure_ascii=False)}
-        БАЗА ЗНАНИЙ (фрагмент): {kb_context}
-        """
+        kb_context = json.dumps(kb, ensure_ascii=False)[:1000] if kb else "База знаний загружена"
 
         response = client.chat.completions.create(
             extra_headers={
-                "HTTP-Referer": "https://biosynth-edu-fdgwzio63udjwre4tospup.streamlit.app//",
+                "HTTP-Referer": "https://biosynth-edu.streamlit.app/",
                 "X-OpenRouter-Title": "BioSynth-EDU",
             },
-            model="google/gemini-2.5-flash",
+            # Бесплатная модель
+            model="openrouter/free",                    # ← Самый лучший бесплатный вариант
+            # model="meta-llama/llama-3.3-70b-instruct:free",  # альтернативный вариант (можно попробовать)
+            
             messages=[
                 {
                     "role": "system",
-                    "content": f"""Ты — профессиональный ИИ-Тьютор образовательной платформы BioSynth-EDU.
+                    "content": f"""Ты — ИИ-Тьютор платформы BioSynth-EDU.
 
-Контекст страницы и базы знаний:
-{full_context}
+Текущее состояние:
+{json.dumps(current_state, ensure_ascii=False)}
 
-Правила поведения:
-- Всегда отвечай на русском языке.
-- Будь вежливым, профессиональным и поддерживающим.
-- Используй химическую терминологию корректно.
-- Если молекула не выбрана — мягко напоминай выбрать её из списка слева.
-- При вопросах про SMILES объясняй, как его ввести или выбрать готовую молекулу.
-- Не выдумывай возможности приложения, которых нет.
+Отвечай на русском языке, понятно, профессионально и по делу.
+Не делай ответы слишком длинными.
+Если молекула не выбрана — напомни выбрать её из списка слева.
 """
                 },
                 {"role": "user", "content": user_query}
             ],
-            temperature=0.3,
+            temperature=0.4,
+            max_tokens=2500,           # ограничение для бесплатной модели
         )
 
         return response.choices[0].message.content
 
     except Exception as e:
-        return f"❌ Не удалось получить ответ от ИИ:\n{str(e)}"
-
+        error_str = str(e).lower()
+        if "402" in error_str or "credit" in error_str or "quota" in error_str:
+            return "⚠️ Лимит бесплатных запросов исчерпан на сегодня.\nПопробуй позже или пополни аккаунт."
+        else:
+            return f"❌ Ошибка Тьютора:\n{str(e)}"
 
 # ====================== ДИАЛОГ ТЬЮТОРА ======================
 @st.dialog("🤖 Тьютор BioSynth-EDU")
