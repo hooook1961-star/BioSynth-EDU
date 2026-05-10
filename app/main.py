@@ -835,3 +835,120 @@ with tab5:
 {t.get('start_step_2', '• Или введите SMILES вручную в боковой панели')}
 """
         )
+        
+# --- БОТ ---
+# --- 1. ФУНКЦИЯ ЗАГРУЗКИ БАЗЫ ДАННЫХ ---
+def load_tutor_knowledge():
+    # Путь к файлу: file_path = os.path.join(base_path, 'data', 'boy_knowledge_new.json')
+    base_path = os.path.dirname(__file__)
+    file_path = os.path.join(base_path, 'data', 'boy_knowledge_new.json')
+    
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return None
+
+# --- 2. ЛОГИКА ДИАЛОГОВОГО ОКНА ---
+@st.experimental_dialog("🤖 Ассистент BioSynth-EDU")
+def tutor_dialog():
+    kb = load_tutor_knowledge()
+    
+    if kb is None:
+        st.error("Ошибка: Файл базы знаний 'data/boy_knowledge_new.json' не найден.")
+        return
+
+    st.caption("Я помогу найти нужную кнопку или объясню параметры ADMET/PASS.")
+
+    # Хранилище истории чата в сессии
+    if "tutor_chat_history" not in st.session_state:
+        st.session_state.tutor_chat_history = []
+
+    # Контейнер для отображения переписки
+    chat_box = st.container(height=400)
+    
+    for msg in st.session_state.tutor_chat_history:
+        chat_box.chat_message(msg["role"]).write(msg["content"])
+
+    # Ввод вопроса
+    if prompt := st.chat_input("Например: 'Как запустить докинг?' или 'Что значит Pa?'"):
+        st.session_state.tutor_chat_history.append({"role": "user", "content": prompt})
+        chat_box.chat_message("user").write(prompt)
+
+        # Анализ вопроса и поиск в JSON
+        prompt_l = prompt.lower()
+        response = ""
+
+        # А) Логика навигации (ищем по разделу interface_navigation_and_logic)
+        nav = kb.get('interface_navigation_and_logic', {})
+        
+        if any(word in prompt_l for word in ["где", "нажать", "кнопк", "найти", "как"]):
+            if "3d" in prompt_l:
+                tab = nav.get('Tabs_Functional', {}).get('Tab_3D', {})
+                response = f"📍 **Навигация:** Перейдите на вкладку **'{tab.get('title')}'**. Для работы используйте кнопки: `{', '.join(tab.get('buttons', []))}`."
+            elif "admet" in prompt_l or "загруз" in prompt_l:
+                tab = nav.get('Tabs_Functional', {}).get('Tab_ADMET', {})
+                response = f"📍 **Навигация:** Вам нужна вкладка **'{tab.get('title')}'**. Загрузите CSV через `{tab.get('buttons', [0])}`."
+            elif "pass" in prompt_l:
+                tab = nav.get('Tabs_Functional', {}).get('Tab_PASS', {})
+                response = f"📍 **Навигация:** Откройте вкладку **'{tab.get('title')}'**. Там вы найдете инструкции и панель интерпретации."
+            elif "каталог" in prompt_l or "препарат" in prompt_l:
+                side = nav.get('Sidebar', {})
+                response = f"📍 **Навигация:** В боковом меню (Sidebar) выберите раздел **'Kazakhstan_Catalog'** для выбора Арглабина или Рихлокаина."
+            else:
+                response = "📍 **Навигация:** Уточните, какой раздел вас интересует? Я знаю всё о вкладках 3D, ADMET, PASS и Докинге."
+
+        # Б) Логика теории (ADMET / PASS / Казахстанские препараты)
+        elif any(word in prompt_l for word in ["pa", "pi", "pass", "робастность", "точность"]):
+            pass_info = kb.get('PASS_Online_Full_Knowledge_Base', {}).get('Decision_Rules_Interpretation', {})
+            val = kb.get('PASS_Online_Full_Knowledge_Base', {}).get('Validation_and_Robustness', {})
+            response = f"🧠 **Теория PASS:** Вероятность Pa > 0.7 — высокая. Наша база подтверждает точность **{val.get('Accuracy')}** и робастность при потере до 60% данных (тест MDDR)."
+        
+        elif any(word in prompt_l for word in ["caco2", "pampa", "logp", "herg", "admet"]):
+            adm = kb.get('ADMET_Detailed_Expert_System', {})
+            response = "🧠 **Теория ADMET:** Я вижу ваш вопрос. В нашей базе прописаны критические пороги (например, Caco2 > -5.15 для хорошего всасывания). Что именно расшифровать?"
+
+        else:
+            response = "Я готов помочь! Спросите меня о навигации по приложению или о значениях параметров в вашем исследовании."
+
+        chat_box.chat_message("assistant").write(response)
+        st.session_state.tutor_chat_history.append({"role": "assistant", "content": response})
+
+# --- 3. СТИЛИЗАЦИЯ И КНОПКА В УГЛУ ---
+st.markdown("""
+    <style>
+    /* Контейнер для кнопки */
+    .stApp .floating-tutor {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 1000;
+    }
+    /* Стиль самой кнопки */
+    .stApp .floating-tutor button {
+        width: 70px !important;
+        height: 70px !important;
+        border-radius: 50% !important;
+        background-color: #2e7d32 !important; /* Зеленый цвет под стать химии */
+        color: white !important;
+        font-size: 30px !important;
+        box-shadow: 0px 4px 15px rgba(0,0,0,0.3) !important;
+        border: 2px solid white !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .stApp .floating-tutor button:hover {
+        background-color: #1b5e20 !important;
+        transform: scale(1.1);
+        transition: 0.3s;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# Отрисовка кнопки
+st.markdown('<div class="floating-tutor">', unsafe_allow_html=True)
+if st.button("🤖", key="tutor_button"):
+    tutor_dialog()
+st.markdown('</div>', unsafe_allow_html=True)
+
