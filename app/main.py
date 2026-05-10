@@ -846,7 +846,7 @@ def get_llm_answer(user_prompt, knowledge_base):
     context = json.dumps(knowledge_base, ensure_ascii=False)
     
     response = client.chat.completions.create(
-        model="gpt-4o-mini", # Быстрая и дешевая модель
+        model="meta-llama/llama-3.1-8b-instruct"
         messages=[
             {"role": "system", "content": f"""
             Ты — ИИ-Тьютор платформы BioSynth-EDU. 
