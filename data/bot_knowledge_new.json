@@ -1,0 +1,156 @@
+{
+  "app_metadata": {
+    "name": "BioSynth-EDU",
+    "version": "2.0.26",
+    "description": "Платформа для обучения химиков-исследователей в Казахстане. Интеграция молекулярного моделирования и биофармацевтического анализа.",
+    "scientific_basis": "Методология PASS (SAR анализ), мультипараметрическая оптимизация ADMET, молекулярный докинг."
+  },
+
+  "interface_navigation_and_logic": {
+    "Sidebar": {
+      "Language": "RU/KZ/EN. Локализация интерфейса, теории и тестовых заданий.",
+      "Kazakhstan_Catalog": "Интеграция оригинальных SMILES: Арглабин, Рихлокаин, Просидол.",
+      "World_Catalog": "Стандартные препараты сравнения (Reference Drugs).",
+      "Manual_Input": "Редактор Ketcher или поле ввода SMILES. Валидация структуры через RDKit."
+    },
+    "Tabs_Functional": {
+      "Tab_3D": {
+        "title": "3D Моделирование",
+        "features": "Генерация 3D конформаций, минимизация энергии (Force Field MMFF94), экспорт в SDF/PDB.",
+        "buttons": ["btn_build_3d", "btn_optimize", "download_sdf"]
+      },
+      "Tab_ADMET": {
+        "title": "ADMET Профиль",
+        "features": "Загрузка и парсинг CSV из ADMETlab 3.0/SwissADME. Цветовая индикация рисков.",
+        "buttons": ["uploader_csv", "btn_open_external"]
+      },
+      "Tab_PASS": {
+        "title": "Прогноз PASS",
+        "features": "Анализ спектра биологической активности (4000+ видов). Интерпретация Pa и Pi.",
+        "buttons": ["btn_predict_guide", "interpretation_panel"]
+      },
+      "Tab_Docking": {
+        "title": "Подготовка к Докингу",
+        "features": "Конвертация в PDBQT через Meeko. Подготовка лиганда для AutoDock Vina.",
+        "buttons": ["btn_run_prep", "btn_download_pdbqt"]
+      },
+      "Tab_Education": {
+        "title": "Обучение и ИИ-Тьютор",
+        "features": "Доступ к главам пособия (4, 5, 6). Окно вопросов к ИИ-ассистенту.",
+        "buttons": ["chapter_selector", "bot_q"]
+      },
+      "Tab_Project": {
+        "title": "Исследовательский Проект",
+        "features": "Пошаговый алгоритм: выбор мишени -> дизайн -> прогноз -> отчет.",
+        "buttons": ["task_expander", "structure_editor"]
+      }
+    }
+  },
+
+  "PASS_Online_Full_Knowledge_Base": {
+    "Definitions": {
+      "PASS": "Prediction of Activity Spectra for Substances. ПО для оценки биологического потенциала молекул.",
+      "Biological_Activity_Spectrum": "Набор типов активности, отражающий результат взаимодействия с биомишенями. Считается 'внутренним' свойством вещества.",
+      "Pa": "Вероятность 'быть активным'. Сходство с наиболее типичными активными структурами в обучающей выборке.",
+      "Pi": "Вероятность 'быть неактивным'. Сходство с типичными неактивными структурами.",
+      "IEP_IAP": "Invariant Error/Accuracy of Prediction. Средняя точность по всей выборке (LOO CV)."
+    },
+    "Decision_Rules_Interpretation": {
+      "Pa_gt_0.7": "Высокая вероятность. Активность легко подтверждается в эксперименте, но структура может быть не новой.",
+      "0.5_lt_Pa_lt_0.7": "Средняя вероятность. Активность может быть подтверждена, структура может быть новой (менее похожа на аналоги в базе).",
+      "Pa_lt_0.5": "Низкая вероятность. Если активность подтвердится, это может быть химический класс с новым механизмом действия.",
+      "Contradiction_Case": "Случай Pa(Agonist) = 0.653 и Pa(Antagonist) = 0.587. Означает наличие аффинности к рецептору. Требуется функциональный эксперимент для определения внутренней активности."
+    },
+    "Validation_and_Robustness": {
+      "Training_Set": "Более 250,000 (до 1,000,000) активных соединений: лекарства, кандидаты, токсиканты.",
+      "LOO_CV": "Leave-one-out cross-validation. Точность ~95% (Filimonov & Poroikov, 2008).",
+      "Robustness_Experiment": "Тест на базе MDDR (18,977 соединений). Доказано: при удалении до 60% данных из обучения PASS сохраняет приемлемую точность (Poroikov et al., 2000).",
+      "Consistency": "Прогнозы подтверждены тысячами последующих синтезов и биологических тестов (Lagunin et al., 2000)."
+    },
+    "Access_and_Formats": {
+      "Registration": "Обязательна (Free Registration). Требуется принятие Terms & Conditions.",
+      "Commercial_vs_Online": "Коммерческая версия (Desktop) обеспечивает пакетную обработку (SDfile), работу in-house (безопасность структуры) и возможность ре-тренинга на своих данных. Online — по одной структуре.",
+      "File_Formats": {
+        "MOLfile": "Формат MDL (Accelrys) для одной структуры, содержит таблицу связей (CT).",
+        "SDfile": "Structure-Data File. Обертка над MOLfile для наборов данных, разделенных $$$$."
+      }
+    }
+  },
+
+  "ADMET_Detailed_Expert_System": {
+    "Absorption_and_Permeability": {
+      "Caco2": {
+        "desc": "Проницаемость клеток аденокарциномы толстой кишки. Модель всасывания в кишечнике.",
+        "threshold": -5.15,
+        "green": "> -5.15 (Excellent)",
+        "red": "<= -5.15 (Poor)"
+      },
+      "PAMPA": {
+        "desc": "Искусственная мембрана для пассивной диффузии.",
+        "ranges": {
+          "green": "0.0 - 0.3 (High Permeability)",
+          "yellow": "0.3 - 0.7 (Medium)",
+          "red": "0.7 - 1.0 (Low/Poor)"
+        }
+      },
+      "MDCK": {
+        "desc": "Клетки почек собаки. Модель для оценки поглощения и ГЭБ.",
+        "threshold": "2 x 10^-6 cm/s (Выше — отлично)"
+      },
+      "Pgp_Transporters": {
+        "Pgp_inhibitor": "Блокировка насоса. Риск накопления других лекарств.",
+        "Pgp_substrate": "Выбрасывание молекулы из клетки (эффлюкс)."
+      },
+      "HIA": "Human Intestinal Absorption. Процент всасывания в ЖКТ.",
+      "Bioavailability": "F20/F30/F50 — процент вещества, достигающий кровотока."
+    },
+    "Distribution": {
+      "BBB": {
+        "desc": "Гематоэнцефалический барьер.",
+        "threshold": 0.3,
+        "warning": "> 0.3 — риск влияния на ЦНС."
+      },
+      "PPB": "Plasma Protein Binding. Сильно связанные вещества имеют меньшую свободную фракцию."
+    },
+    "Metabolism_and_Clearance": {
+      "CYP_Enzymes": {
+        "list": ["1A2", "2C19", "2C9", "2D6", "3A4", "2B6", "2C8"],
+        "logic": "Ингибитор (блокада фермента) vs Субстрат (расщепление ферментом)."
+      },
+      "HLM_Stability": {
+        "desc": "Стабильность в микросомах печени.",
+        "stable": "HLM > 30 мин (вероятность 0.7-1.0)",
+        "unstable": "HLM < 30 мин (вероятность < 0.3)"
+      },
+      "Clearance_CLplasma": {
+        "green": "< 5 (Low - отлично)",
+        "yellow": "5 - 15 (Moderate)",
+        "red": "> 15 (High - быстрая элиминация)"
+      },
+      "Half_Life_T12": {
+        "green": "> 8 h (Long)",
+        "red": "< 1 h (Ultra-short)"
+      }
+    },
+    "Toxicity_Endpoints": {
+      "hERG_Cardiac": "Блокада калиевых каналов. Риск аритмии. Опасно при IC50 <= 10 μM.",
+      "DILI": "Drug-Induced Liver Injury. Поражение печени.",
+      "Mutagenicity_Ames": "Тест на повреждение ДНК бактерий.",
+      "Genotoxicity_Carcinogenicity": "Риск развития раковых опухолей.",
+      "Organ_Tox": ["Neurotoxicity", "Ototoxicity", "Hematotoxicity", "Nephrotoxicity"],
+      "Structural_Alerts": "Алерты мутагенности, сенсибилизации кожи и острой токсичности."
+    },
+    "PhysChem_Rules": {
+      "LogP": "Липофильность. Оптимально 0–3 (допускается -1–5).",
+      "LogS": "Растворимость. Диапазон [-4, 0.5] log mol/L.",
+      "TPSA": "Полярная площадь. До 140 Å² (выше — плохая проницаемость).",
+      "Lipinski": "MW < 500, LogP < 5, HBD < 5, HBA < 10."
+    }
+  },
+
+  "Kazakhstani_Context": {
+    "Arglabin": "Сесквитерпеновый лактон (Artemisia glabella). Цитостатик. Адекенов С.М.",
+    "Richlocaine": "Анестетик. Производное пиперидина. ИХН им. Бектурова. Пралиев К.Д., Ю В.К.",
+    "Prosidol": "Оригинальный анальгетик. Разработка казахстанской школы органического синтеза."
+  }
+}
