@@ -893,3 +893,123 @@ def tutor_dialog():
 
         chat_container.chat_message("assistant").write(answer)
         st.session_state.tutor_chat_history.append({"role": "assistant", "content": answer})
+
+
+# --- ИИ тьютор ---
+# --- 1. ЗАГРУЗКА БАЗЫ ЗНАНИЙ ---
+def load_tutor_knowledge():
+    possible_paths = [
+        "data/bot_knowledge_new.json",
+        "../data/bot_knowledge_new.json",
+        "app/data/bot_knowledge_new.json"
+    ]
+    for path in possible_paths:
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                st.error(f"Ошибка чтения базы знаний: {e}")
+                return None
+    return None
+
+# --- 2. ОБРАЩЕНИЕ К ИИ (OpenRouter) ---
+def ask_ai_tutor(user_query, kb):
+    try:
+        client = openai.OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=st.secrets["OPENROUTER_API_KEY"],
+        )
+
+        # --- Снапшот текущего интерфейса (эффект зрения) ---
+        current_state = {
+            "active_tab": st.session_state.get('main_tabs_active', 'Не определена'),
+            "selected_molecule": st.session_state.get('selected_mol_name', 'Не выбрана'),
+            "is_smiles_visible": st.session_state.get('smiles_input', '') != '',
+            "app_language": "RU/KZ (Авто)"     # заглушка, можно заменить реальным определением языка
+        }
+
+        # --- Извлечь нужные разделы базы ---
+        nav_logic = kb.get('interface_navigation_and_logic', {})
+        pass_theory = kb.get('PASS_Online_Full_Knowledge_Base', {})
+        admet_theory = kb.get('ADMET_Detailed_Expert_System', {})
+
+        #  контекст для системного промпта
+        context = f"""
+        ТЕКУЩЕЕ СОСТОЯНИЕ СТРАНИЦЫ (СНАПШОТ): {json.dumps(current_state, ensure_ascii=False)}
+        ИНТЕРФЕЙС НАВИГАЦИИ: {json.dumps(nav_logic, ensure_ascii=False)}
+        ТЕОРИЯ PASS: {json.dumps(pass_theory, ensure_ascii=False)[:800]}
+        ТЕОРИЯ ADMET: {json.dumps(admet_theory, ensure_ascii=False)[:800]}
+        """
+
+        response = client.chat.completions.create(
+            extra_headers={"HTTP-Referer": "https://biosynth-edu.streamlit.app/"},
+            model="meta-llama/llama-3.1-8b-instruct:free",
+            messages=[
+                {
+                    "role": "system",
+                    "content": f"""Ты технический ассистент платформы BioSynth-EDU.
+Помогай студентам-химикам Казахстана. Твоя база знаний и состояние страницы: {context}
+
+ПРАВИЛА ЯЗЫКА:
+1. Всегда отвечай на том языке, на котором к тебе обратился пользователь (казахский, русский или английский).
+2. Если студент спрашивает на казахском, используй профессиональную химическую терминологию на казахском языке.
+
+ПРАВИЛО SMILES:
+Если спрашивают, как скопировать SMILES, объясни, что нужно выбрать препарат в списке слева и скопировать строку из верхнего поля.
+
+ИНСТРУКЦИЯ ПО СНАПШОТУ:
+Ты видишь текущее состояние страницы пользователя.
+- Если пользователь спрашивает «где я?», используй 'active_tab'.
+- Если спрашивает про молекулу, смотри 'selected_molecule'.
+- Если спрашивает как скопировать SMILES, а в снапшоте 'selected_molecule' пуста, сначала скажи выбрать препарат.
+
+Отвечай кратко, профессионально и только на том языке, на котором задан вопрос."""
+                },
+                {"role": "user", "content": user_query}
+            ],
+            temperature=0.3
+        )
+        return response.choices[0].message.content
+
+    except Exception as e:
+        return f"Ошибка связи с ИИ: {e}. Проверьте ключ OPENROUTER_API_KEY в Secrets."
+
+# ---------- 3. ДИАЛОГОВОЕ ОКНО ТЬЮТОРА ----------
+@st.dialog("🤖 Тьютор BioSynth-EDU")
+def tutor_dialog():
+    kb = load_tutor_knowledge()
+    if not kb:
+        st.error("Критическая ошибка: Файл 'bot_knowledge_new.json' не найден в папке /data/")
+        return
+
+    st.caption("Спрашивайте о навигации, параметрах PASS (Pa/Pi) или ADMET.")
+
+    # Инициализация истории чата
+    if "tutor_history" not in st.session_state:
+        st.session_state.tutor_history = []
+
+    # Контейнер для отображения сообщений
+    chat_container = st.container(height=400)
+    for msg in st.session_state.tutor_history:
+        chat_container.chat_message(msg["role"]).write(msg["content"])
+
+    # Поле ввода
+    if prompt := st.chat_input("Например: Что означает параметр Pa?"):
+        # Сохраненин вопроса пользователя
+        st.session_state.tutor_history.append({"role": "user", "content": prompt})
+        chat_container.chat_message("user").write(prompt)
+
+        with st.spinner("Сверяюсь с базой данных..."):
+            answer = ask_ai_tutor(prompt, kb)
+
+        # Показывает и сохраняет ответ
+        chat_container.chat_message("assistant").write(answer)
+        st.session_state.tutor_history.append({"role": "assistant", "content": answer})
+
+# --- 4. КНОПКА ВЫЗОВА В БОКОВОЙ ПАНЕЛИ ---
+with st.sidebar:
+    st.divider()
+    st.subheader("Помощь и навигация")
+    if st.button("💬 Задать вопрос Тьютору", use_container_width=True):
+        tutor_dialog()
