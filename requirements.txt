@@ -10,3 +10,4 @@ numpy
 gemmi
 streamlit-ketcher
 openpyxl
+openai
