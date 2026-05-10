@@ -8,6 +8,7 @@ import json
 import os
 import datetime
 import random
+import openai
 from translations import LANGUAGES
 from core.chem_utils import smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking
 
