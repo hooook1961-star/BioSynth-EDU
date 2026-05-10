@@ -839,9 +839,9 @@ with tab5:
 # --- БОТ ---
 # --- 1. ФУНКЦИЯ ЗАГРУЗКИ БАЗЫ ДАННЫХ ---
 def load_tutor_knowledge():
-    # Путь к файлу: file_path = os.path.join(base_path, 'data', 'boy_knowledge_new.json')
+    # Путь к файлу: file_path = os.path.join(base_path, 'data', 'bot_knowledge_new.json')
     base_path = os.path.dirname(__file__)
-    file_path = os.path.join(base_path, 'data', 'boy_knowledge_new.json')
+    file_path = os.path.join(base_path, 'data', 'bot_knowledge_new.json')
     
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -855,7 +855,7 @@ def tutor_dialog():
     kb = load_tutor_knowledge()
     
     if kb is None:
-        st.error("Ошибка: Файл базы знаний 'data/boy_knowledge_new.json' не найден.")
+        st.error("Ошибка: Файл базы знаний 'data/bot_knowledge_new.json' не найден.")
         return
 
     st.caption("Я помогу найти нужную кнопку или объясню параметры ADMET/PASS.")
