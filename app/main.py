@@ -9,6 +9,7 @@ import os
 import datetime
 import random
 import openai
+from pathlib import Path
 from translations import LANGUAGES
 from core.chem_utils import smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking
 
@@ -837,105 +838,123 @@ with tab5:
 """
         )
         
-#---ИИ ассистент ---
-# --- 1. КЕШИРОВАННАЯ ЗАГРУЗКА БАЗЫ ---
+# ====================== ЗАГРУЗКА БАЗЫ ======================
 @st.cache_data
+def load_tutor_knowledge():
+    """Загружает bot_knowledge_new.json"""
+    try:
+        file_path = Path("data/bot_knowledge_new.json")
+        
+        if file_path.exists():
+            with open(file_path, "r", encoding="utf-8") as f:
+                kb = json.load(f)
+            return kb
+        else:
+            st.error(f"❌ Файл не найден: {file_path}")
+            return {}
+            
+    except json.JSONDecodeError:
+        st.error("❌ Файл bot_knowledge_new.json повреждён (невалидный JSON)")
+        return {}
+    except Exception as e:
+        st.error(f"❌ Ошибка загрузки базы: {e}")
+        return {}
+
+
+# ====================== ОСНОВНАЯ ФУНКЦИЯ ТЬЮТОРА ======================
 def ask_ai_tutor(user_query, kb):
     try:
-        # 1. Подключение к OpenRouter (проверенный синтаксис)
         client = openai.OpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=st.secrets["OPENROUTER_API_KEY"],
         )
 
-        # 2. Сбор динамического контекста (Снапшот страницы)
+        # Текущее состояние приложения
         current_state = {
             "active_tab": st.session_state.get('main_tabs_active', 'Не определена'),
             "selected_molecule": st.session_state.get('selected_mol_name', 'Не выбрана'),
-            "is_smiles_visible": st.session_state.get('smiles_input', '') != ''
+            "smiles_input": st.session_state.get('smiles_input', '')[:100] + "..." 
+                          if st.session_state.get('smiles_input', '') else "Пусто"
         }
 
-        # 3. Извлечение теории из  базы данных
-        nav_logic = kb.get('interface_navigation_and_logic', {})
-        pass_theory = kb.get('PASS_Online_Full_Knowledge_Base', {})
-        admet_theory = kb.get('ADMET_Detailed_Expert_System', {})
+        # Контекст для модели
+        kb_context = json.dumps(kb, ensure_ascii=False)[:2000] if kb else "База знаний пуста"
 
-        # контекст для ИИ
         full_context = f"""
         ТЕКУЩЕЕ СОСТОЯНИЕ ИНТЕРФЕЙСА: {json.dumps(current_state, ensure_ascii=False)}
-        СТРУКТУРА ПЛАТФОРМЫ: {json.dumps(nav_logic, ensure_ascii=False)}
-        ТЕОРИЯ ПО PASS: {json.dumps(pass_theory, ensure_ascii=False)[:1000]}
-        ТЕОРИЯ ПО ADMET: {json.dumps(admet_theory, ensure_ascii=False)[:1000]}
+        БАЗА ЗНАНИЙ (фрагмент): {kb_context}
         """
 
-        # 4. Формирование запроса с сохранением ВСЕХ ваших инструкций
         response = client.chat.completions.create(
             extra_headers={
                 "HTTP-Referer": "https://biosynth-edu.streamlit.app/",
                 "X-OpenRouter-Title": "BioSynth-EDU",
             },
-            model="google/gemini-flash-1.5", 
+            model="google/gemini-flash-1.5",
             messages=[
                 {
                     "role": "system",
-                    "content": f"""Ты — ИИ-Тьютор платформы BioSynth-EDU. 
-                    Твоя база знаний и контекст страницы: {full_context}
-                    
-                    ТВОИ ЗАДАЧИ:
-                    1. Помогать с навигацией (названия кнопок, вкладок). Используй 'active_tab', чтобы понять, где студент.
-                    2. Объяснять химическую теорию (PASS, ADMET, свойства соединений).
-                    3. Если студент спрашивает про SMILES: отвечай, что его нужно выбрать в каталоге слева и скопировать из текстового поля сверху.
-                    
-                    ДОПОЛНИТЕЛЬНО:
-                    - Если в снапшоте 'selected_molecule' стоит 'Не выбрана', а вопрос касается свойств — напомни сначала выбрать препарат.
-                    - Отвечай на языке пользователя (Русский, Казахский или Английский).
-                    - Будь профессиональным, используй химическую терминологию.
-                    """
+                    "content": f"""Ты — профессиональный ИИ-Тьютор образовательной платформы BioSynth-EDU.
+
+Контекст страницы и базы знаний:
+{full_context}
+
+Правила поведения:
+- Всегда отвечай на русском языке.
+- Будь вежливым, профессиональным и поддерживающим.
+- Используй химическую терминологию корректно.
+- Если молекула не выбрана — мягко напоминай выбрать её из списка слева.
+- При вопросах про SMILES объясняй, как его ввести или выбрать готовую молекулу.
+- Не выдумывай возможности приложения, которых нет.
+"""
                 },
                 {"role": "user", "content": user_query}
             ],
             temperature=0.3,
-            extra_body={
-                "session_id": "biosynth_session_" + st.session_state.get('user_id', 'default')
-            }
         )
-        
-        # 5. Возврат ответа
+
         return response.choices[0].message.content
 
     except Exception as e:
-        # если что-то не так с ключом или моделью
-        return f"Ошибка Тьютора: {str(e)}"
+        return f"❌ Не удалось получить ответ от ИИ:\n{str(e)}"
 
-# --- 3. ИНТЕРФЕЙС ТЬЮТОРА ---
+
+# ====================== ДИАЛОГ ТЬЮТОРА ======================
 @st.dialog("🤖 Тьютор BioSynth-EDU")
 def tutor_dialog():
-    # Загружаем базу один раз
+    # Загружаем базу
     kb = load_tutor_knowledge()
-    if not kb:
-        st.error("База данных не найдена в /data/")
-        return
 
     if "tutor_history" not in st.session_state:
         st.session_state.tutor_history = []
 
-    # Отображение чата
-    container = st.container(height=350)
-    for msg in st.session_state.tutor_history:
-        container.chat_message(msg["role"]).write(msg["content"])
+    # Окно чата
+    chat_container = st.container(height=420)
 
-    if prompt := st.chat_input("Ваш вопрос..."):
+    with chat_container:
+        for msg in st.session_state.tutor_history:
+            chat_message = st.chat_message(msg["role"])
+            chat_message.write(msg["content"])
+
+    # Поле ввода
+    if prompt := st.chat_input("Задайте вопрос тьютору..."):
+        # Добавляем сообщение пользователя
         st.session_state.tutor_history.append({"role": "user", "content": prompt})
-        container.chat_message("user").write(prompt)
+        with chat_container:
+            st.chat_message("user").write(prompt)
 
-        with st.spinner("Анализирую..."):
+        # Получаем ответ
+        with st.spinner("Тьютор думает..."):
             answer = ask_ai_tutor(prompt, kb)
-            
-        container.chat_message("assistant").write(answer)
-        st.session_state.tutor_history.append({"role": "assistant", "content": answer})
 
-# --- 4. КНОПКА В SIDEBAR ---
+        # Добавляем ответ ассистента
+        st.session_state.tutor_history.append({"role": "assistant", "content": answer})
+        with chat_container:
+            st.chat_message("assistant").write(answer)
+
+
+# ====================== КНОПКА В SIDEBAR ======================
 with st.sidebar:
     st.divider()
-    if st.button("💬 Задать вопрос Тьютору", use_container_width=True):
+    if st.button("💬 Задать вопрос Тьютору", use_container_width=True, type="primary"):
         tutor_dialog()
