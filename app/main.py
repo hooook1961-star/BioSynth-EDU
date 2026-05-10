@@ -838,7 +838,7 @@ with tab5:
 """
         )
         
-# ====================== ЗАГРУЗКА БАЗЫ ======================
+# ====Ассистент. ЗАГРУЗКА БАЗЫ ======================
 @st.cache_data
 def load_tutor_knowledge():
     """Загружает bot_knowledge_new.json"""
@@ -861,7 +861,7 @@ def load_tutor_knowledge():
         return {}
 
 
-# ====================== ОСНОВНАЯ ФУНКЦИЯ ТЬЮТОРА ======================
+# --- ОСНОВНАЯ ФУНКЦИЯ ТЬЮТОРА ---
 def ask_ai_tutor(user_query, kb):
     try:
         client = openai.OpenAI(
@@ -887,7 +887,7 @@ def ask_ai_tutor(user_query, kb):
 
         response = client.chat.completions.create(
             extra_headers={
-                "HTTP-Referer": "https://biosynth-edu.streamlit.app/",
+                "HTTP-Referer": "https://biosynth-edu-fdgwzio63udjwre4tospup.streamlit.app//",
                 "X-OpenRouter-Title": "BioSynth-EDU",
             },
             model="google/gemini-flash-1.5",
