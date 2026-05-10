@@ -837,100 +837,59 @@ with tab5:
 """
         )
         
-# --- МОДУЛЬ ИИ-ТЬЮТОРА (ВСТАВИТЬ В КОНЕЦ ФАЙЛА) ---
-
-def load_tutor_knowledge():
-    """Функция для поиска и загрузки JSON-базы из корня проекта"""
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    # Выходим на уровень выше (в корень), так как data лежит там
-    root_dir = os.path.dirname(current_dir)
-    file_path = os.path.join(root_dir, 'data', 'bot_knowledge_new.json')
+# 1. Функция обращения к нейросети
+def get_llm_answer(user_prompt, knowledge_base):
+    client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"]) # Ключ храним в secrets
     
-    # Альтернативный путь (если запускаете локально и data внутри app)
-    alt_path = os.path.join(current_dir, 'data', 'bot_knowledge_new.json')
+    # Формируем контекст из вашего JSON
+    # Мы передаем только нужные части, чтобы не перегружать контекст
+    context = json.dumps(knowledge_base, ensure_ascii=False)
     
-    final_path = file_path if os.path.exists(file_path) else alt_path
+    response = client.chat.completions.create(
+        model="gpt-4o-mini", # Быстрая и дешевая модель
+        messages=[
+            {"role": "system", "content": f"""
+            Ты — ИИ-Тьютор платформы BioSynth-EDU. 
+            Твоя база знаний: {context}
+            
+            Твои задачи:
+            1. Помогать с навигацией (названия кнопок, вкладок).
+            2. Объяснять химическую теорию (PASS, ADMET, свойства соединений).
+            3. Если студент спрашивает про SMILES: отвечай, что его нужно выбрать в каталоге и скопировать из текстового поля.
+            
+            Отвечай кратко, профессионально, на языке пользователя.
+            """},
+            {"role": "user", "content": user_prompt}
+        ],
+        temperature=0.3 # Низкая температура, чтобы ИИ не фантазировал
+    )
+    return response.choices[0].message.content
 
-    if os.path.exists(final_path):
-        try:
-            with open(final_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception as e:
-            st.error(f"Ошибка чтения базы: {e}")
-            return None
-    return None
-
+# 2. Обновленное диалоговое окно
 @st.dialog("🤖 Ассистент BioSynth-EDU")
 def tutor_dialog():
-    """Окно чата с Тьютором"""
     kb = load_tutor_knowledge()
-    
     if kb is None:
-        st.error("Критическая ошибка: База данных 'bot_knowledge_new.json' не найдена в папке /data/")
-        st.info("Проверьте, что папка data находится в корне вашего репозитория на GitHub.")
+        st.error("База знаний не найдена.")
         return
 
-    st.write("Привет! Я помогу с навигацией по кнопкам и объясню теорию.")
-    
     if "tutor_chat_history" not in st.session_state:
         st.session_state.tutor_chat_history = []
 
     chat_container = st.container(height=400)
-    
     for msg in st.session_state.tutor_chat_history:
         chat_container.chat_message(msg["role"]).write(msg["content"])
 
-    if prompt := st.chat_input("Например: 'Где вкладка ADMET?'"):
+    if prompt := st.chat_input("Спросите что угодно..."):
         st.session_state.tutor_chat_history.append({"role": "user", "content": prompt})
         chat_container.chat_message("user").write(prompt)
-        
-        prompt_l = prompt.lower()
-        nav = kb.get('interface_navigation_and_logic', {})
-        
-        # 1. Логика навигации
-        if any(word in prompt_l for word in ["где", "кнопка", "найти", "как"]):
-            if "3d" in prompt_l:
-                tab = nav.get('Tabs_Functional', {}).get('Tab_3D', {})
-                res = f"📍 **Навигация:** Вкладка **'{tab.get('title')}'**. Кнопки: `{', '.join(tab.get('buttons', []))}`."
-            elif "admet" in prompt_l:
-                tab = nav.get('Tabs_Functional', {}).get('Tab_ADMET', {})
-                res = f"📍 **Навигация:** Вкладка **'{tab.get('title')}'**. Загрузка через `{tab.get('buttons', [0])}`."
-            else:
-                res = "Я знаю путь к вкладкам 3D, ADMET, PASS и Докинга. Что именно показать?"
-        
-        # 2. Логика теории
-        elif "pass" in prompt_l or "pa" in prompt_l:
-            val = kb.get('PASS_Online_Full_Knowledge_Base', {}).get('Validation_and_Robustness', {})
-            res = f"🧠 **Теория:** PASS имеет точность {val.get('Accuracy', '95%')} и устойчив к потере данных."
-        else:
-            res = "Я готов помочь! Спросите о кнопках интерфейса или теории из курса."
 
-        chat_container.chat_message("assistant").write(res)
-        st.session_state.tutor_chat_history.append({"role": "assistant", "content": res})
+        with st.spinner("Думаю..."):
+            try:
+                # ВЫЗОВ LLM вместо ручных условий
+                answer = get_llm_answer(prompt, kb)
+            except Exception as e:
+                answer = f"Ошибка связи с ИИ: {e}. Проверьте API-ключ."
 
-# --- КНОПКА В УГЛУ ЭКРАНА ---
-st.markdown("""
-    <style>
-    .floating-tutor {
-        position: fixed;
-        bottom: 30px;
-        right: 30px;
-        z-index: 1000;
-    }
-    .floating-tutor button {
-        width: 70px !important;
-        height: 70px !important;
-        border-radius: 50% !important;
-        background-color: #2e7d32 !important;
-        color: white !important;
-        font-size: 30px !important;
-        box-shadow: 0px 4px 15px rgba(0,0,0,0.4) !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-with st.container():
-    st.markdown('<div class="floating-tutor">', unsafe_allow_html=True)
-    if st.button("🤖", key="tutor_trigger_btn"):
-        tutor_dialog()
-    st.markdown('</div>', unsafe_allow_html=True)
+        chat_container.chat_message("assistant").write(answer)
+        st.session_state.tutor_chat_history.append({"role": "assistant", "content": answer})
