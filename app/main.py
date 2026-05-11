@@ -972,3 +972,10 @@ def tutor_dialog():
 
         st.session_state.tutor_history.append({"role": "assistant", "content": answer})
         st.rerun()
+
+# ====================== КНОПКА В SIDEBAR ======================
+with st.sidebar:
+    st.divider()
+    if st.button("💬 Задать вопрос Тьютору", use_container_width=True, type="primary"):
+        tutor_dialog()
+
