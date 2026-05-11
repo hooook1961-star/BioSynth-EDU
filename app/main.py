@@ -435,12 +435,12 @@ with tab4:
             st.subheader("ИИ-Тьютор")
             st.text_input("Вопрос по пособию:", key="bot_q")
 
-    # РАЗДЕЛ 2: ВИДЕО (то, что у вас уже было)
+    # РАЗДЕЛ 2: ВИДЕО 
     with itabs[1]:
         st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
         st.radio("Тест: Как изменится LogP?", ["Увеличится", "Уменьшится"], key="v_test")
 
-    # РАЗДЕЛ 3 и 4: ПОКА ПУСТЫЕ (ДЛЯ ЛАБ И КЕЙСОВ)
+    # РАЗДЕЛ 3 и 4: ДЛЯ ЛАБ И КЕЙСОВ
     with itabs[2]:
         st.info("Лабораторные работы")
     with itabs[3]:
