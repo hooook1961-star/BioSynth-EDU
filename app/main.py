@@ -884,14 +884,21 @@ def ask_ai_tutor(user_query, data):
         # Ищем данные по конкретной молекуле в каталоге
         mol_data_context = ""
         # Проверяем, где лежат данные: в kb['catalog'] или в самом kb
-        actual_catalog = kb.get('catalog', kb) if isinstance(kb, dict) else {}
-        
+                 # 1. Инструкции по навигации (берем из kb)
+        navigation_context = json.dumps(kb, ensure_ascii=False) if isinstance(kb, dict) else "Инструкции не загружены"
+
+        # 2. Поиск молекулы (только в химической базе data)
+        mol_data_context = ""
         if selected_mol != 'Не выбрана':
-            # Ищем совпадение, игнорируя регистр и пробелы
-            match = next((v for k, v in actual_catalog.items() if str(k).lower().strip() == selected_mol.lower().strip()), None)
+            # Ищем ТОЛЬКО в базе соединений (data)
+            # Приводим к нижнему регистру для надежности
+            catalog = data.get('catalog', data) if isinstance(data, dict) else {}
+            match = next((v for k, v in catalog.items() if str(k).lower().strip() == selected_mol.lower().strip()), None)
             
             if match:
-                mol_data_context = f"\nДАННЫЕ ИЗ КАТАЛОГА ПО ВЫБРАННОЙ МОЛЕКУЛЕ ({selected_mol}):\n{json.dumps(match, ensure_ascii=False)}"
+                mol_data_context = f"\nДАННЫЕ ПО СОЕДИНЕНИЮ {selected_mol}:\n{json.dumps(match, ensure_ascii=False)}"
+            else:
+                mol_data_context = f"\n(Соединение '{selected_mol}' отсутствует в химическом справочнике)"
 
         response = client.chat.completions.create(
             extra_headers={
@@ -903,6 +910,17 @@ def ask_ai_tutor(user_query, data):
                 {
                     "role": "system",
                     "content": f"""Ты — ИИ-Тьютор платформы BioSynth-EDU.
+
+ИНСТРУКЦИИ ПО НАВИГАЦИИ (Как работает приложение):
+{navigation_context}
+
+ДАННЫЕ ПО ВЫБРАННОЙ МОЛЕКУЛЕ (Научные параметры):
+{mol_data_context}
+
+Текущее состояние интерфейса:
+{json.dumps(current_state, ensure_ascii=False)}
+"""
+                },
 
 Текущее состояние:
 {json.dumps(current_state, ensure_ascii=False)}
