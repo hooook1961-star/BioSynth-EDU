@@ -881,17 +881,16 @@ def ask_ai_tutor(user_query, data):
             "smiles_input": bool(st.session_state.get('smiles_input', ''))
         }
 
-        # Ищем данные по конкретной молекуле в каталоге
+        # данные по конкретной молекуле в каталоге
         mol_data_context = ""
-        # Проверяем, где лежат данные: в kb['catalog'] или в самом kb
+        # где лежат данные: в kb['catalog'] или в самом kb
                  # 1. Инструкции по навигации (берем из kb)
         navigation_context = json.dumps(kb, ensure_ascii=False) if isinstance(kb, dict) else "Инструкции не загружены"
 
-        # 2. Поиск молекулы (только в химической базе data)
+        # 2. Поиск молекулы (в химической базе data)
         mol_data_context = ""
         if selected_mol != 'Не выбрана':
-            # Ищем ТОЛЬКО в базе соединений (data)
-            # Приводим к нижнему регистру для надежности
+            # ТОЛЬКО в базе соединений (data)
             catalog = data.get('catalog', data) if isinstance(data, dict) else {}
             match = next((v for k, v in catalog.items() if str(k).lower().strip() == selected_mol.lower().strip()), None)
             
