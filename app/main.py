@@ -838,54 +838,61 @@ with tab5:
 """
         )
         
-# ====Ассистент. ЗАГРУЗКА БАЗЫ ======================
+# ==== Ассистент. ЗАГРУЗКА БАЗЫ И КАТАЛОГА ======================
 @st.cache_data
 def load_tutor_knowledge():
-    """Загружает bot_knowledge_new.json"""
+    """Загружает bot_knowledge_new.json и catalog.json"""
+    data = {"kb": {}, "catalog": {}}
     try:
-        file_path = Path("data/bot_knowledge_new.json")
+        # 1. Загрузка инструкций
+        kb_path = Path("data/bot_knowledge_new.json")
+        if kb_path.exists():
+            with open(kb_path, "r", encoding="utf-8") as f:
+                data["kb"] = json.load(f)
         
-        if file_path.exists():
-            with open(file_path, "r", encoding="utf-8") as f:
-                kb = json.load(f)
-            return kb
-        else:
-            st.error(f"❌ Файл не найден: {file_path}")
-            return {}
+        # 2. Загрузка каталога (Алмакаин и др.)
+        cat_path = Path("data/catalog.json")
+        if cat_path.exists():
+            with open(cat_path, "r", encoding="utf-8") as f:
+                data["catalog"] = json.load(f)
+                
+        return data
             
-    except json.JSONDecodeError:
-        st.error("❌ Файл bot_knowledge_new.json повреждён (невалидный JSON)")
-        return {}
     except Exception as e:
-        st.error(f"❌ Ошибка загрузки базы: {e}")
-        return {}
-
+        st.error(f"❌ Ошибка загрузки данных: {e}")
+        return data
 
 # --- ОСНОВНАЯ ФУНКЦИЯ ТЬЮТОРА ---
-def ask_ai_tutor(user_query, kb):
+def ask_ai_tutor(user_query, data):
     try:
+        kb = data.get("kb", {})
+        catalog = data.get("catalog", {})
+        
         client = openai.OpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=st.secrets["OPENROUTER_API_KEY"],
         )
 
+        selected_mol = st.session_state.get('selected_mol_name', 'Не выбрана')
+        
         current_state = {
             "active_tab": st.session_state.get('main_tabs_active', 'Не определена'),
-            "selected_molecule": st.session_state.get('selected_mol_name', 'Не выбрана'),
+            "selected_molecule": selected_mol,
             "smiles_input": bool(st.session_state.get('smiles_input', ''))
         }
 
-        kb_context = json.dumps(kb, ensure_ascii=False)[:1000] if kb else "База знаний загружена"
+        # Ищем данные по конкретной молекуле в каталоге
+        mol_data_context = ""
+        if selected_mol != 'Не выбрана' and selected_mol in catalog:
+            mol_info = catalog[selected_mol]
+            mol_data_context = f"\nДАННЫЕ ИЗ КАТАЛОГА ПО ВЫБРАННОЙ МОЛЕКУЛЕ ({selected_mol}):\n{json.dumps(mol_info, ensure_ascii=False)}"
 
         response = client.chat.completions.create(
             extra_headers={
                 "HTTP-Referer": "https://biosynth-edu.streamlit.app/",
                 "X-OpenRouter-Title": "BioSynth-EDU",
             },
-            # Бесплатная модель
-            model="openrouter/free",                    # ← Самый лучший бесплатный вариант
-            # model="meta-llama/llama-3.3-70b-instruct:free",  # альтернативный вариант (можно попробовать)
-            
+            model="openrouter/free",
             messages=[
                 {
                     "role": "system",
@@ -893,15 +900,15 @@ def ask_ai_tutor(user_query, kb):
 
 Текущее состояние:
 {json.dumps(current_state, ensure_ascii=False)}
+{mol_data_context}
 
-Ты — ИИ-Тьютор образовательной платформы BioSynth-EDU. 
 Твоя задача: помогать студентам ориентироваться в интерфейсе и теории, НЕ ПРИПИСЫВАЯ приложению несуществующих функций.
 
 ### КАРТА ИНТЕРФЕЙСА И ФУНКЦИЙ (СТРОГИЕ ПРАВИЛА):
 
 1. МОДУЛЬ "PASS":
    - Внутри приложения BioSynth-EDU прямого расчета PASS НЕТ.
-   - Назначение: Обучающий справочник. Ты можешь объяснять понятия PASS (Pa, Pi), опираясь на данные каталога, которые в тебя загружены.
+   - Назначение: Обучающий справочник. Ты можешь объяснять понятия PASS (Pa, Pi), опираясь на предоставленные выше данные каталога.
    - Как сделать новый прогноз: Инструктируй студента перейти во вкладку «Исследовательский проект». Там находятся ссылки на официальный сайт PASS Online и обучающее видео.
 
 2. ВКЛАДКА "ADMET Анализ":
@@ -911,24 +918,24 @@ def ask_ai_tutor(user_query, kb):
      2. Перейти во вкладку "ADMET Анализ", выбрать ссылку на внешний сервис (ADMETlab 3.0 или SwissADME).
      3. Провести расчет на внешнем сайте и скачать результат в формате CSV.
      4. Вернуться в BioSynth-EDU и загрузить этот CSV-файл.
-   - Что делает приложение: После загрузки файла оно преобразует CSV в таблицу (которую можно скопировать выделением) и выполняет АВТОМАТИЧЕСКУЮ ИНТЕРПРЕТАЦИЮ параметров: logP, BBB (проницаемость ГЭБ), кардиотоксичность и соответствие правилу Липински.
+   - Что делает приложение: После загрузки файла оно преобразует CSV в таблицу и выполняет АВТОМАТИЧЕСКУЮ ИНТЕРПРЕТАЦИЮ параметров: logP, BBB, кардиотоксичность и соответствие правилу Липински.
 
 3. ВКЛАДКА "Структура и свойства":
    - Здесь МОЖНО построить 3D-модель молекулы.
-   - Кнопка "Скачать SDF": Появляется ТОЛЬКО ПОСЛЕ того, как студент нажмет кнопку "Построить 3D". Если модели нет на экране, кнопки скачивания не будет.
+   - Кнопка "Скачать SDF": Появляется ТОЛЬКО ПОСЛЕ нажатия кнопки "Построить 3D".
 
 ### ПРАВИЛА ОТВЕТОВ:
-- Если студент спрашивает о функции, которой нет в списке выше — говори: "Данная функция в текущей версии BioSynth-EDU не реализована".
-- Никогда не обещай расчет PASS или ADMET "в один клик" внутри сайта. Всегда делай акцент на загрузке внешних данных (CSV) или переходе по ссылкам.
-- Будь профессионален, используй химическую терминологию и помогай с трактовкой данных из загруженных файлов.
+- Если данные по молекуле предоставлены выше (из каталога), используй их для ответов на вопросы о свойствах.
+- Если функции нет в списке — говори: "Данная функция в текущей версии BioSynth-EDU не реализована".
+- Никогда не обещай расчет PASS или ADMET "в один клик" внутри сайта. 
+- Будь профессионален, используй химическую терминологию.
 - Отвечай на языке пользователя (Русский, Казахский или Английский).
-- Если молекула не выбрана — напомни выбрать её из списка слева.
 """
                 },
                 {"role": "user", "content": user_query}
             ],
             temperature=0.4,
-            max_tokens=2500,           # ограничение для бесплатной модели
+            max_tokens=2500,
         )
 
         return response.choices[0].message.content
@@ -936,46 +943,32 @@ def ask_ai_tutor(user_query, kb):
     except Exception as e:
         error_str = str(e).lower()
         if "402" in error_str or "credit" in error_str or "quota" in error_str:
-            return "⚠️ Лимит бесплатных запросов исчерпан на сегодня.\nПопробуй позже или пополни аккаунт."
+            return "⚠️ Лимит бесплатных запросов исчерпан на сегодня."
         else:
             return f"❌ Ошибка Тьютора:\n{str(e)}"
 
 # ====================== ДИАЛОГ ТЬЮТОРА ======================
 @st.dialog("🤖 Тьютор BioSynth-EDU")
 def tutor_dialog():
-    # Загружаем базу
-    kb = load_tutor_knowledge()
+    # Теперь здесь возвращается словарь с kb и catalog
+    data = load_tutor_knowledge()
 
     if "tutor_history" not in st.session_state:
         st.session_state.tutor_history = []
 
-    # Окно чата
     chat_container = st.container(height=420)
 
     with chat_container:
         for msg in st.session_state.tutor_history:
-            chat_message = st.chat_message(msg["role"])
-            chat_message.write(msg["content"])
+            st.chat_message(msg["role"]).write(msg["content"])
 
-    # Поле ввода
     if prompt := st.chat_input("Задайте вопрос тьютору..."):
-        # Добавляем сообщение пользователя
         st.session_state.tutor_history.append({"role": "user", "content": prompt})
         with chat_container:
             st.chat_message("user").write(prompt)
 
-        # Получаем ответ
-        with st.spinner("Тьютор думает..."):
-            answer = ask_ai_tutor(prompt, kb)
+        with st.spinner("Сверяюсь с базой данных..."):
+            answer = ask_ai_tutor(prompt, data)
 
-        # Добавляем ответ ассистента
         st.session_state.tutor_history.append({"role": "assistant", "content": answer})
-        with chat_container:
-            st.chat_message("assistant").write(answer)
-
-
-# ====================== КНОПКА В SIDEBAR ======================
-with st.sidebar:
-    st.divider()
-    if st.button("💬 Задать вопрос Тьютору", use_container_width=True, type="primary"):
-        tutor_dialog()
+        st.rerun()
