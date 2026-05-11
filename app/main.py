@@ -883,12 +883,15 @@ def ask_ai_tutor(user_query, data):
 
         # Ищем данные по конкретной молекуле в каталоге
         mol_data_context = ""
+        # Проверяем, где лежат данные: в kb['catalog'] или в самом kb
+        actual_catalog = kb.get('catalog', kb) if isinstance(kb, dict) else {}
+        
         if selected_mol != 'Не выбрана':
-            # Ищем молекулу в каталоге, игнорируя регистр (Арглабин == арглабин)
-            mol_info = next((v for k, v in catalog.items() if k.lower().strip() == selected_mol.lower().strip()), None)
+            # Ищем совпадение, игнорируя регистр и пробелы
+            match = next((v for k, v in actual_catalog.items() if str(k).lower().strip() == selected_mol.lower().strip()), None)
             
-            if mol_info:
-                mol_data_context = f"\nДАННЫЕ ИЗ КАТАЛОГА ПО ВЫБРАННОЙ МОЛЕКУЛЕ ({selected_mol}):\n{json.dumps(mol_info, ensure_ascii=False)}"
+            if match:
+                mol_data_context = f"\nДАННЫЕ ИЗ КАТАЛОГА ПО ВЫБРАННОЙ МОЛЕКУЛЕ ({selected_mol}):\n{json.dumps(match, ensure_ascii=False)}"
 
         response = client.chat.completions.create(
             extra_headers={
