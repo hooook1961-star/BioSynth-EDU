@@ -882,7 +882,7 @@ def ask_ai_tutor(user_query, data):
         }
 
         # Ищем данные по конкретной молекуле в каталоге
-                mol_data_context = ""
+        mol_data_context = ""
         if selected_mol != 'Не выбрана':
             # Ищем молекулу в каталоге, игнорируя регистр (Арглабин == арглабин)
             mol_info = next((v for k, v in catalog.items() if k.lower().strip() == selected_mol.lower().strip()), None)
