@@ -9,6 +9,15 @@
     "description": "Синтетический аналог морфина, оригинальный казахстанский препарат."
   },
   {
+    "id": "ARGLABIN_01",
+    "name": "Арглабин",
+    "smiles": "CC1=CCC23C1C4C(CCC2(O3)C)C(=C)C(=O)O4",
+    "classification": "Противораковый",
+    "patent": "EA015557B1 (2006)",
+    "authors": ["Адекенов С.М."],
+    "description": "сесквитерпеновый лактон, выделенный из полыни гладкой Artemisia glabella."
+  },
+  {
     "id": "KAZCAINE_01",
     "name": "Казкаин",
     "smiles": "C#CC1(CCN(CCOCC)CC1)OC(=O)c2ccccc2",
