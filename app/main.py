@@ -890,9 +890,9 @@ def ask_ai_tutor(user_query, data):
         # 2. Поиск молекулы (в химической базе data)
         mol_data_context = ""
         if selected_mol != 'Не выбрана':
-            # ТОЛЬКО в базе соединений (data)
-            catalog = data.get('catalog', data) if isinstance(data, dict) else {}
-            match = next((v for k, v in catalog.items() if str(k).lower().strip() == selected_mol.lower().strip()), None)
+            actual_catalog = data.get('catalog', {}).get('catalog', {})
+            match = next((v for k, v in actual_catalog.items() if str(k).lower().strip() == selected_mol.lower().strip()), None)
+
             
             if match:
                 mol_data_context = f"\nДАННЫЕ ПО СОЕДИНЕНИЮ {selected_mol}:\n{json.dumps(match, ensure_ascii=False)}"
