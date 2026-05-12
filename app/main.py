@@ -888,16 +888,36 @@ def ask_ai_tutor(user_query, data):
         navigation_context = json.dumps(kb, ensure_ascii=False) if isinstance(kb, dict) else "Инструкции не загружены"
 
         # 2. Поиск молекулы (в химической базе data)
+                # --- ИСПРАВЛЕННЫЙ БЛОК ---
         mol_data_context = ""
-        if selected_mol != 'Не выбрана':
-            actual_catalog = data.get('catalog', {}).get('catalog', {})
-            match = next((v for k, v in actual_catalog.items() if str(k).lower().strip() == selected_mol.lower().strip()), None)
+        
+        # Условие стало гибче: проверяем, что имя не пустое и не дефолтное
+        is_mol_selected = selected_mol and str(selected_mol).strip().lower() not in ["не выбрана", "none", ""]
 
+        if is_mol_selected:
+            # 1. Получаем содержимое файла catalog.json (оно лежит в data["catalog"])
+            raw_catalog_file = data.get("catalog", {})
+            
+            # 2. Пробиваемся внутрь структуры {"catalog": {"Алмакаин": ...}}
+            # Если в файле есть ключ "catalog", берем его содержимое, иначе берем весь словарь
+            actual_molecules = raw_catalog_file.get("catalog", raw_catalog_file)
+            
+            # 3. Чистый поиск без учета регистра и пробелов
+            search_name = str(selected_mol).strip().lower()
+            match = None
+            
+            if isinstance(actual_molecules, dict):
+                for mol_name, mol_info in actual_molecules.items():
+                    if str(mol_name).strip().lower() == search_name:
+                        match = mol_info
+                        break
             
             if match:
                 mol_data_context = f"\nДАННЫЕ ПО СОЕДИНЕНИЮ {selected_mol}:\n{json.dumps(match, ensure_ascii=False)}"
             else:
-                mol_data_context = f"\n(Соединение '{selected_mol}' отсутствует в химическом справочнике)"
+                # Помогаем Тьютору понять, что именно он видит, если поиск сорвался
+                available = list(actual_molecules.keys())[:5] if isinstance(actual_molecules, dict) else "База пуста"
+                mol_data_context = f"\n(Соединение '{selected_mol}' не найдено. В базе доступны: {available})"
 
         response = client.chat.completions.create(
             extra_headers={
@@ -964,10 +984,9 @@ def ask_ai_tutor(user_query, data):
         else:
             return f"❌ Ошибка Тьютора:\n{str(e)}"
 
-# ====================== ДИАЛОГ ТЬЮТОРА ======================
+# --- ДИАЛОГ ТЬЮТОРА ---
 @st.dialog("🤖 Тьютор BioSynth-EDU")
 def tutor_dialog():
-    # Теперь здесь возвращается словарь с kb и catalog
     data = load_tutor_knowledge()
 
     if "tutor_history" not in st.session_state:
@@ -990,7 +1009,7 @@ def tutor_dialog():
         st.session_state.tutor_history.append({"role": "assistant", "content": answer})
         st.rerun()
 
-# ====================== КНОПКА В SIDEBAR ======================
+# --- КНОПКА В SIDEBAR ---
 with st.sidebar:
     st.divider()
     if st.button("💬 Задать вопрос Тьютору", use_container_width=True, type="primary"):
