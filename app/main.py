@@ -865,39 +865,20 @@ def load_tutor_knowledge():
 # --- ОСНОВНАЯ ФУНКЦИЯ ТЬЮТОРА ---
 def ask_ai_tutor(user_query, data):
     try:
-        kb = data.get("kb", {})
-        catalog = data.get("catalog", {})
-        
-        client = openai.OpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=st.secrets["OPENROUTER_API_KEY"],
-        )
+        # 1. ИЗВЛЕЧЕНИЕ ДАННЫХ (Защита от ошибки 'list' object)
+        if isinstance(data, list):
+            kb = data[0] if len(data) > 0 else {}
+            raw_catalog = data[1] if len(data) > 1 else {}
+        else:
+            kb = data.get("kb", {})
+            raw_catalog = data.get("catalog", {})
 
+        # 2. ДОСТУП К МОЛЕКУЛАМ (Учитываем структуру {"catalog": {"catalog": {...}}})
+        actual_molecules = raw_catalog.get("catalog", raw_catalog) if isinstance(raw_catalog, dict) else {}
+        all_names = ", ".join(actual_molecules.keys()) if isinstance(actual_molecules, dict) else "Пусто"
+
+        # 3. ПОИСК ВЫБРАННОЙ МОЛЕКУЛЫ
         selected_mol = st.session_state.get('selected_mol_name', 'Не выбрана')
-        
-        current_state = {
-            "active_tab": st.session_state.get('main_tabs_active', 'Не определена'),
-            "selected_molecule": selected_mol,
-            "smiles_input": bool(st.session_state.get('smiles_input', ''))
-        }
-
-        # данные по конкретной молекуле в каталоге
-        mol_data_context = ""
-        # где лежат данные: в kb['catalog'] или в самом kb
-                 # 1. Инструкции по навигации (берем из kb)
-        navigation_context = json.dumps(kb, ensure_ascii=False) if isinstance(kb, dict) else "Инструкции не загружены"
-
-        # 2. Поиск молекулы (в химической базе data)
-                # --- ИСПРАВЛЕННЫЙ БЛОК ---
-                # --- 1. ИЗВЛЕЧЕНИЕ РЕАЛЬНОГО СПИСКА (все 10 соединений) ---
-        raw_cat_file = data.get("catalog", {})
-        # Учитываем структуру {"catalog": {"catalog": {молекулы}}}
-        actual_molecules = raw_cat_file.get("catalog", raw_cat_file)
-        
-        # Составляем список всех имен для промпта (чтобы он видел Алмакаин и др.)
-        all_names_list = ", ".join(actual_molecules.keys()) if isinstance(actual_molecules, dict) else "Пусто"
-
-        # --- 2. ПОИСК ВЫБРАННОЙ МОЛЕКУЛЫ ---
         mol_data_context = ""
         search_key = str(selected_mol).strip().lower()
         
@@ -912,29 +893,18 @@ def ask_ai_tutor(user_query, data):
             if match:
                 mol_data_context = f"ДАННЫЕ ИЗ КАТАЛОГА ПО {selected_mol}:\n{json.dumps(match, ensure_ascii=False)}"
             else:
-                mol_data_context = f"ВНИМАНИЕ: Данные для '{selected_mol}' не найдены в JSON."
+                mol_data_context = f"ВНИМАНИЕ: Данные для '{selected_mol}' отсутствуют в локальном JSON."
 
-        # --- 3. ОТПРАВКА В ЧАТ ---
-        response = client.chat.completions.create(
-            # ... (ваши заголовки и модель) ...
-            messages=[
-                {
-                    "role": "system",
-                    "content": f"""Ты — ИИ-Тьютор BioSynth-EDU.
-                    
-ДОСТУПНЫЙ КАТАЛОГ: {all_names_list}
+        # 4. ТЕКУЩЕЕ СОСТОЯНИЕ
+        current_state = {
+            "active_tab": st.session_state.get('main_tabs_active', 'Не определена'),
+            "selected_molecule": selected_mol
+        }
 
-{mol_data_context}
-
-ИНСТРУКЦИИ:
-{json.dumps(kb, ensure_ascii=False)}
-
-ПРАВИЛО: Если молекула есть в списке {all_names_list}, но данных по ней нет в контексте — скажи об этом прямо. НЕ ВЫДУМЫВАЙ свойства Просидола или Алмакаина из головы! Используй только то, что передано выше.
-"""
-                },
-                {"role": "user", "content": user_query}
-            ],
-            temperature=0.2 
+        # 5. ЗАПРОС К ИИ С ПОЛНЫМИ ПРАВИЛАМИ
+        client = openai.OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=st.secrets["OPENROUTER_API_KEY"],
         )
 
         response = client.chat.completions.create(
@@ -946,61 +916,50 @@ def ask_ai_tutor(user_query, data):
             messages=[
                 {
                     "role": "system",
-                    "content": f"""Ты — ИИ-Тьютор платформы BioSynth-EDU.
+                    "content": f"""Ты — ИИ-Тьютор платформы BioSynth-EDU. 
 
-ИНСТРУКЦИИ ПО НАВИГАЦИИ (Как работает приложение):
-{navigation_context}
+КАТАЛОГ (Все соединения): {all_names}
 
-ДАННЫЕ ПО ВЫБРАННОЙ МОЛЕКУЛЕ:
+ИНСТРУКЦИИ ПО НАВИГАЦИИ (Файл bot_knowledge_new):
+{json.dumps(kb, ensure_ascii=False)}
+
 {mol_data_context}
 
-Текущее состояние интерфейса:
+ТЕКУЩЕЕ СОСТОЯНИЕ ИНТЕРФЕЙСА:
 {json.dumps(current_state, ensure_ascii=False)}
 
-Твоя задача: помогать студентам ориентироваться в интерфейсе и теории, НЕ ПРИПИСЫВАЯ приложению несуществующих функций.
-
-### КАРТА ИНТЕРФЕЙСА И ФУНКЦИЙ (СТРОГИЕ ПРАВИЛА):
+### СТРОГИЕ ПРАВИЛА (КАРТА ИНТЕРФЕЙСА):
 
 1. МОДУЛЬ "PASS":
-   - Внутри приложения BioSynth-EDU прямого расчета PASS НЕТ.
-   - Назначение: Обучающий справочник. Ты можешь объяснять понятия PASS (Pa, Pi), опираясь на предоставленные выше данные каталога.
-   - Как сделать новый прогноз: Инструктируй студента перейти во вкладку "Исследовательский проект". Там находятся ссылки на официальный сайт PASS Online и обучающее видео.
+   - В BioSynth-EDU прямого расчета PASS НЕТ.
+   - Назначение: Обучающий справочник. Ты можешь объяснять Pa/Pi, только если они есть в ДАННЫХ выше.
+   - Новый прогноз: Инструктируй перейти во вкладку "Исследовательский проект" к ссылкам на PASS Online.
 
 2. ВКЛАДКА "ADMET Анализ":
-   - Прямого расчета ADMET внутри приложения НЕТ.
-   - Порядок действий для студента:
-     1. Выбрать соединение в боковой панели и скопировать его SMILES.
-     2. Перейти во вкладку "ADMET Анализ", выбрать ссылку на внешний сервис (ADMETlab 3.0 или SwissADME).
-     3. Провести расчет на внешнем сайте и скачать результат в формате CSV.
-     4. Вернуться в BioSynth-EDU и загрузить этот CSV-файл.
-   - Что делает приложение: После загрузки файла оно преобразует CSV в таблицу и выполняет АВТОМАТИЧЕСКУЮ ИНТЕРПРЕТАЦИЮ параметров: logP, BBB, кардиотоксичность и соответствие правилу Липински.
+   - Прямого расчета внутри приложения НЕТ.
+   - Порядок: 1. Скопировать SMILES. 2. Перейти по внешней ссылке (SwissADME/ADMETlab). 3. Провести расчет там и скачать CSV. 4. Загрузить CSV в BioSynth-EDU для интерпретации.
+   - Интерпретация: Приложение само объяснит logP, BBB и правило Липински после загрузки файла.
 
 3. ВКЛАДКА "Структура и свойства":
-   - Здесь МОЖНО построить 3D модель молекулы.
-   - Кнопка "Скачать SDF": Появляется ТОЛЬКО ПОСЛЕ нажатия кнопки "Построить 3D".
+   - Здесь МОЖНО построить 3D модель.
+   - Кнопка "Скачать SDF" появляется ТОЛЬКО после нажатия "Построить 3D".
 
 ### СТРОГИЕ ПРАВИЛА ОТВЕТОВ:
-1. О свойствах молекул отвечай ТОЛЬКО на основе предоставленного текста из "ДАННЫЕ ПО ВЫБРАННОЙ МОЛЕКУЛЕ". 
-2. Если данных по этой молекуле в предоставленном контексте НЕТ — ты ОБЯЗАН ответить: "К сожалению, данное соединение отсутствует в локальном каталоге BioSynth-EDU, поэтому я не могу предоставить его точные характеристики". 
-3. ТЕБЕ КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО выдумывать SMILES или свойства из головы, даже если ты "знаешь" их из интернета. Лучше признать отсутствие данных, чем дезинформировать студента.
-4. Отвечай на языке пользователя (Русский, Казахский или Английский). Будь профессионален, используй химическую терминологию.
+1. О свойствах отвечай ТОЛЬКО на основе блока "ДАННЫЕ ИЗ КАТАЛОГА". Если там пусто — так и говори.
+2. Твой список доступных соединений: {all_names}. Если пользователь спрашивает про другое — говори, что его нет в базе.
+3. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО выдумывать SMILES, Pa/Pi или классификацию.
+4. Отвечай профессионально, на языке пользователя.
 """
                 },
                 {"role": "user", "content": user_query}
             ],
-
-            temperature=0.4,
-            max_tokens=2500,
+            temperature=0.2,
         )
 
         return response.choices[0].message.content
 
     except Exception as e:
-        error_str = str(e).lower()
-        if "402" in error_str or "credit" in error_str or "quota" in error_str:
-            return "⚠️ Лимит бесплатных запросов исчерпан на сегодня."
-        else:
-            return f"❌ Ошибка Тьютора:\n{str(e)}"
+        return f"❌ Ошибка Тьютора: {str(e)}"
 
 # --- ДИАЛОГ ТЬЮТОРА ---
 @st.dialog("🤖 Тьютор BioSynth-EDU")
