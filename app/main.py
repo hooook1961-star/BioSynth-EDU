@@ -889,35 +889,53 @@ def ask_ai_tutor(user_query, data):
 
         # 2. Поиск молекулы (в химической базе data)
                 # --- ИСПРАВЛЕННЫЙ БЛОК ---
-        mol_data_context = ""
+                # --- 1. ИЗВЛЕЧЕНИЕ РЕАЛЬНОГО СПИСКА (все 10 соединений) ---
+        raw_cat_file = data.get("catalog", {})
+        # Учитываем структуру {"catalog": {"catalog": {молекулы}}}
+        actual_molecules = raw_cat_file.get("catalog", raw_cat_file)
         
-        # Условие стало гибче: проверяем, что имя не пустое и не дефолтное
-        is_mol_selected = selected_mol and str(selected_mol).strip().lower() not in ["не выбрана", "none", ""]
+        # Составляем список всех имен для промпта (чтобы он видел Алмакаин и др.)
+        all_names_list = ", ".join(actual_molecules.keys()) if isinstance(actual_molecules, dict) else "Пусто"
 
-        if is_mol_selected:
-            # 1. Получаем содержимое файла catalog.json (оно лежит в data["catalog"])
-            raw_catalog_file = data.get("catalog", {})
-            
-            # 2. Пробиваемся внутрь структуры {"catalog": {"Алмакаин": ...}}
-            # Если в файле есть ключ "catalog", берем его содержимое, иначе берем весь словарь
-            actual_molecules = raw_catalog_file.get("catalog", raw_catalog_file)
-            
-            # 3. Чистый поиск без учета регистра и пробелов
-            search_name = str(selected_mol).strip().lower()
+        # --- 2. ПОИСК ВЫБРАННОЙ МОЛЕКУЛЫ ---
+        mol_data_context = ""
+        search_key = str(selected_mol).strip().lower()
+        
+        if search_key not in ["не выбрана", "none", ""]:
             match = None
-            
             if isinstance(actual_molecules, dict):
-                for mol_name, mol_info in actual_molecules.items():
-                    if str(mol_name).strip().lower() == search_name:
-                        match = mol_info
+                for m_name, m_info in actual_molecules.items():
+                    if str(m_name).strip().lower() == search_key:
+                        match = m_info
                         break
             
             if match:
-                mol_data_context = f"\nДАННЫЕ ПО СОЕДИНЕНИЮ {selected_mol}:\n{json.dumps(match, ensure_ascii=False)}"
+                mol_data_context = f"ДАННЫЕ ИЗ КАТАЛОГА ПО {selected_mol}:\n{json.dumps(match, ensure_ascii=False)}"
             else:
-                # Помогаем Тьютору понять, что именно он видит, если поиск сорвался
-                available = list(actual_molecules.keys())[:5] if isinstance(actual_molecules, dict) else "База пуста"
-                mol_data_context = f"\n(Соединение '{selected_mol}' не найдено. В базе доступны: {available})"
+                mol_data_context = f"ВНИМАНИЕ: Данные для '{selected_mol}' не найдены в JSON."
+
+        # --- 3. ОТПРАВКА В ЧАТ ---
+        response = client.chat.completions.create(
+            # ... (ваши заголовки и модель) ...
+            messages=[
+                {
+                    "role": "system",
+                    "content": f"""Ты — ИИ-Тьютор BioSynth-EDU.
+                    
+ДОСТУПНЫЙ КАТАЛОГ: {all_names_list}
+
+{mol_data_context}
+
+ИНСТРУКЦИИ:
+{json.dumps(kb, ensure_ascii=False)}
+
+ПРАВИЛО: Если молекула есть в списке {all_names_list}, но данных по ней нет в контексте — скажи об этом прямо. НЕ ВЫДУМЫВАЙ свойства Просидола или Алмакаина из головы! Используй только то, что передано выше.
+"""
+                },
+                {"role": "user", "content": user_query}
+            ],
+            temperature=0.2 
+        )
 
         response = client.chat.completions.create(
             extra_headers={
