@@ -191,39 +191,40 @@ with tab1:
                 st.session_state.mol_block = smiles_to_3d_block(smiles, optimize=True)
 
         if st.session_state.mol_block:
-            # --- ВЫБОР СТИЛЯ ОТОБРАЖЕНИЯ ---
             st.markdown(f"**{t.get('style_label', 'Стиль отображения')}:**")
             style_cols = st.columns(4)
             
-            # Сохраняет стиль в session_state, чтобы он не слетал
             if 'viz_style' not in st.session_state:
                 st.session_state.viz_style = 'stick'
 
+            # Кнопки управления
             if style_cols[0].button("Stick", use_container_width=True): st.session_state.viz_style = 'stick'
             if style_cols[1].button("Sphere", use_container_width=True): st.session_state.viz_style = 'sphere'
             if style_cols[2].button("Line", use_container_width=True): st.session_state.viz_style = 'line'
-            if style_cols[3].button("Cartoon", use_container_width=True): st.session_state.viz_style = 'cartoon'
+            if style_cols[3].button("Surface", use_container_width=True): st.session_state.viz_style = 'surface'
 
-            # --- ВИЗУАЛИЗАЦИЯ (Адаптированная) ---
-            view = py3Dmol.view(width=None, height=400) # width=None для адаптивности
+            # Настройка вида
+            view = py3Dmol.view(width=None, height=450)
             view.addModel(st.session_state.mol_block, "mol")
             
-            # Применяется выбранный стиль
             if st.session_state.viz_style == 'stick':
-                view.setStyle({'stick': {'radius': 0.2}})
+                view.setStyle({'stick': {'radius': 0.25}})
             elif st.session_state.viz_style == 'sphere':
-                view.setStyle({'sphere': {'scale': 0.3}})
+                # Увеличили масштаб для корректного отображения атомов
+                view.setStyle({'sphere': {'scale': 0.9}}) 
             elif st.session_state.viz_style == 'line':
-                view.setStyle({'line': {}})
-            elif st.session_state.viz_style == 'cartoon':
-                view.setStyle({'cartoon': {'color': 'spectrum'}})
+                view.setStyle({'line': {'linewidth': 2}})
+            elif st.session_state.viz_style == 'surface':
+                # Комбинируем палочки и поверхность для наглядности
+                view.setStyle({'stick': {'radius': 0.1}})
+                view.addSurface(py3Dmol.VDW, {'opacity': 0.5, 'color': 'white'})
             
             view.zoomTo()
             view.setBackgroundColor('#ffffff')
             
-            # Используем контейнер с 100% шириной для мобильных
-            obj_html = view._make_html().replace('width: 700px', 'width: 100%')
-            components.html(obj_html, height=450)
+            # Рендеринг с фиксом ширины для мобильных
+            html_content = view._make_html().replace('width: 700px', 'width: 100%')
+            components.html(html_content, height=480)
             
             # --- СКАЧИВАНИЕ ---
             try:
