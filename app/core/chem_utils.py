@@ -1,6 +1,7 @@
 from rdkit import Chem
 from rdkit.Chem import AllChem
 import pubchempy as pcp
+import pandas as pd
 from meeko import MoleculePreparation
 
 def safe_float(value, default=0.0):
