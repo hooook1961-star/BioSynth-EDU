@@ -11,7 +11,7 @@ import random
 import openai
 from pathlib import Path
 from translations import LANGUAGES
-from core.chem_utils import smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking
+from core.chem_utils import safe_float, smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking
         
 st.set_page_config(page_title="BioSynth-EDU", layout="wide")
 
