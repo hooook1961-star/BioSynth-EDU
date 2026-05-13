@@ -173,7 +173,7 @@ tab_names = [
     t.get("tab_admet", "ADMET"), 
     t.get("tab_docking", "Docking"), 
     t.get("tab_edu", "Education"),
-    t.get("tab_project", "Project") # .get не вызывает KeyError
+    t.get("tab_project", "Project") 
 ]
 tab1, tab2, tab3, tab4, tab5 = st.tabs(tab_names)
 
@@ -181,91 +181,105 @@ with tab1:
     col1, col2 = st.columns([3, 1])
     
     with col1:
+        # --- БЛОК УПРАВЛЕНИЯ МОДЕЛЬЮ ---
         c1, c2 = st.columns(2)
-        if c1.button(t["btn_build_3d"], use_container_width=True):
+        if c1.button(t.get("btn_build_3d", "Построить 3D"), use_container_width=True):
             st.session_state.mol_block = smiles_to_3d_block(smiles, optimize=False)
         
-        if c2.button(t["btn_optimize"], use_container_width=True):
-            with st.spinner(t["spinner_optimize"]):
+        if c2.button(t.get("btn_optimize", "Оптимизировать"), use_container_width=True):
+            with st.spinner(t.get("spinner_optimize", "Расчет...")):
                 st.session_state.mol_block = smiles_to_3d_block(smiles, optimize=True)
 
         if st.session_state.mol_block:
-            # Визуализация
-            view = py3Dmol.view(width=700, height=500)
+            # --- ВЫБОР СТИЛЯ ОТОБРАЖЕНИЯ ---
+            st.markdown(f"**{t.get('style_label', 'Стиль отображения')}:**")
+            style_cols = st.columns(4)
+            
+            # Сохраняет стиль в session_state, чтобы он не слетал
+            if 'viz_style' not in st.session_state:
+                st.session_state.viz_style = 'stick'
+
+            if style_cols[0].button("Stick", use_container_width=True): st.session_state.viz_style = 'stick'
+            if style_cols[1].button("Sphere", use_container_width=True): st.session_state.viz_style = 'sphere'
+            if style_cols[2].button("Line", use_container_width=True): st.session_state.viz_style = 'line'
+            if style_cols[3].button("Cartoon", use_container_width=True): st.session_state.viz_style = 'cartoon'
+
+            # --- ВИЗУАЛИЗАЦИЯ (Адаптированная) ---
+            view = py3Dmol.view(width=None, height=400) # width=None для адаптивности
             view.addModel(st.session_state.mol_block, "mol")
-            view.setStyle({'stick': {'radius':0.2}, 'sphere': {'scale':0.3}})
+            
+            # Применяется выбранный стиль
+            if st.session_state.viz_style == 'stick':
+                view.setStyle({'stick': {'radius': 0.2}})
+            elif st.session_state.viz_style == 'sphere':
+                view.setStyle({'sphere': {'scale': 0.3}})
+            elif st.session_state.viz_style == 'line':
+                view.setStyle({'line': {}})
+            elif st.session_state.viz_style == 'cartoon':
+                view.setStyle({'cartoon': {'color': 'spectrum'}})
+            
             view.zoomTo()
             view.setBackgroundColor('#ffffff')
-            components.html(view._make_html(), height=550)
             
-            # 1. безопасное имя файла
+            # Используем контейнер с 100% шириной для мобильных
+            obj_html = view._make_html().replace('width: 700px', 'width: 100%')
+            components.html(obj_html, height=450)
+            
+            # --- СКАЧИВАНИЕ ---
             try:
-                # Локализованное имя из выбора
-                prefix = selected_kaz.split()[0] if selected_kaz != t["select_placeholder"] else "molecule"
+                prefix = selected_kaz.split()[0] if selected_kaz != t.get("select_placeholder") else "molecule"
             except:
                 prefix = "molecule"
             
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             unique_filename = f"{prefix}_{timestamp}.sdf"
 
-            # 2. Кнопка скачивания SDF
             st.download_button(
-                label=t["download_sdf"],
+                label=t.get("download_sdf", "Скачать SDF"),
                 data=st.session_state.mol_block,
                 file_name=unique_filename,
                 mime="chemical/x-mdl-sdfile",
-                help=t["download_help"]
+                use_container_width=True
             )
         else:
-            st.info(t["info_select_mol"])
+            st.info(t.get("info_select_mol", "Выберите молекулу"))
 
     with col2:
-        st.subheader(t["header_ref"])
+        st.subheader(t.get("header_ref", "Свойства"))
         data = get_pubchem_data(smiles)
         
         if data:
-            st.metric(t["metric_mw"], f"{data['mw']} g/mol")
-            st.metric(t["metric_logp"], data['logp'])
-            st.metric(t["metric_rot_bonds"], data['rotatable_bonds'])
+            st.metric(t.get("metric_mw", "MW"), f"{data['mw']} g/mol")
+            st.metric(t.get("metric_logp", "LogP"), data['logp'])
+            st.metric(t.get("metric_rot_bonds", "Rot.Bonds"), data['rotatable_bonds'])
             
             st.divider()
-            with st.spinner(t["spinner_chembl"]):
+            with st.spinner(t.get("spinner_chembl", "Поиск в ChEMBL...")):
                 chembl_info = get_chembl_data(data['inchikey'])
             
             if chembl_info:
                 st.write(f"🧬 **ChEMBL ID:** `{chembl_info['chembl_id']}`")
-                
                 phase = chembl_info['max_phase']
                 status_color = "green" if phase == 4 else "orange"
-                
-                # Локализация статуса
                 status_text = f"Phase {phase}"
-                if phase == 4:
-                    status_text += f" ({t['status_approved']})"
+                if phase == 4: status_text += f" ({t.get('status_approved', 'Approved')})"
+                st.markdown(f"**{t.get('status_label', 'Статус:')}** <span style='color:{status_color}'>{status_text}</span>", unsafe_allow_html=True)
                 
-                st.markdown(f"**{t['status_label']}** <span style='color:{status_color}'>{status_text}</span>", unsafe_allow_html=True)
-                
-                with st.expander(t["mechanism_label"]):
+                with st.expander(t.get("mechanism_label", "Механизм действия")):
                     for m in chembl_info['mechanisms']:
                         st.write(f"• {m}")
             else:
-                st.caption(t["no_chembl"])
+                st.caption(t.get("no_chembl", "Данные ChEMBL не найдены"))
 
             st.divider()
-            st.write(t["ext_links"])
+            st.write(t.get("ext_links", "Внешние ссылки:"))
             
-            pubchem_url = f"https://pubchem.ncbi.nlm.nih.gov/#query={data['inchikey']}"
-            st.link_button(t["btn_pubchem"], pubchem_url, use_container_width=True)
-            
-            chembl_url = f"https://www.ebi.ac.uk/chembl/g/#search_results/all/query={data['inchikey']}"
-            st.link_button(t["btn_chembl"], chembl_url, use_container_width=True)
-            
-            chembl_sim_url = f"https://www.ebi.ac.uk/chembl/g/#search_results/all/query={smiles}&search_type=similarity&similarity=70"
-            st.link_button(t["btn_similarity"], chembl_sim_url, use_container_width=True, type="primary")
-
+            inchikey = data['inchikey']
+            st.link_button(t.get("btn_pubchem", "PubChem"), f"https://pubchem.ncbi.nlm.nih.gov/#query={inchikey}", use_container_width=True)
+            st.link_button(t.get("btn_chembl", "ChEMBL"), f"https://www.ebi.ac.uk/chembl/g/#search_results/all/query={inchikey}", use_container_width=True)
+            st.link_button(t.get("btn_similarity", "Similarity Search (70%)"), f"https://www.ebi.ac.uk/chembl/g/#search_results/all/query={smiles}&search_type=similarity&similarity=70", use_container_width=True, type="primary")
         else:
-            st.warning(t["warn_no_pubchem"])
-
+            st.warning(t.get("warn_no_pubchem", "Данные не найдены"))
 with tab2:
     st.header(t["admet_header"])
     
