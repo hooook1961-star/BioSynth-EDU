@@ -321,7 +321,7 @@ with tab2:
                     else:
                         st.success(t["status_tox_low"])
 
-st.divider()
+            st.divider()
             
             # --- Анализ правил Липинского ---
             st.subheader(t.get("header_lipinski", "Соответствие правилам Drug-like"))
