@@ -3,6 +3,20 @@ from rdkit.Chem import AllChem
 import pubchempy as pcp
 from meeko import MoleculePreparation
 
+def safe_float(value, default=0.0):
+    """
+    Безопасно преобразует значение в float. 
+    Если значение — строка с запятой, None или ошибка, возвращает default.
+    """
+    if pd.isna(value): # Проверка на NaN из pandas
+        return default
+    try:
+        # Убираем пробелы и заменяем запятую на точку (на случай региональных стандартов)
+        clean_val = str(value).replace(',', '.').strip()
+        return float(clean_val)
+    except (ValueError, TypeError):
+        return default
+
 def smiles_to_3d_block(smiles: str, optimize=False) -> str:
     try:
         mol = Chem.MolFromSmiles(smiles)
