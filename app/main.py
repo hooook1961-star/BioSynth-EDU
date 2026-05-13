@@ -992,3 +992,24 @@ with st.sidebar:
     if st.button("💬 Задать вопрос Тьютору", use_container_width=True, type="primary"):
         tutor_dialog()
 
+# Инициализируем историю чата, чтобы она не пропадала
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Отображаем историю
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Поле ввода
+if prompt := st.chat_input("Спросите Тьютора о молекуле или навигации..."):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    with st.chat_message("assistant"):
+        # Передаем данные (каталог и KB) в функцию
+        data = load_tutor_knowledge() 
+        response = ask_ai_tutor(prompt, data)
+        st.markdown(response)
+        st.session_state.messages.append({"role": "assistant", "content": response})
