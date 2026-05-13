@@ -321,22 +321,61 @@ with tab2:
                     else:
                         st.success(t["status_tox_low"])
 
-            st.divider()
+st.divider()
             
             # --- Анализ правил Липинского ---
-            st.subheader(t["header_lipinski"])
+            st.subheader(t.get("header_lipinski", "Соответствие правилам Drug-like"))
             
-            # ---Логика подсчета violations ---
-            
+            # --- Логика подсчета violations ---
+            # 1. Инициализируем переменные
+            violations = 0
+            details = []
+
+            # Поиск колонок (регистронезависимый)
+            mw_col = next((c for c in df.columns if 'mw' in c.lower() or 'weight' in c.lower()), None)
+            logp_col = next((c for c in df.columns if 'logp' in c.lower()), None)
+            hbd_col = next((c for c in df.columns if 'hbd' in c.lower() or 'donor' in c.lower()), None)
+            hba_col = next((c for c in df.columns if 'hba' in c.lower() or 'acceptor' in c.lower()), None)
+
+            # 2. Проверка условий (Правило "Пяти" Липинского)
+            if mw_col:
+                val = safe_float(df[mw_col].iloc[0])
+                if val > 500:
+                    violations += 1
+                    details.append(f"MW ({val:.1f}) > 500")
+
+            if logp_col:
+                val = safe_float(df[logp_col].iloc[0])
+                if val > 5:
+                    violations += 1
+                    details.append(f"LogP ({val:.2f}) > 5")
+
+            if hbd_col:
+                val = safe_float(df[hbd_col].iloc[0])
+                if val > 5:
+                    violations += 1
+                    details.append(f"HBD ({val}) > 5")
+
+            if hba_col:
+                val = safe_float(df[hba_col].iloc[0])
+                if val > 10:
+                    violations += 1
+                    details.append(f"HBA ({val}) > 10")
+
+            # --- Визуализация результатов ---
             if violations == 0:
                 st.balloons()
-                st.success(t["lipinski_success"])
+                st.success(t.get("lipinski_success", "✅ Молекула полностью соответствует правилу Липинского (Drug-like)."))
             else:
-                st.warning(f"{t['lipinski_warn']}{violations}.")
-                st.info(t["lipinski_info"])
+                st.warning(f"{t.get('lipinski_warn', 'Найдено нарушений: ')} {violations}.")
+                # Выводим конкретные нарушения для студента
+                for detail in details:
+                    st.write(f"❌ {detail}")
+                st.info(t.get("lipinski_info", "С точки зрения фармакокинетики, пероральный прием данного соединения может быть затруднен."))
 
         except Exception as e:
-            st.error(f"{t['error_interp']}{e}")
+            # Вывод более понятной ошибки для отладки
+            st.error(f"{t.get('error_interp', 'Ошибка интерпретации: ')} {e}")
             
 # --- Вкладка Докинг ---            
 with tab3:
