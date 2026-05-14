@@ -11,7 +11,13 @@ import random
 from pathlib import Path
 from translations import LANGUAGES
 from core.chem_utils import safe_float, smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking
-from core.bot import load_tutor_knowledge, tutor_dialog
+
+# Временный try-except для импорта бота
+try:
+    from core.bot import tutor_dialog
+    # st.success("Бот импортирован")  # закомментировано, чтобы не спамило
+except Exception as e:
+    st.error(f"Ошибка импорта бота: {e}")
         
 st.set_page_config(page_title="BioSynth-EDU", layout="wide")
 
@@ -427,7 +433,7 @@ with tab4:
         
         with c2:
             st.subheader("🤖 ИИ-Тьютор")
-            st.caption("Задавайте вопросы по пособию, молекулам или навигации")
+            st.caption("Задавайте вопросы по молекулам или работе приложения")
             
             if st.button("💬 Открыть диалог с Тьютором", type="primary", use_container_width=True):
                 tutor_dialog()
@@ -550,7 +556,7 @@ with tab5:
         st.warning(t.get("mol_not_selected", "⚠️ Молекула не выбрана"))
         st.info(f"**{t.get('how_start', 'Как начать:')}**\n{t.get('start_step_1', '• Выберите соединение или введите SMILES в боковой панели')}")
 
-# Кнопка Тьютора в сайдбаре (дублирует для удобства)
+# Кнопка Тьютора в сайдбаре
 st.sidebar.divider()
 if st.sidebar.button("💬 Задать вопрос Тьютору", use_container_width=True, type="primary"):
     tutor_dialog()
