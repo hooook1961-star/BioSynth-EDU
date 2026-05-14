@@ -108,4 +108,4 @@ def ask_ai_tutor(user_query, data):
         return response.choices[0].message.content
 
     except Exception as e:
-        return f"❌ Ошибка: {str(e)}""
+        return f"❌ Ошибка: {str(e)}"
