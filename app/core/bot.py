@@ -30,7 +30,7 @@ def load_tutor_knowledge():
 @st.dialog("🤖 ИИ-Тьютор BioSynth-EDU")
 def tutor_dialog():
     """Диалоговое окно с ИИ-тьютором"""
-    st.write("Задайте любой вопрос по молекулам, пособию или работе приложения.")
+    st.write("**Задайте любой вопрос по казахстанским молекулам** из каталога (Алмакаин, Просидол, Арглабин, Казкаин, Рихлокаин, Пиностробин, Салсолин и др.) или по работе приложения.")
     
     if "tutor_messages" not in st.session_state:
         st.session_state.tutor_messages = []
@@ -99,7 +99,7 @@ def ask_ai_tutor(user_query, data):
 ЗНАНИЯ О ПРИЛОЖЕНИИ:
 {json.dumps(kb, ensure_ascii=False, indent=2)}
 
-Отвечай точно по данным. Не выдумывай."""},
+Отвечай точно по данным. Если информации нет — честно говори, что в базе таких данных нет. Не выдумывай функции и возможности приложения."""},
                 {"role": "user", "content": user_query}
             ],
             temperature=0.3,
@@ -108,4 +108,4 @@ def ask_ai_tutor(user_query, data):
         return response.choices[0].message.content
 
     except Exception as e:
-        return f"❌ Ошибка: {str(e)}"
+        return f"❌ Ошибка: {str(e)}""
