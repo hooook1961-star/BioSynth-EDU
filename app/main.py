@@ -8,10 +8,10 @@ import json
 import os
 import datetime
 import random
-import openai
 from pathlib import Path
 from translations import LANGUAGES
 from core.chem_utils import safe_float, smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking
+from core.bot import load_tutor_knowledge, tutor_dialog
         
 st.set_page_config(page_title="BioSynth-EDU", layout="wide")
 
@@ -64,7 +64,6 @@ st.sidebar.header(t["sidebar_select_mol"])
 st.sidebar.subheader(t["sidebar_kaz_cat"])
 kaz_options = {}
 for m in catalog:
-    # перевод из JSON, если его нет — стандартное имя
     display_name = m.get('name_local', {}).get(L_CODE, m.get('name', 'Unknown'))
     class_name = m.get('classification_local', {}).get(L_CODE, m.get('classification', 'Bioactiv'))
     kaz_options[f"{display_name} ({class_name})"] = m['smiles']
@@ -74,7 +73,7 @@ selected_kaz = st.sidebar.selectbox(
     options=[t["select_placeholder"]] + list(kaz_options.keys())
 )
 
-# --- ГРУППА 2: СТАНДАРТНЫЕ ПРИМЕРЫ (ПОЛНЫЙ СПИСОК) ---
+# --- ГРУППА 2: СТАНДАРТНЫЕ ПРИМЕРЫ ---
 st.sidebar.subheader(t["sidebar_world_cat"])
 world_examples = {
     f"Аспирин ({t['cat_analgesic']})": "CC(=O)OC1=CC=CC=C1C(=O)O",
@@ -102,14 +101,12 @@ elif selected_world != t["select_placeholder"]:
 st.sidebar.markdown("---")
 st.sidebar.header(t["sidebar_manual"])
 
-# Итоговое определение SMILES через ввод или выбор
 smiles = st.sidebar.text_input(t["sidebar_manual_label"], value=current_smiles)
 
 # --- АВТОМАТИЧЕСКАЯ ОЧИСТКА ПАМЯТИ ---
 if "active_smiles" not in st.session_state:
     st.session_state.active_smiles = smiles
 
-# Если текущий smiles не совпадает с тем, что в памяти 
 if st.session_state.active_smiles != smiles:
     st.session_state.prepared_pdbqt = None
     st.session_state.mol_block = None
@@ -119,29 +116,29 @@ if st.session_state.active_smiles != smiles:
 if 'current_mol' not in st.session_state:
     st.session_state.current_mol = None
 
-# Обновлерие current_mol при изменении smiles
 current_mol_candidate = None
 
-# 1. Поиск в казахстанском каталоге
 if selected_kaz != t["select_placeholder"]:
     current_mol_candidate = next((m for m in catalog if m['smiles'] == current_smiles), None)
-
-# 2. Если не нашли — можно добавить поиск по другим источникам позже
 
 if current_mol_candidate:
     st.session_state.current_mol = current_mol_candidate
 elif smiles != st.session_state.get('last_smiles'):
-    # Если SMILES изменился вручную — сбрасываем current_mol
     st.session_state.current_mol = None
 
 st.session_state.last_smiles = smiles
+
+# Для бота — сохраняем имя выбранной молекулы
+if st.session_state.current_mol:
+    st.session_state.selected_mol_name = st.session_state.current_mol.get('name')
+else:
+    st.session_state.selected_mol_name = None
+
 # ----------------------------------------------
 
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
-# --- ЗАГОЛОВОК ---
 st.title(f"🧪 {t.get('title_main', 'BioSynth-EDU')}")
 
-# блок вкладок:
 tab_names = [
     t.get("tab_3d", "3D"), 
     t.get("tab_admet", "ADMET"), 
@@ -152,10 +149,9 @@ tab_names = [
 tab1, tab2, tab3, tab4, tab5 = st.tabs(tab_names)
 
 with tab1:
+    # ... (3D вкладка без изменений)
     col1, col2 = st.columns([3, 1])
-    
     with col1:
-        # --- БЛОК УПРАВЛЕНИЯ МОДЕЛЬЮ ---
         c1, c2 = st.columns(2)
         if c1.button(t.get("btn_build_3d", "Построить 3D"), use_container_width=True):
             st.session_state.mol_block = smiles_to_3d_block(smiles, optimize=False)
@@ -171,36 +167,30 @@ with tab1:
             if 'viz_style' not in st.session_state:
                 st.session_state.viz_style = 'stick'
 
-            # Кнопки управления
             if style_cols[0].button("Stick", use_container_width=True): st.session_state.viz_style = 'stick'
             if style_cols[1].button("Sphere", use_container_width=True): st.session_state.viz_style = 'sphere'
             if style_cols[2].button("Line", use_container_width=True): st.session_state.viz_style = 'line'
             if style_cols[3].button("Surface", use_container_width=True): st.session_state.viz_style = 'surface'
 
-            # Настройка вида
             view = py3Dmol.view(width=None, height=450)
             view.addModel(st.session_state.mol_block, "mol")
             
             if st.session_state.viz_style == 'stick':
                 view.setStyle({'stick': {'radius': 0.25}})
             elif st.session_state.viz_style == 'sphere':
-                # Увеличили масштаб для корректного отображения атомов
                 view.setStyle({'sphere': {'scale': 0.9}}) 
             elif st.session_state.viz_style == 'line':
                 view.setStyle({'line': {'linewidth': 2}})
             elif st.session_state.viz_style == 'surface':
-                # Комбинируем палочки и поверхность для наглядности
                 view.setStyle({'stick': {'radius': 0.1}})
                 view.addSurface(py3Dmol.VDW, {'opacity': 0.5, 'color': 'white'})
             
             view.zoomTo()
             view.setBackgroundColor('#ffffff')
             
-            # Рендеринг с фиксом ширины для мобильных
             html_content = view._make_html().replace('width: 700px', 'width: 100%')
             components.html(html_content, height=480)
             
-            # --- СКАЧИВАНИЕ ---
             try:
                 prefix = selected_kaz.split()[0] if selected_kaz != t.get("select_placeholder") else "molecule"
             except:
@@ -255,13 +245,11 @@ with tab1:
             st.link_button(t.get("btn_similarity", "Similarity Search (70%)"), f"https://www.ebi.ac.uk/chembl/g/#search_results/all/query={smiles}&search_type=similarity&similarity=70", use_container_width=True, type="primary")
         else:
             st.warning(t.get("warn_no_pubchem", "Данные не найдены"))
+
 with tab2:
     st.header(t["admet_header"])
-    
-    # Блок с инструкциями
     st.markdown(t["admet_instructions"])
     
-    # Кнопки со ссылками
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
         st.link_button(t["btn_open_admetlab"], "https://admetlab3.scbdd.com/", use_container_width=True)
@@ -270,7 +258,6 @@ with tab2:
     
     st.divider()
     
-    # Загрузка файла
     uploaded_file = st.file_uploader(t["uploader_label"], type="csv")
     
     if uploaded_file:
@@ -284,9 +271,6 @@ with tab2:
             cols = df.columns.tolist()
             c1, c2, c3 = st.columns(3)
 
-            # (Функция safe_float)
-
-            # 1. Липофильность (LogP)
             logp_col = next((c for c in cols if 'logp' in c.lower()), None)
             if logp_col:
                 val = safe_float(df[logp_col].iloc[0])
@@ -297,7 +281,6 @@ with tab2:
                     else:
                         st.warning(t["status_extreme"])
 
-            # 2. Гематоэнцефалический барьер (BBB)
             bbb_col = next((c for c in cols if 'bbb' in c.lower()), None)
             if bbb_col:
                 raw_val = df[bbb_col].iloc[0]
@@ -309,7 +292,6 @@ with tab2:
                     else:
                         st.success(t["status_bbb_no"])
 
-            # 3. Токсичность (hERG)
             herg_col = next((c for c in cols if 'herg' in c.lower() or 'tox' in c.lower()), None)
             if herg_col:
                 raw_val = df[herg_col].iloc[0]
@@ -323,21 +305,16 @@ with tab2:
 
             st.divider()
             
-            # --- Анализ правил Липинского ---
             st.subheader(t.get("header_lipinski", "Соответствие правилам Drug-like"))
             
-            # --- Логика подсчета violations ---
-            # 1. Инициализируем переменные
             violations = 0
             details = []
 
-            # Поиск колонок (регистронезависимый)
             mw_col = next((c for c in df.columns if 'mw' in c.lower() or 'weight' in c.lower()), None)
             logp_col = next((c for c in df.columns if 'logp' in c.lower()), None)
             hbd_col = next((c for c in df.columns if 'hbd' in c.lower() or 'donor' in c.lower()), None)
             hba_col = next((c for c in df.columns if 'hba' in c.lower() or 'acceptor' in c.lower()), None)
 
-            # 2. Проверка условий (Правило "Пяти" Липинского)
             if mw_col:
                 val = safe_float(df[mw_col].iloc[0])
                 if val > 500:
@@ -362,19 +339,16 @@ with tab2:
                     violations += 1
                     details.append(f"HBA ({val}) > 10")
 
-            # --- Визуализация результатов ---
             if violations == 0:
                 st.balloons()
                 st.success(t.get("lipinski_success", "✅ Молекула полностью соответствует правилу Липинского (Drug-like)."))
             else:
                 st.warning(f"{t.get('lipinski_warn', 'Найдено нарушений: ')} {violations}.")
-                # Выводим конкретные нарушения для студента
                 for detail in details:
                     st.write(f"❌ {detail}")
                 st.info(t.get("lipinski_info", "С точки зрения фармакокинетики, пероральный прием данного соединения может быть затруднен."))
 
         except Exception as e:
-            # Вывод более понятной ошибки для отладки
             st.error(f"{t.get('error_interp', 'Ошибка интерпретации: ')} {e}")
             
 # --- Вкладка Докинг ---            
@@ -392,11 +366,9 @@ with tab3:
             
             if st.button(t["btn_run_prep"], use_container_width=True):
                 with st.spinner(t["spinner_meeko"]):
-                    # Подготовка данных
                     pdbqt_data = prepare_ligand_for_docking(smiles)
                     if pdbqt_data:
                         st.session_state.prepared_pdbqt = pdbqt_data
-                        # Обновление 3D-сетки для корректного отображения
                         st.session_state.mol_block = smiles_to_3d_block(smiles, optimize=True)
                         st.balloons()
                     else:
@@ -405,7 +377,6 @@ with tab3:
         with col_prep2:
             st.info(t["docking_note_student"])
             
-            # Отображение результатов при наличии в сессии
             if st.session_state.get('prepared_pdbqt'):
                 st.download_button(
                     label=t["btn_download_pdbqt"],
@@ -417,15 +388,12 @@ with tab3:
                 
                 st.write(t["docking_view_label"])
                 
-                # Визуализация SDF-блока (наиболее точного для связей)
                 try:
                     view = py3Dmol.view(width=400, height=400)
                     view.addModel(st.session_state.mol_block, "sdf")
                     view.setStyle({'stick': {'color': 'spectrum', 'radius': 0.15}, 'sphere': {'scale': 0.25}})
                     view.zoomTo()
                     view.setBackgroundColor('#ffffff')
-                    
-                    import streamlit.components.v1 as components
                     components.html(view._make_html(), height=410)
                     st.caption(t["docking_caption"])
                 except Exception as e:
@@ -440,7 +408,6 @@ with tab3:
 
 # --- Вкладка Обучение ---
 with tab4:
-    # --- ОСТАВЛЯЕМ ВАШ БЛОК С КАЗАХСТАНСКИМИ ПРЕПАРАТАМИ (БЕЗ ИЗМЕНЕНИЙ) ---
     current_mol = next((m for m in catalog if m['smiles'] == smiles), None)
     if current_mol:
         with st.expander("🇰🇿 Сведения о казахстанской разработке", expanded=True):
@@ -449,36 +416,35 @@ with tab4:
             st.info(f"**Краткое описание:** {current_mol.get('description', '')}")
         st.markdown("---") 
 
-    # --- НОВИНКА: КНОПКИ-ВКЛАДКИ ДЛЯ РАЗДЕЛЕНИЯ КОНТЕНТА ---
-    # Это создаст 4 кнопки сверху, чтобы не было "каши" на одной странице
     itabs = st.tabs(["📖 Пособие", "🎥 Видео", "🧪 Лабораторные", "🔬 Магистрантам"])
 
     # РАЗДЕЛ 1: ПОСОБИЕ
     with itabs[0]:
-        c1, c2 = st.columns([2, 1]) # Делим экран: слева текст, справа бот
+        c1, c2 = st.columns([2, 1])
         with c1:
             ch = st.selectbox("Выберите главу:", ["4", "5", "6"], key="ch_sel")
-            st.markdown(get_chapter_text(ch)) # Выводим текст из функции сверху
+            st.markdown(get_chapter_text(ch))
+        
         with c2:
-            st.subheader("ИИ-Тьютор")
-            st.text_input("Вопрос по пособию:", key="bot_q")
+            st.subheader("🤖 ИИ-Тьютор")
+            st.caption("Задавайте вопросы по пособию, молекулам или навигации")
+            
+            if st.button("💬 Открыть диалог с Тьютором", type="primary", use_container_width=True):
+                tutor_dialog()
 
-    # РАЗДЕЛ 2: ВИДЕО 
     with itabs[1]:
         st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
         st.radio("Тест: Как изменится LogP?", ["Увеличится", "Уменьшится"], key="v_test")
 
-    # РАЗДЕЛ 3 и 4: ДЛЯ ЛАБ И КЕЙСОВ
     with itabs[2]:
         st.info("Лабораторные работы")
     with itabs[3]:
         st.info("Кейсы")
         
-# --- ВКЛАДКА 5: ИССЛЕДОВАТЕЛЬСКИЙ ПРОЕКТ ---
+# --- Вкладка 5: ИССЛЕДОВАТЕЛЬСКИЙ ПРОЕКТ ---
 with tab5:
     st.header(t.get("tab_project", "🚀 Исследовательский проект"))
 
-    # -- ОПИСАНИЕ ПРОЕКТА ---
     st.markdown(t.get(
         "project_desc",
         "**Исследовательский проект по органической химии для студентов и учащихся**"
@@ -491,16 +457,13 @@ with tab5:
 
     st.divider()
 
-    # Получаем текущую молекулу из состояния
     mol_data = st.session_state.get('current_mol')
     project_smiles = mol_data.get('smiles', smiles) if mol_data else smiles
 
     if project_smiles and project_smiles.strip():
 
-        # 1. Заголовок и текущий SMILES
         if mol_data:
             st.subheader(f"🔬 {mol_data.get('name', t.get('selected_mol', 'Выбранное соединение'))}")
-            # Локализованное название, если есть
             if mol_data.get('name_local'):
                 st.caption(mol_data.get('name_local', {}).get(L_CODE, ''))
         else:
@@ -508,7 +471,6 @@ with tab5:
 
         st.info(f"**{t.get('current_smiles', 'Текущий SMILES')}:** `{project_smiles}`")
 
-        # 2. Сведения из казахстанского каталога
         if mol_data:
             st.markdown(f"### {t.get('kz_info', '🇰🇿 Сведения о разработке')}")
             col_info1, col_info2 = st.columns([2, 1])
@@ -524,7 +486,6 @@ with tab5:
                     st.metric(t.get('year', 'Год'), mol_data.get('year', '—'))
             st.divider()
 
-        # 3. Задание (Expander)
         st.subheader(t.get("task_title", "📝 Задание на проект"))
         with st.expander(t.get("task_full", "Открыть полное задание"), expanded=True):
             st.markdown(t.get("task_step_1", "1. Прогноз PASS Online."))
@@ -533,11 +494,9 @@ with tab5:
             st.markdown(t.get("task_step_4", "4. Выводы для доклада."))
         st.divider()
 
-        # 4. Редактор структуры (Ketcher)
         st.subheader(t.get("editor_title", "🧪 Редактор структуры"))
         st.markdown(f"**{t.get('editor_task', 'Задание: Измените структуру и примените изменения.')}**")
 
-        # Уникальный ключ для редактора, чтобы он обновлялся при смене молекулы или языка
         editor_key = f"ketcher_{hash(project_smiles)}_{st.session_state.lang}"
         edited = st_ketcher(project_smiles, key=editor_key)
 
@@ -565,25 +524,20 @@ with tab5:
 
         st.divider()
 
-        # 5. Инструменты и Обучение
         st.subheader("📚 " + t.get("tools_header", "Обучение"))
         
-        # Ссылки на лекции
         l_col1, l_col2, l_col3 = st.columns(3)
         l_col1.link_button(t.get("pass_lecture", "🎥 PASS"), "https://drive.google.com/file/d/1nqHlBMpj6RZ28MvSElHiHgt495GCcSwT/view?usp=drive_link", use_container_width=True)
         l_col2.link_button(t.get("adme_lecture", "🎥 ADME"), "https://drive.google.com/file/d/1WggF966FXCrgO41QfJxtU9Ls8MgZjJbB/view?usp=drive_link", use_container_width=True)
         l_col3.link_button(t.get("pubchem_lecture", "🎥 PubChem"), "https://drive.google.com/file/d/1MTygaMnjEcuIzL0cSOV391QkwBUQcUO7/view?usp=sharing", use_container_width=True)
 
-        # Ссылки на сервисы
         s_col1, s_col2, s_col3 = st.columns(3)
         s_col1.link_button("🌐 PASS Online", "http://www.way2drug.com/passonline/", use_container_width=True, type="primary")
         s_col2.link_button("🧪 SwissADME", "http://www.swissadme.ch/", use_container_width=True, type="primary")
         s_col3.link_button("📊 PubChem", f"https://pubchem.ncbi.nlm.nih.gov/#query={project_smiles}", use_container_width=True, type="primary")
 
-        # --- 6. ТЕСТИРОВАНИЕ (ВЫЗОВ ИЗ ASSESSMENT.PY) ---
         st.divider()
         if st.button(t.get("quiz_btn", "📝 Пройти тест"), use_container_width=True, type="primary"):
-            # Импортированные функции из assessment.py
             from core.assessment import get_assessment_data, run_quiz_dialog
             
             tests, open_qs, cols_map = get_assessment_data()
@@ -595,3 +549,8 @@ with tab5:
     else:
         st.warning(t.get("mol_not_selected", "⚠️ Молекула не выбрана"))
         st.info(f"**{t.get('how_start', 'Как начать:')}**\n{t.get('start_step_1', '• Выберите соединение или введите SMILES в боковой панели')}")
+
+# Кнопка Тьютора в сайдбаре (дублирует для удобства)
+st.sidebar.divider()
+if st.sidebar.button("💬 Задать вопрос Тьютору", use_container_width=True, type="primary"):
+    tutor_dialog()
