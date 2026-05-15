@@ -27,15 +27,15 @@ if 'mol_block' not in st.session_state:
 if 'lang' not in st.session_state:
     st.session_state.lang = "Русский"
 
-# --- 3. ФУНКЦИЯ ДЛЯ ТЕКСТА ПОСОБИЯ ---
-@st.cache_data
-def get_chapter_text(chapter_num):
-    chapters = {
-        "4": "### Глава 4. Методология QSAR\nТекст из пособия...",
-        "5": "### Глава 5. Кодирование структур\nОписание дескрипторов...",
-        "6": "### Глава 6. Практикум\nИнструкции для Excel..."
-    }
-    return chapters.get(chapter_num, "Выберите главу")
+# --- 1. ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ PDF ---
+def display_pdf(url):
+    # ссылка для предпросмотра
+    embed_url = url.replace('/view?usp=drivesdk', '/preview')
+    embed_url = embed_url.replace('/view', '/preview')
+    
+    # iframe для отображения
+    pdf_display = f'<iframe src="{embed_url}" width="100%" height="600px" style="border:none;"></iframe>'
+    st.markdown(pdf_display, unsafe_allow_html=True)
 
 # --- 4. ЛОГИКА ЯЗЫКА И ЗАГРУЗКА КАТАЛОГА ---
 selected_lang = st.sidebar.selectbox(
