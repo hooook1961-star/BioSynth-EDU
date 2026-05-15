@@ -413,37 +413,58 @@ with tab3:
         st.warning(t["docking_warn_no_3d"])
 
 # --- Вкладка Обучение ---
+# --- Вкладка 4 ---
 with tab4:
     current_mol = next((m for m in catalog if m['smiles'] == smiles), None)
     if current_mol:
         with st.expander("🇰🇿 Сведения о казахстанской разработке", expanded=True):
             st.markdown(f"### Препарат: {current_mol['name']}")
+            # Используем данные из вашего профиля о казахстанских ученых
             st.write(f"**Авторы:** {', '.join(current_mol.get('authors', []))}")
             st.info(f"**Краткое описание:** {current_mol.get('description', '')}")
         st.markdown("---") 
 
     itabs = st.tabs(["📖 Пособие", "🎥 Видео", "🧪 Лабораторные", "🔬 Магистрантам"])
 
-    # РАЗДЕЛ 1: ПОСОБИЕ
+    # РАЗДЕЛ 1: ПОСОБИЕ (Обновленный)
     with itabs[0]:
-        c1, c2 = st.columns([2, 1])
-        with c1:
-            ch = st.selectbox("Выберите главу:", ["4", "5", "6"], key="ch_sel")
-            st.markdown(get_chapter_text(ch))
+        st.subheader("Учебные пособия")
         
-        with c2:
+        # Выбор пособия
+        manual_choice = st.radio(
+            "Выберите литературу для изучения:",
+            ["Компьютерная химия: прогнозирование", "Квантово-химические расчеты и молекулярное моделирование"],
+            horizontal=True
+        )
+
+        # Словарь ссылок
+        manual_links = {
+            "Компьютерная химия: прогнозирование": "https://drive.google.com/file/d/1kBW7s_iVbGSo5-1p-cqx4wy_ZOjx6tJ5/view?usp=drivesdk",
+            "Квантово-химические расчеты и молекулярное моделирование": "https://drive.google.com/file/d/1JeO18y1QNPl-YzA_aRTSe8owaNMvms7k/view?usp=drivesdk"
+        }
+
+        col_pdf, col_tutor = st.columns([2, 1])
+
+        with col_pdf:
+            # Отображаем выбранный PDF
+            display_pdf(manual_links[manual_choice])
+            st.caption(f"Просмотр файла: {manual_choice}. Если файл не отображается, проверьте доступ по ссылке.")
+
+        with col_tutor:
             st.subheader("🤖 ИИ-Тьютор")
-            st.caption("Задавайте вопросы по молекулам или работе приложения")
+            st.write("Используйте материалы пособия для подготовки вопросов.")
             
+            #  ИИ-Тьютор 
             if st.button("💬 Открыть диалог с Тьютором", type="primary", use_container_width=True):
                 tutor_dialog()
 
+    # Остальные разделы
     with itabs[1]:
         st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
         st.radio("Тест: Как изменится LogP?", ["Увеличится", "Уменьшится"], key="v_test")
 
     with itabs[2]:
-        st.info("Лабораторные работы")
+        st.info("Лабораторные работы по цифровой трансформации химии") #
     with itabs[3]:
         st.info("Кейсы")
         
