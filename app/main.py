@@ -439,7 +439,7 @@ with tab4:
 
         # Словарь ссылок
         manual_links = {
-            "Компьютерная химия: прогнозирование": "https://drive.google.com/file/d/1kBW7s_iVbGSo5-1p-cqx4wy_ZOjx6tJ5/view?usp=drivesdk",
+            "Компьютерная химия: прогнозирование": "https://drive.google.com/file/d/1CxTdwJmiaqsa54wZoODhADYIqHoIk23g/view?usp=drivesdk",
             "Квантово-химические расчеты и молекулярное моделирование": "https://drive.google.com/file/d/1JeO18y1QNPl-YzA_aRTSe8owaNMvms7k/view?usp=drivesdk"
         }
 
