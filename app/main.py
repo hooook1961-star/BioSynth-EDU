@@ -419,8 +419,7 @@ with tab2:
         except Exception as e:
             st.error(f"{t.get('error_interp', 'Ошибка интерпретации: ')} {e}")
             
-# --- Вкладка Докинг ---            
-# --- Вкладка Докинг ---            
+# --- Вкладка Докинг ---                   
 with tab3:
     st.header("🧬 Молекулярный докинг: Подбор сайта связывания")
     
@@ -485,26 +484,26 @@ with tab3:
         **СЛ-1 (Random Forest)** выполнит прямой скрининг оригинальной числовой матрицы признаков.
         """)
         
-        if st.button("🚀 Запустить ИИ-скрининг по базе 102 мишеней", use_container_width=True):
-            with st.spinner("Модуль химии выполняет скрининг матрицы признаков..."):
-                
-                # ЖЕСТКИЙ ПЕРЕХВАТ ИЗ СЕССИИ:
-                # Берем ровно тот SMILES, который определен вашей логикой очистки памяти в боковой панели
-                target_smiles = st.session_state.get("active_smiles", smiles)
-                
-                if not target_smiles:
-                    st.error("❌ Не удалось определить активный SMILES. Выберите молекулу в боковой панели!")
-                    st.stop()
-                
-                # Передаем ГАРАНТИРОВАННО актуальный SMILES в бэкенд
-                result = run_ai_target_screening(target_smiles, pocket_model)
+       if st.button("🚀 Запустить ИИ-скрининг по базе 102 мишеней", use_container_width=True):
+            with st.spinner("Диагностика QSAR модели..."):
+                result = run_ai_target_screening(st.session_state.active_smiles, pocket_model)
                 
                 if "error" in result:
-                    st.error(f"❌ Ошибка скрининга: {result['error']}")
+                    st.error(result["error"])
                     st.stop()
                 
-                desc = result["desc"]
-                best_match = result["top_match"]
+                # Выводим «голую правду» на экран
+                st.warning("⚠️ **Внимание! Включен режим сырой диагностики ИИ-модели**")
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Сырой pKd от модели (.predict)", f"{result['raw_score']:.4f}")
+                with col2:
+                    st.metric("Размерность входа (n_features)", result["features_expected"])
+                with col3:
+                    st.metric("Плотность фингерпринта (Bit Sum)", result["fp_sum"])
+                
+                st.json(result["desc"])
                 
                 # Дальше идет ваш стандартный вывод на экран (Паспорт, Карточка мишени, 3D-модель...)
                 st.info(f"📋 **Химический профиль лиганда:** Масса: **{desc['mw']:.1f}** | LogP: **{desc['logp']:.2f}** | TPSA: **{desc['tpsa']:.1f}**")
