@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import openpyxl
+import numpy as np
 import streamlit.components.v1 as components
 from streamlit_ketcher import st_ketcher
 import py3Dmol
