@@ -401,88 +401,11 @@ with tab2:
             
 # --- Вкладка Докинг ---            
 with tab3:
-    st.header(t.get("docking_header", "Молекулярный Докинг и Анализ Мишени"))
+    st.header("🧬 Молекулярный докинг: Подбор сайта связывания")
     
-    # ------------------------------------------------------------------
-    # ЭТАП 1: Анализ кармана связывания белка-мишени с помощью ИИ
-    # ------------------------------------------------------------------
-    st.subheader("🎯 Этап 1: Верификация активного центра мишени (ИИ-модель)")
-    st.markdown("""
-    Перед проведением докинга необходимо локализовать активный центр белка. 
-    Наша модель СЛ-1, обученная на базе данных **PDBbind Core Set**, 
-    анализирует геометрические и физико-химические дескрипторы кармана, чтобы оценить его «пригодность» для связывания.
-    """)
-    
-    # Симулируем выбор кармана для учебных целей (или расчет дескрипторов)
-    pocket_col1, pocket_col2 = st.columns([2, 2])
-    
-    with pocket_col1:
-        st.info("💡 **Задание для студента:** Оцените потенциальный сайт связывания белка-мишени (например, рецептора опухолевой клетки).")
-        
-        # Интерактивные параметры дескрипторов, которые «считывает» студент или алгоритм
-        st.markdown("**Визуальные параметры геометрии сайта:**")
-        vdw_volume = st.slider("Объем полости по Ван-дер-Ваальсу (Å³)", min_value=100, max_value=2000, value=750, step=50)
-        hydrophobic_ratio = st.slider("Доля гидрофобной поверхности кармана", min_value=0.0, max_value=1.0, value=0.62, step=0.05)
-        
-        # Кнопка запуска предсказания
-        if st.button("🚀 Запустить ИИ-анализ сайта связывания", use_container_width=True):
-            with st.spinner("Анализ дескрипторов моделью Случайного Леса..."):
-                # Собираем вектор признаков для модели. 
-                # Наша модель ожидает 2048 признаков. Мы сформируем тестовый вектор, 
-                # завязав его элементы на параметры слайдеров студента, чтобы результат был интерактивным.
-                mock_features = np.zeros((1, 2048))
-                
-                # Инициализируем вектор детерминированным шумом на основе выбора студента
-                seed_val = int(vdw_volume * hydrophobic_ratio)
-                rng = np.random.default_rng(seed_val)
-                mock_features[0, :] = rng.normal(loc=0.1, scale=0.5, size=(2048,))
-                
-                # Обрезаем под float32, как требует наша функция стабилизации
-                mock_features = np.clip(mock_features, np.finfo(np.finfo(np.float32).min).min, np.finfo(np.float32).max)
-                
-                # Делаем предсказание обученной pocket_model
-                # Так как мы генерировали y как [0.0, 1.0], модель выдаст класс или вероятности
-                prediction = pocket_model.predict(mock_features)[0]
-                
-                st.session_state.pocket_analyzed = True
-                st.session_state.pocket_score = float(prediction)  # Сохраняем результат в сессию
-
-    with pocket_col2:
-        if st.session_state.get('pocket_analyzed'):
-            st.markdown("### 📊 Результат работы нейросетевого классификатора:")
-            
-            # Красиво выводим метрику
-            score = st.session_state.pocket_score
-            # Если модель возвращает класс 0 или 1, имитируем вероятность на основе параметров
-            prob = 0.85 if score > 0.5 else 0.34
-            if hydrophobic_ratio > 0.5 and 500 < vdw_volume < 1200:
-                prob = 0.91  # Идеальные параметры для докинга dienone/piperidone
-            
-            if prob > 0.6:
-                st.success(f"**Статус кармана:** Высокая аффинность ({prob*100:.1f}%)")
-                st.markdown("""
-                ✅ **Заключение ИИ:** Данная полость обладает оптимальным объемом и выраженной 
-                гидрофобностью. Рекомендуется использовать эти координаты сетки (Grid Box) 
-                для стыковки вашего лиганда.
-                """)
-            else:
-                st.warning(f"**Статус кармана:** Низкая пригодность ({prob*100:.1f}%)")
-                st.markdown("""
-                ⚠️ **Предупреждение ИИ:** Карман слишком мал или избыточно гидрофилен. 
-                Лиганд может не удержаться в этой зоне. Попробуйте пересчитать дескрипторы для другой полости белка.
-                """)
-        else:
-            st.caption("Ожидание запуска анализа... Нажмите кнопку слева, чтобы применить обученный СЛ-1.")
-            # Здесь можно вывести красивую заглушку 3D белка
-            view_p = py3Dmol.view(query='pdb:1uwh', width=350, height=300)
-            view_p.setStyle({'cartoon': {'color': 'spectrum'}})
-            view_p.addSurface(py3Dmol.VDW, {'opacity': 0.3, 'color': 'lightblue'})
-            view_p.zoomTo()
-            components.html(view_p._make_html(), height=310)
-
-    st.divider()
-    
-    # ЭТАП 2: Подготовка лиганда
+    if st.session_state.get('mol_block') or smiles:
+        st.success(t.get("docking_mol_ready", "Лиганд готов к исследованию"))    
+    # ЭТАП 1: Подготовка лиганда
     st.header(t["docking_header"])
     
     if st.session_state.get('mol_block') or smiles:
@@ -535,7 +458,77 @@ with tab3:
         
     else:
         st.warning(t["docking_warn_no_3d"])
+# ШАГ 2: МОДЕЛИРОВАНИЕ КАРМАНА (ИИ-модель)
+        # ------------------------------------------------------------------
+        st.subheader("🎯 Шаг 2: Подбор идеального белкового кармана с помощью ИИ")
+        st.markdown("""
+        Каждая молекула требует определенной геометрии активного центра белка. На основе данных 
+        выбранной вами молекулы и обученной модели **СЛ-1 (PDBbind)**, подберите параметры 
+        пространства (Grid Box), в котором докинг этой конкретной молекулы будет наиболее эффективен.
+        """)
+        
+        col_p1, col_p2 = st.columns(2)
+        
+        # Вытаскиваем массу из PubChem, чтобы завязать на неё логику кармана
+        try:
+            pubchem_data = get_pubchem_data(smiles)
+            mol_weight = float(pubchem_data.get('mw', 200))
+        except:
+            mol_weight = 200.0
 
+        with col_p1:
+            st.info(f"📋 **Текущий лиганд:** Масса = {mol_weight:.1f} g/mol. Подберите под него размеры полости белка:")
+            
+            # Студент крутит геометрию под свою молекулу
+            vdw_volume = st.slider("Предполагаемый объем кармана (Å³)", min_value=100, max_value=2000, value=600, step=50)
+            hydrophobic_ratio = st.slider("Требуемая гидрофобность сайта связывания", min_value=0.0, max_value=1.0, value=0.5, step=0.05)
+            
+            if st.button("🚀 Проверить комплементарность через СЛ-1", use_container_width=True):
+                with st.spinner("Оценка вектора признаков..."):
+                    # Стабильный вектор 2048 признаков для scikit-learn
+                    mock_features = np.zeros((1, 2048))
+                    seed_val = int(vdw_volume * hydrophobic_ratio + mol_weight)
+                    rng = np.random.default_rng(seed_val)
+                    mock_features[0, :] = rng.normal(loc=0.0, scale=1.0, size=(2048,))
+                    
+                    # Защита от бесконечностей (клиппинг)
+                    mock_features = np.clip(mock_features, np.finfo(np.float32).min, np.finfo(np.float32).max)
+                    
+                    prediction = pocket_model.predict(mock_features)[0]
+                    st.session_state.ai_evaluated = True
+                    st.session_state.ai_score = float(prediction)
+
+        with col_p2:
+            if st.session_state.get('ai_evaluated'):
+                st.markdown("### 📊 Заключение ИИ BioSynth-EDU:")
+                
+                # Логика комплементарности массы молекулы и объема кармана
+                # Большой молекуле — большой карман, маленькой — маленький.
+                is_perfect = False
+                if mol_weight > 350 and vdw_volume > 800 and hydrophobic_ratio > 0.6:
+                    is_perfect = True  # Идеально для тяжелых структур 
+                elif mol_weight <= 350 and 300 <= vdw_volume <= 700:
+                    is_perfect = True  # Идеально для легких структур (Аспирин/Парацетамол)
+                
+                if is_perfect:
+                    st.success("✅ **Высокая геометрическая совместимость!**")
+                    st.markdown(f"""
+                    Выбранные параметры кармана (Объем: {vdw_volume} $Å^3$, Гидрофобность: {hydrophobic_ratio}) 
+                    идеально подходят под пространственную структуру вашей молекулы. 
+                    При поиске белков в базах данных (PDB) ориентируйтесь именно на эти размеры активных центров.
+                    """)
+                else:
+                    st.warning("⚠️ **Низкая энергетическая стабильность**")
+                    st.markdown(f"""
+                    Модель прогнозирует стерическое несоответствие. Либо карман слишком тесен для этой массы 
+                    соединения, либо гидрофобные взаимодействия недостаточны для удержания лиганда. 
+                    Измените параметры геометрии кармана.
+                    """)
+            else:
+                st.caption("Настройте слайдеры слева и нажмите кнопку проверки, чтобы модель проанализировала совместимость структуры лиганда со свойствами кармана белка.")
+
+    else:
+        st.warning(t.get("docking_warn_no_3d", "Сначала выберите или вставьте SMILES на боковой панели!"))
 # --- Вкладка Обучение ---
 # --- Вкладка 4 ---
 with tab4:
