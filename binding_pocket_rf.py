@@ -16,11 +16,15 @@ from binding_pocket_datasets import load_pdbbind_pockets
 np.random.seed(123)
 
 split = "random"
-subset = "core"  # Наш лоадер теперь берет Core Set из архива
+subset = "core"
+
+# 🔥 НАШЕ ИСПРАВЛЕНИЕ: Передаем лоадеру абсолютный путь к корню, где он лежит
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
 print("Шаг 1: Загрузка отфильтрованных данных из архива...")
 pdbbind_tasks, pdbbind_datasets, transformers = load_pdbbind_pockets(
-    split=split, subset=subset)
+    split=split, subset=subset, data_dir=current_dir) # Передаем директорию явным образом
+    
 train_dataset, valid_dataset, test_dataset = pdbbind_datasets
 
 # Задаем метрику оценки (ROC AUC)
