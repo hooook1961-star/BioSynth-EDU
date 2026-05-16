@@ -1,6 +1,8 @@
 import numpy as np
 import pubchempy as pcp
 import pandas as pd
+import gzip
+import pickle
 from rdkit import Chem
 from rdkit.Chem import AllChem, Descriptors
 from meeko import MoleculePreparation
