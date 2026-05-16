@@ -454,9 +454,8 @@ with tab3:
         st.divider()
         st.subheader(t["docking_next_steps_header"])
         st.write(t["docking_next_steps_text"])
-        
 
-        # ------------------------------------------------------------------
+# ------------------------------------------------------------------
         # ШАГ 2: АВТОМАТИЧЕСКИЙ ИИ-СКРИНИНГ (Вызов вынесен в модуль химии)
         # ------------------------------------------------------------------
         st.divider()
@@ -466,54 +465,54 @@ with tab3:
         **СЛ-1 (Random Forest)** выполнит прямой скрининг оригинальной числовой матрицы признаков.
         """)
         
-       if st.button("🚀 Запустить ИИ-скрининг по базе 102 мишеней", use_container_width=True):
-        with st.spinner("Модуль химии выполняет скрининг матрицы признаков..."):
-            
-            # Вызываем чистую функцию из ядра
-            result = run_ai_target_screening(smiles, pocket_model)
-            
-            if "error" in result:
-                st.error(f"❌ Критическая ошибка бэкенда: {result['error']}")
-                st.stop()
-            
-            desc = result["desc"]
-            best_match = result["top_match"]
-            
-            # Выводим информацию о молекуле
-            st.info(f"📋 **Химический профиль лиганда:** Масса: **{desc['mw']:.1f}** | LogP: **{desc['logp']:.2f}** | TPSA: **{desc['tpsa']:.1f}**")
-            st.success("✅ **ИИ-скрининг по оригинальному архиву успешно завершен!**")
-            
-            # Гарантируем, что ключ ID существует
-            pdb_code = best_match.get("id", best_match.get("pdb_id", "1UWH")).upper()
-            protein_name = best_match.get("name", f"Биомишень (PDB ID: {pdb_code})")
-            reason_str = best_match.get("reason", "Верифицированная мишень из обучающей выборки.")
-            predicted_score = best_match.get("score", 0.0)
-            
-            col_res1, col_res2 = st.columns([1.2, 0.8])
-            with col_res1:
-                st.markdown("### 📊 Лучшая мишень по прогнозу модели СЛ-1:")
-                st.info(f"""
-                * **Идентификатор PDB:** `{pdb_code}`
-                * **Рекомендованный белок:** {protein_name}
-                * **Предсказанная аффинность ($pK_d$):** `{predicted_score:.2f}`
+        if st.button("🚀 Запустить ИИ-скрининг по базе 102 мишеней", use_container_width=True):
+            with st.spinner("Модуль химии выполняет скрининг матрицы признаков..."):
                 
-                ℹ️ **Обоснование связи:** {reason_str}
-                """)
+                # Вызываем чистую функцию из ядра
+                result = run_ai_target_screening(smiles, pocket_model)
                 
-                btn_cols = st.columns(2)
-                btn_cols[0].link_button(f"🌐 Смотреть {pdb_code} на RCSB", f"https://www.rcsb.org/structure/{pdb_code}", use_container_width=True)
-                btn_cols[1].link_button(f"📥 Скачать {pdb_code}.pdb", f"https://files.rcsb.org/download/{pdb_code}.pdb", use_container_width=True, type="primary")
-            
-            with col_res2:
-                st.markdown("### 🧬 3D-модель сайта:")
-                try:
-                    view_p = py3Dmol.view(query=f"pdb:{pdb_code}", width=300, height=220)
-                    view_p.setStyle({'cartoon': {'color': 'spectrum'}})
-                    view_p.addSurface(py3Dmol.VDW, {'opacity': 0.15, 'color': 'lightblue'})
-                    view_p.zoomTo()
-                    components.html(view_p._make_html(), height=230)
-                except:
-                    st.caption("Окно визуализации структуры белка")
+                if "error" in result:
+                    st.error(f"❌ Критическая ошибка бэкенда: {result['error']}")
+                    st.stop()
+                
+                desc = result["desc"]
+                best_match = result["top_match"]
+                
+                # Выводим информацию о молекуле
+                st.info(f"📋 **Химический профиль лиганда:** Масса: **{desc['mw']:.1f}** | LogP: **{desc['logp']:.2f}** | TPSA: **{desc['tpsa']:.1f}**")
+                st.success("✅ **ИИ-скрининг по оригинальному архиву успешно завершен!**")
+                
+                # Гарантируем, что ключ ID существует
+                pdb_code = best_match.get("id", best_match.get("pdb_id", "1UWH")).upper()
+                protein_name = best_match.get("name", f"Биомишень (PDB ID: {pdb_code})")
+                reason_str = best_match.get("reason", "Верифицированная мишень из обучающей выборки.")
+                predicted_score = best_match.get("score", 0.0)
+                
+                col_res1, col_res2 = st.columns([1.2, 0.8])
+                with col_res1:
+                    st.markdown("### 📊 Лучшая мишень по прогнозу модели СЛ-1:")
+                    st.info(f"""
+                    * **Идентификатор PDB:** `{pdb_code}`
+                    * **Рекомендованный белок:** {protein_name}
+                    * **Предсказанная аффинность ($pK_d$):** `{predicted_score:.2f}`
+                    
+                    ℹ️ **Обоснование связи:** {reason_str}
+                    """)
+                    
+                    btn_cols = st.columns(2)
+                    btn_cols[0].link_button(f"🌐 Смотреть {pdb_code} на RCSB", f"https://www.rcsb.org/structure/{pdb_code}", use_container_width=True)
+                    btn_cols[1].link_button(f"📥 Скачать {pdb_code}.pdb", f"https://files.rcsb.org/download/{pdb_code}.pdb", use_container_width=True, type="primary")
+                
+                with col_res2:
+                    st.markdown("### 🧬 3D-модель сайта:")
+                    try:
+                        view_p = py3Dmol.view(query=f"pdb:{pdb_code}", width=300, height=220)
+                        view_p.setStyle({'cartoon': {'color': 'spectrum'}})
+                        view_p.addSurface(py3Dmol.VDW, {'opacity': 0.15, 'color': 'lightblue'})
+                        view_p.zoomTo()
+                        components.html(view_p._make_html(), height=230)
+                    except:
+                        st.caption("Окно визуализации структуры белка")
         
 # --- Вкладка Обучение ---
 # --- Вкладка 4 ---
