@@ -15,20 +15,33 @@ from core.chem_utils import safe_float, smiles_to_3d_block, get_pubchem_data, ge
 
 @st.cache_resource
 def load_or_train_pocket_model():
-    # Поскольку main.py лежит в папке app, файлы корня репозитория находятся на шаг выше: "../"
-    model_path = os.path.join("..", "visual_pocket_model.pkl")
-    script_path = os.path.join("..", "binding_pocket_rf.py")
+    # Находим абсолютный путь к папке, где лежит сам main.py (это /mount/src/biosynth-edu/app)
+    current_script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # Если модели еще нет в корне, запускаем скрипт обучения из корня
+    # Корневая папка проекта — это на один уровень выше, чем app
+    root_dir = os.path.dirname(current_script_dir)
+    
+    # Строим жесткие абсолютные пути ко всем файлам от корня
+    model_path = os.path.join(root_dir, "visual_pocket_model.pkl")
+    script_path = os.path.join(root_dir, "binding_pocket_rf.py")
+    
+    # Если модели еще нет в корне, запускаем скрипт обучения
     if not os.path.exists(model_path):
         with st.spinner("Инициализация модуля карманов... Обучаем ИИ на PDBbind Core Set (это займет около минуты)..."):
-            # Команда выполнится из корня проекта, чтобы пути внутри скриптов не ломались
-            os.system(f"python3 {script_path}")
+            # Запускаем скрипт, передавая ему правильный рабочий контекст корня
+            exit_code = os.system(f"python3 {script_path}")
+            
+            if exit_code != 0:
+                raise RuntimeError(f"Скрипт обучения binding_pocket_rf.py завершился с ошибкой (код {exit_code}). Проверь логи приложения.")
     
-    # Загружаем готовый "мозг" модели из корня
+    # Проверяем, появился ли файл после обучения
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Скрипт отработал, но файл модели так и не появился по пути: {model_path}")
+        
+    # Загружаем готовый "мозг" модели
     return joblib.load(model_path)
 
-# Активируем модель карманов
+# Активируем модуль карманов
 try:
     pocket_model = load_or_train_pocket_model()
 except Exception as e:
