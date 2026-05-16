@@ -166,28 +166,29 @@ selected_world = st.sidebar.selectbox(
     on_change=on_world_change  # Жесткий триггер сброса казахского каталога
 )
 
-
 # === УПРАВЛЕНИЕ РУЧНЫМ ВВОДОМ И ОЧИСТКОЙ ПАМЯТИ ===
 st.sidebar.markdown("---")
 st.sidebar.header(t["sidebar_manual"])
 
-# Поле ввода слушает session_state.active_smiles, но при ручном изменении обновляет его
+# Инициализируем базовый SMILES в сессии, если приложение только открылось
+if "active_smiles" not in st.session_state:
+    st.session_state.active_smiles = "CC(=O)OC1=CC=CC=C1C(=O)O"  # Аспирин по дефолту
+
 def on_manual_smiles_change():
-    st.session_state.active_smiles = st.session_state.manual_smiles_input
-    # Раз ввели руками — сбрасываем оба селектбокса каталогов
+    # Раз ввели руками или сработал триггер — сбрасываем оба селектбокса каталогов в плейсхолдер
     st.session_state.kaz_select = t["select_placeholder"]
     st.session_state.world_select = t["select_placeholder"]
     # Сбрасываем кэш старого докинга и 3D-модели
     st.session_state.prepared_pdbqt = None
     st.session_state.mol_block = None
 
+# ЖЕСТКАЯ СВЯЗКА: делаем ключ текстового поля прямо нашей переменной сессии active_smiles.
+# Убираем параметр value=..., чтобы Streamlit не затирал память дефолтами при перезапуске!
 smiles = st.sidebar.text_input(
     t["sidebar_manual_label"], 
-    value=st.session_state.active_smiles,
-    key="manual_smiles_input",
+    key="active_smiles",
     on_change=on_manual_smiles_change
 )
-
 
 # === СИНХРОНИЗАЦИЯ ИНФОРМАЦИИ О ТЕКУЩЕЙ МОЛЕКУЛЕ (current_mol) ===
 # Если выбран казахский каталог — вытаскиваем паспорт молекулы из базы данных
