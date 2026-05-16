@@ -86,64 +86,48 @@ def load_pdbbind_labels(labels_file):
   return contents_df
 
 def featurize_pdbbind_pockets(data_dir=None, subset="core"):
-  """Featurizes pdbbind according to provided featurization"""
+  """Адаптированный лоадер: читает готовый архив вместо парсинга 3D-файлов"""
   tasks = ["active-site"]
   current_dir = os.path.dirname(os.path.realpath(__file__))
-  data_dir = os.path.join(current_dir, "%s_pockets" % (subset))
-  if os.path.exists(data_dir):
-    return dc.data.DiskDataset(data_dir), tasks
-  pdbbind_dir = os.path.join(current_dir, "../pdbbind/v2015")
+  
+  # Путь к нашему скачанному архиву в твоем репозитории
+  pkl_file = os.path.join(current_dir, "datasets", "pdbbind_core_5_df.pkl.gz")
+  
+  if not os.path.exists(pkl_file):
+    raise ValueError(f"Файл датасета не найден по пути: {pkl_file}. Проверь папку datasets.")
 
-  # Load PDBBind dataset
-  if subset == "core":
-    labels_file = os.path.join(pdbbind_dir, "INDEX_core_data.2013")
-  elif subset == "refined":
-    labels_file = os.path.join(pdbbind_dir, "INDEX_refined_data.2015")
-  elif subset == "full":
-    labels_file = os.path.join(pdbbind_dir, "INDEX_general_PL_data.2015")
-  else:
-    raise ValueError("Only core, refined, and full subsets supported.")
-  print("About to load contents.")
-  if not os.path.exists(labels_file):
-    raise ValueError("Run ../pdbbind/get_pdbbind.sh to download dataset.")
-  contents_df = load_pdbbind_labels(labels_file)
-  ids = contents_df["PDB code"].values
-  y = np.array([float(val) for val in contents_df["-logKd/Ki"].values])
+  print("Загрузка и распаковка готового датасета...")
+  
+  # Читаем DataFrame напрямую из распакованного `.pkl` архива
+  # Используем режим совместимости, так как файл старый
+  try:
+      import gzip
+      import pickle
+      with gzip.open(pkl_file, "rb") as f:
+          df = pickle.load(f, encoding="latin1")
+  except Exception as e:
+      raise RuntimeError(f"Не удалось прочитать .pkl.gz архив: {str(e)}")
 
-  # Define featurizers
-  pocket_featurizer = dc.feat.BindingPocketFeaturizer()
-  ligand_featurizer = dc.feat.CircularFingerprint(size=1024)
+  print(f"Успешно загружено {len(df)} комплексов.")
 
-  # Featurize Dataset
-  all_features = []
-  all_labels = []
-  missing_pdbs = []
-  all_ids = []
-  time1 = time.time()
-  for ind, pdb_code in enumerate(ids):
-    print("Processing complex %d, %s" % (ind, str(pdb_code)))
-    pdb_subdir = os.path.join(pdbbind_dir, pdb_code)
-    if not os.path.exists(pdb_subdir):
-      print("%s is missing!" % pdb_subdir)
-      missing_pdbs.append(pdb_subdir)
-      continue
-    features, labels = compute_binding_pocket_features(
-        pocket_featurizer, ligand_featurizer, pdb_subdir, pdb_code)
-    if features is None:
-      print("Featurization failed!")
-      continue
-    all_features.append(features)
-    all_labels.append(labels)
-    ids = np.array(["%s%d" % (pdb_code, i) for i in range(len(labels))])
-    all_ids.append(ids)
-  time2 = time.time()
-  print("TIMING: PDBBind Pocket Featurization took %0.3f s" % (time2-time1))
-  X = np.vstack(all_features)
-  y = np.concatenate(all_labels)
+  # Извлекаем признаки (X), метки (y), веса (w) и идентификаторы (ids)
+  # Они уже заранее обсчитаны разработчиками DeepChem внутри этой таблицы
+  X = np.vstack(df["X"].values)
+  y = np.concatenate(df["y"].values)
   w = np.ones_like(y)
+  
+  # Собираем массив уникальных ID для каждого кармана
+  all_ids = []
+  for _, row in df.iterrows():
+      pdb_code = row["pdb_id"]
+      p_ids = np.array(["%s%d" % (pdb_code, i) for i in range(len(row["y"]))])
+      all_ids.append(p_ids)
   ids = np.concatenate(all_ids)
    
+  # Создаем объект DiskDataset, с которым умеет работать скрипт обучения train_rf.py
+  data_dir = os.path.join(current_dir, "%s_pockets" % (subset))
   dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids, data_dir=data_dir)
+  
   return dataset, tasks
 
 def load_pdbbind_pockets(split="index", subset="core"):
