@@ -130,31 +130,37 @@ def featurize_pdbbind_pockets(data_dir=None, subset="core"):
   
   return dataset, tasks
 
-def load_pdbbind_pockets(split="index", subset="core"):
-  """Load PDBBind datasets. Does not do train/test split"""
-  dataset, tasks = featurize_pdbbind_pockets(subset=subset)
+def load_pdbbind_pockets(split="random", subset="core"):
+  """Основная функция загрузки, вызываемая из binding_pocket_rf.py"""
+  import deepchem as dc
+  
+  # Сама находит корень, где лежит файл лоадера
+  base_dir = os.path.dirname(os.path.abspath(__file__))
+  
+  # Вызывает цепочку обработки данных
+  dataset, tasks = featurize_pdbbind_pockets(data_dir=base_dir, subset=subset)
 
   splitters = {'index': dc.splits.IndexSplitter(),
                'random': dc.splits.RandomSplitter()}
+  
+  if split not in splitters:
+      raise ValueError(f"Неизвестный тип сплиттера: {split}. Доступные: {list(splitters.keys())}")
+      
   splitter = splitters[split]
+  
   ########################################################### DEBUG
-  print("dataset.X.shape")
-  print(dataset.X.shape)
-  print("dataset.y.shape")
-  print(dataset.y.shape)
-  print("dataset.w.shape")
-  print(dataset.w.shape)
-  print("dataset.ids.shape")
-  print(dataset.ids.shape)
+  print("=== ТЕХНИЧЕСКИЙ ДЕБАГ ДАТАСЕТА ===")
+  print(f"dataset.X.shape: {dataset.X.shape}")
+  print(f"dataset.y.shape: {dataset.y.shape}")
+  print(f"dataset.w.shape: {dataset.w.shape}")
+  print(f"dataset.ids.shape: {dataset.ids.shape}")
+  print("==================================")
   ########################################################### DEBUG
+  
+  # Разбиваем выборку на обучение, валидацию и тест
   train, valid, test = splitter.train_valid_test_split(dataset)
-
+  
+  # Оставляем список пустым, чтобы не ломать распаковку в основном скрипте
   transformers = []
-  for transformer in transformers:
-    train = transformer.transform(train)
-  for transformer in transformers:
-    valid = transformer.transform(valid)
-  for transformer in transformers:
-    test = transformer.transform(test)
   
   return tasks, (train, valid, test), transformers
