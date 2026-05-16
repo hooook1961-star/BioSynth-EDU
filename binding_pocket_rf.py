@@ -22,8 +22,10 @@ subset = "core"
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 print("Шаг 1: Загрузка отфильтрованных данных из архива...")
+# Вызываем функцию БЕЗ data_dir, так как лоадер внутри себя сам определит абсолютный путь к своей папке
 pdbbind_tasks, pdbbind_datasets, transformers = load_pdbbind_pockets(
-    split=split, subset=subset, data_dir=current_dir) # Передаем директорию явным образом
+    split=split, subset=subset
+) 
     
 train_dataset, valid_dataset, test_dataset = pdbbind_datasets
 
