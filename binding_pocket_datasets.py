@@ -1,23 +1,14 @@
-"""
-PDBBind binding pocket dataset loader.
-"""
-
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-
 import os
-import numpy as np
-import pandas as pd
-import shutil
-import time
 import re
-from rdkit import Chem
-import deepchem as dc
 import gzip
 import pickle
 import sys
+import shutil
+import time
+
 import numpy as np
+import pandas as pd
+from rdkit import Chem
 import deepchem as dc
 
 def compute_binding_pocket_features(pocket_featurizer, ligand_featurizer,
