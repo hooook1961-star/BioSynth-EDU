@@ -15,33 +15,32 @@ from core.chem_utils import safe_float, smiles_to_3d_block, get_pubchem_data, ge
 
 @st.cache_resource
 def load_or_train_pocket_model():
-    # Находим абсолютный путь к папке, где лежит сам main.py (это /mount/src/biosynth-edu/app)
+    # Полный путь к папке app (/mount/src/biosynth-edu/app)
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # Корневая папка проекта — это на один уровень выше, чем app
-    root_dir = os.path.dirname(current_script_dir)
+    # Жестко фиксируем корень репозитория (/mount/src/biosynth-edu)
+    # Если папка называется по-другому, этот метод гарантированно найдет её корень
+    root_dir = current_script_dir.split(os.sep + "app")[0]
     
-    # Строим жесткие абсолютные пути ко всем файлам от корня
+    # Собираем абсолютные пути от корня проекта
     model_path = os.path.join(root_dir, "visual_pocket_model.pkl")
     script_path = os.path.join(root_dir, "binding_pocket_rf.py")
     
-    # Если модели еще нет в корне, запускаем скрипт обучения
+    # Если модели нет, запускаем обучение
     if not os.path.exists(model_path):
         with st.spinner("Инициализация модуля карманов... Обучаем ИИ на PDBbind Core Set (это займет около минуты)..."):
-            # Запускаем скрипт, передавая ему правильный рабочий контекст корня
+            # Выполняем скрипт из корня репозитория
             exit_code = os.system(f"python3 {script_path}")
             
             if exit_code != 0:
-                raise RuntimeError(f"Скрипт обучения binding_pocket_rf.py завершился с ошибкой (код {exit_code}). Проверь логи приложения.")
+                raise RuntimeError(f"Скрипт binding_pocket_rf.py упал с кодом {exit_code}. Проверь логи панели.")
     
-    # Проверяем, появился ли файл после обучения
     if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Скрипт отработал, но файл модели так и не появился по пути: {model_path}")
+        raise FileNotFoundError(f"Файл модели не создался по пути: {model_path}")
         
-    # Загружаем готовый "мозг" модели
     return joblib.load(model_path)
 
-# Активируем модуль карманов
+# Активируем модель
 try:
     pocket_model = load_or_train_pocket_model()
 except Exception as e:
