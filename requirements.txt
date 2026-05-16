@@ -11,3 +11,6 @@ gemmi
 streamlit-ketcher
 openpyxl
 openai
+scikit-learn
+joblib
+deepchem
