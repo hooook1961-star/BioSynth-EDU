@@ -108,7 +108,7 @@ catalog = load_catalog()
 # --- 4. БОКОВАЯ ПАНЕЛЬ ---
 st.sidebar.header(t["sidebar_select_mol"])
 
-# --- ГРУППА 1: КАЗАХСТАНСКИЙ КАТАЛОГ ---
+# КАЗАХСТАНСКИЙ КАТАЛОГ
 st.sidebar.subheader(t["sidebar_kaz_cat"])
 kaz_options = {}
 for m in catalog:
@@ -118,10 +118,11 @@ for m in catalog:
 
 selected_kaz = st.sidebar.selectbox(
     t["sidebar_kaz_label"], 
-    options=[t["select_placeholder"]] + list(kaz_options.keys())
+    options=[t["select_placeholder"]] + list(kaz_options.keys()),
+    key="kaz_select"
 )
 
-# --- ГРУППА 2: СТАНДАРТНЫЕ ПРИМЕРЫ ---
+# СТАНДАРТНЫЕ ПРИМЕРЫ
 st.sidebar.subheader(t["sidebar_world_cat"])
 world_examples = {
     f"Аспирин ({t['cat_analgesic']})": "CC(=O)OC1=CC=CC=C1C(=O)O",
@@ -135,11 +136,19 @@ world_examples = {
 
 selected_world = st.sidebar.selectbox(
     t["sidebar_world_label"], 
-    options=[t["select_placeholder"]] + list(world_examples.keys())
+    options=[t["select_placeholder"]] + list(world_examples.keys()),
+    key="world_select"
 )
 
-# --- ЛОГИКА ОПРЕДЕЛЕНИЯ SMILES ---
-current_smiles = "CC(=O)OC1=CC=CC=C1C(=O)O" # Default: Aspirin
+# === ВЗАИМНЫЙ СБРОС ===
+if selected_kaz != t["select_placeholder"] and st.session_state.get("world_select") != t["select_placeholder"]:
+    st.session_state.world_select = t["select_placeholder"]
+
+if selected_world != t["select_placeholder"] and st.session_state.get("kaz_select") != t["select_placeholder"]:
+    st.session_state.kaz_select = t["select_placeholder"]
+
+# === ТЕКУЩИЙ SMILES ===
+current_smiles = "CC(=O)OC1=CC=CC=C1C(=O)O"
 
 if selected_kaz != t["select_placeholder"]:
     current_smiles = kaz_options[selected_kaz]
@@ -149,40 +158,27 @@ elif selected_world != t["select_placeholder"]:
 st.sidebar.markdown("---")
 st.sidebar.header(t["sidebar_manual"])
 
-smiles = st.sidebar.text_input(t["sidebar_manual_label"], value=current_smiles)
+# Поле SMILES — с ключом!
+smiles = st.sidebar.text_input(
+    t["sidebar_manual_label"], 
+    value=current_smiles,
+    key="manual_smiles_input"
+)
 
-# --- АВТОМАТИЧЕСКАЯ ОЧИСТКА ПАМЯТИ ---
-if "active_smiles" not in st.session_state:
-    st.session_state.active_smiles = smiles
-
-if st.session_state.active_smiles != smiles:
+# Сохранение активного SMILES
+if "active_smiles" not in st.session_state or st.session_state.get("active_smiles") != smiles:
     st.session_state.prepared_pdbqt = None
     st.session_state.mol_block = None
     st.session_state.active_smiles = smiles
 
-# -- АВТОМАТИЧЕСКОЕ ОПРЕДЕЛЕНИЕ current_mol ---
-if 'current_mol' not in st.session_state:
-    st.session_state.current_mol = None
-
-current_mol_candidate = None
-
+# current_mol
 if selected_kaz != t["select_placeholder"]:
-    current_mol_candidate = next((m for m in catalog if m['smiles'] == current_smiles), None)
-
-if current_mol_candidate:
+    current_mol_candidate = next((m for m in catalog if m.get('smiles') == current_smiles), None)
     st.session_state.current_mol = current_mol_candidate
-elif smiles != st.session_state.get('last_smiles'):
+else:
     st.session_state.current_mol = None
 
-st.session_state.last_smiles = smiles
-
-# Для бота — сохраняем имя выбранной молекулы
-if st.session_state.current_mol:
-    st.session_state.selected_mol_name = st.session_state.current_mol.get('name')
-else:
-    st.session_state.selected_mol_name = None
-
-# ----------------------------------------------
+st.session_state.selected_mol_name = st.session_state.current_mol.get('name') if st.session_state.current_mol else None
 
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
 st.title(f"🧪 {t.get('title_main', 'BioSynth-EDU')}")
