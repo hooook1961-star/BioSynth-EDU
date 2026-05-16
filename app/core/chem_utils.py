@@ -175,9 +175,15 @@ def run_ai_target_screening(smiles_str, pocket_model):
     if X_matrix is None or pdb_ids is None:
         return {"error": "В архиве отсутствуют ключи 'X' или 'ids'.", "desc": desc}
 
-    # 3. Прямой расчёт модели Случайного Леса
+    # 3. Прямой расчёт модели Случайного Леса (с защитой от бесконечностей)
     try:
-        predictions = pocket_model.predict(X_matrix)
+        # Ограничиваем слишком большие числа до диапазона стандартного float32,
+        # а все значения NaN (если они есть) заменяем на нули
+        X_matrix_clean = np.nan_to_num(X_matrix, nan=0.0, posinf=3.4e38, neginf=-3.4e38)
+        X_matrix_clean = np.clip(X_matrix_clean, -3.4e38, 3.4e38)
+        
+        # Передаем в модель очищенную матрицу
+        predictions = pocket_model.predict(X_matrix_clean)
     except Exception as e:
         return {"error": f"Ошибка размерности матрицы в модели: {e}", "desc": desc}
 
