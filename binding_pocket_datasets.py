@@ -100,7 +100,7 @@ class DummyBlockManager:
 def featurize_pdbbind_pockets(data_dir=None, subset="core"):
     """
     Лоадер реальных данных из очищенного бинарного архива.
-    Полная независимость от версий Pandas!
+    Включает фильтрацию бесконечных значений для стабильности scikit-learn.
     """
     tasks = ["active-site"]
     
@@ -109,7 +109,6 @@ def featurize_pdbbind_pockets(data_dir=None, subset="core"):
     else:
         base_dir = data_dir
         
-    # Путь к нашему новому очищенному файлу
     pkl_file = os.path.join(base_dir, "datasets", "pdbbind_core_5_clean.pkl.gz")
     
     if not os.path.exists(pkl_file):
@@ -117,23 +116,34 @@ def featurize_pdbbind_pockets(data_dir=None, subset="core"):
         
     print(f"Загрузка реальных 3D-дескрипторов из очищенного архива: {pkl_file}")
     
-    # Читаем чистый словарь без участия Pandas
     with gzip.open(pkl_file, "rb") as f:
         data = pickle.load(f)
         
-    # Извлекаем оригинальные массивы
     X = data["X"]
     y = data["y"]
     ids = data["ids"]
-    w = np.ones_like(y)  # Веса для DeepChem
     
-    print(f"✅ Успешно загружено {len(X)} реальных комплексов PDBbind.")
+    # === БРОНЕБОЙНАЯ СТАБИЛИЗАЦИЯ ДАННЫХ ДЛЯ SKLEARN ===
+    # 1. Заменяем любые случайные бесконечности на NaN
+    X[~np.isfinite(X)] = np.nan
+    # 2. Заменяем NaN на медианные значения по колонкам (или 0, если колонка пустая)
+    X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
+    # 3. Обрезаем экстремальные физические выбросы под границы диапазона float32
+    max_float32 = np.finfo(np.float32).max
+    min_float32 = np.finfo(np.float32).min
+    X = np.clip(X, min_float32, max_float32)
+    # ==================================================
+    
+    w = np.ones_like(y)
+    
+    print(f"✅ Успешно загружено и стабилизировано {len(X)} реальных комплексов PDBbind.")
     print(f"Размерность матрицы признаков: {X.shape}")
     
     dataset_dir = os.path.join(base_dir, f"{subset}_pockets")
     dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids, data_dir=dataset_dir)
     
     return dataset, tasks
+  
 def load_pdbbind_pockets(split="random", subset="core"):
   """Основная функция загрузки, вызываемая из binding_pocket_rf.py"""
   import deepchem as dc
