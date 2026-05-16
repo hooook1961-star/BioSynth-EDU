@@ -465,18 +465,30 @@ with tab3:
         **СЛ-1 (Random Forest)** выполнит прямой скрининг оригинальной числовой матрицы признаков.
         """)
         
-        if st.button("🚀 Запустить ИИ-скрининг", use_container_width=True):
+        if st.button("🚀 Запустить ИИ-скрининг по базе 102 мишеней", use_container_width=True):
             with st.spinner("Модуль химии выполняет скрининг матрицы признаков..."):
                 
-                # Вызываем чистую функцию из ядра
-                result = run_ai_target_screening(smiles, pocket_model)
+                # ЖЕСТКИЙ ПЕРЕХВАТ ИЗ СЕССИИ:
+                # Берем ровно тот SMILES, который определен вашей логикой очистки памяти в боковой панели
+                target_smiles = st.session_state.get("active_smiles", smiles)
+                
+                if not target_smiles:
+                    st.error("❌ Не удалось определить активный SMILES. Выберите молекулу в боковой панели!")
+                    st.stop()
+                
+                # Передаем ГАРАНТИРОВАННО актуальный SMILES в бэкенд
+                result = run_ai_target_screening(target_smiles, pocket_model)
                 
                 if "error" in result:
-                    st.error(f"❌ Критическая ошибка бэкенда: {result['error']}")
+                    st.error(f"❌ Ошибка скрининга: {result['error']}")
                     st.stop()
                 
                 desc = result["desc"]
                 best_match = result["top_match"]
+                
+                # Дальше идет ваш стандартный вывод на экран (Паспорт, Карточка мишени, 3D-модель...)
+                st.info(f"📋 **Химический профиль лиганда:** Масса: **{desc['mw']:.1f}** | LogP: **{desc['logp']:.2f}** | TPSA: **{desc['tpsa']:.1f}**")
+
                 
                 # Выводим информацию о молекуле
                 st.info(f"📋 **Химический профиль лиганда:** Масса: **{desc['mw']:.1f}** | LogP: **{desc['logp']:.2f}** | TPSA: **{desc['tpsa']:.1f}**")
