@@ -48,9 +48,11 @@ valid_scores = model.evaluate(valid_dataset, [metric], transformers)
 print("Метрики на тренировочной выборке (ROC AUC):", train_scores)
 print("Метрики на валидационной выборке (ROC AUC):", valid_scores)
 
-# 🔥 НАШЕ ВНЕДРЕНИЕ: Сохранение чистого «мозга» модели для Streamlit
-print("Шаг 4: Экспорт модели для веб-интерфейса...")
-pure_rf_model = model.model_instance  # Вытаскиваем чистый sklearn объект из обертки
+# Безопасный экспорт модели из обертки DeepChem
+if hasattr(model, 'model_instance'):
+    pure_rf_model = model.model_instance
+else:
+    pure_rf_model = model.model  # Для новых версий DeepChem
 
 model_filename = "visual_pocket_model.pkl"
 joblib.dump(pure_rf_model, model_filename)
