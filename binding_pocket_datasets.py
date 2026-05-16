@@ -86,37 +86,37 @@ def load_pdbbind_labels(labels_file):
   return contents_df
 
 def featurize_pdbbind_pockets(data_dir=None, subset="core"):
-  """Адаптированный лоадер: читает готовый архив вместо парсинга 3D-файлов"""
+  """Адаптированный лоадер: жесткие абсолютные пути для Streamlit Cloud"""
   tasks = ["active-site"]
-  current_dir = os.path.dirname(os.path.realpath(__file__))
   
-  # Путь к нашему скачанному архиву в твоем репозитории
-  pkl_file = os.path.join(current_dir, "datasets", "pdbbind_core_5_df.pkl.gz")
+  # Если data_dir не передан, берем папку файла, иначе используем переданный абсолютный путь
+  if data_dir is None:
+      base_dir = os.path.dirname(os.path.abspath(__file__))
+  else:
+      base_dir = data_dir
+  
+  # Строим железный путь к архиву
+  pkl_file = os.path.join(base_dir, "datasets", "pdbbind_core_5_df.pkl.gz")
   
   if not os.path.exists(pkl_file):
-    raise ValueError(f"Файл датасета не найден по пути: {pkl_file}. Проверь папку datasets.")
+    raise ValueError(f"Файл датасета не найден по пути: {pkl_file}. Проверь папку datasets в корне.")
 
-  print("Загрузка и распаковка готового датасета...")
+  print(f"Загрузка и распаковка готового датасета из: {pkl_file}")
   
-  # Читаем DataFrame напрямую из распакованного `.pkl` архива
-  # Используем режим совместимости, так как файл старый
   try:
       import gzip
       import pickle
       with gzip.open(pkl_file, "rb") as f:
           df = pickle.load(f, encoding="latin1")
   except Exception as e:
-      raise RuntimeError(f"Не удалось прочитать .pkl.gz архив: {str(e)}")
+      raise RuntimeError(f"Не удалось прочитать .pkl.gz архив. Ошибка: {str(e)}")
 
-  print(f"Успешно загружено {len(df)} комплексов.")
+  print(f"Успешно загружено {len(df)} complexes.")
 
-  # Извлекаем признаки (X), метки (y), веса (w) и идентификаторы (ids)
-  # Они уже заранее обсчитаны разработчиками DeepChem внутри этой таблицы
   X = np.vstack(df["X"].values)
   y = np.concatenate(df["y"].values)
   w = np.ones_like(y)
   
-  # Собираем массив уникальных ID для каждого кармана
   all_ids = []
   for _, row in df.iterrows():
       pdb_code = row["pdb_id"]
@@ -124,9 +124,9 @@ def featurize_pdbbind_pockets(data_dir=None, subset="core"):
       all_ids.append(p_ids)
   ids = np.concatenate(all_ids)
    
-  # Создаем объект DiskDataset, с которым умеет работать скрипт обучения train_rf.py
-  data_dir = os.path.join(current_dir, "%s_pockets" % (subset))
-  dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids, data_dir=data_dir)
+  # Папку кэша DiskDataset создаем тоже строго в абсолютном пути бэкенда
+  dataset_dir = os.path.join(base_dir, "%s_pockets" % (subset))
+  dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids, data_dir=dataset_dir)
   
   return dataset, tasks
 
