@@ -8,14 +8,36 @@ import json
 import os
 import datetime
 import random
+import joblib
 from pathlib import Path
 from translations import LANGUAGES
 from core.chem_utils import safe_float, smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking
 
-# Временный try-except для импорта бота
+@st.cache_resource
+def load_or_train_pocket_model():
+    # Поскольку main.py лежит в папке app, файлы корня репозитория находятся на шаг выше: "../"
+    model_path = os.path.join("..", "visual_pocket_model.pkl")
+    script_path = os.path.join("..", "binding_pocket_rf.py")
+    
+    # Если модели еще нет в корне, запускаем скрипт обучения из корня
+    if not os.path.exists(model_path):
+        with st.spinner("Инициализация модуля карманов... Обучаем ИИ на PDBbind Core Set (это займет около минуты)..."):
+            # Команда выполнится из корня проекта, чтобы пути внутри скриптов не ломались
+            os.system(f"python3 {script_path}")
+    
+    # Загружаем готовый "мозг" модели из корня
+    return joblib.load(model_path)
+
+# Активируем модель карманов
+try:
+    pocket_model = load_or_train_pocket_model()
+except Exception as e:
+    st.error(f"Ошибка инициализации модуля карманов: {e}")
+
+# Временный try-except для импорта Тьютора
 try:
     from core.bot import tutor_dialog
-    # st.success("Бот импортирован")  # закомментировано, чтобы не спамило
+    # st.success("Бот импортирован")  
 except Exception as e:
     st.error(f"Ошибка импорта бота: {e}")
         
