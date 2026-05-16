@@ -136,68 +136,36 @@ def calculate_molecule_descriptors(smiles_str):
 
 def run_ai_target_screening(smiles_str, pocket_model):
     """
-    Честный QSAR-скрининг: использует ВАШУ функцию дескрипторов,
-    генерирует Morgan Fingerprints и считает аффинность через модель СЛ-1.
+    Абсолютно голый диагностический QSAR без цензуры и заглушек.
     """
-    # 1. ИСПОЛЬЗУЕМ ВАШУ РОДНУЮ ФУНКЦИЮ ДЕСКРИПТОРОВ
     desc = calculate_molecule_descriptors(smiles_str)
-    
-    # Парсим молекулу для фингерпринтов
     mol = Chem.MolFromSmiles(smiles_str) if smiles_str else None
     if mol is None:
-        return {"error": "Некорректный или нечитаемый формат SMILES", "desc": desc}
+        return {"error": "Некорректный SMILES", "desc": desc}
 
-    # 2. НАСТОЯЩИЙ QSAR: Вектор признаков на основе структуры
+    # 1. Генерируем фингерпринт
     try:
         required_features = pocket_model.n_features_in_
     except:
         required_features = 2048 
 
-    try:
-        fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=required_features)
-        fp_array = np.zeros((1,), dtype=np.int8)
-        Chem.DataStructs.ConvertToNumpyArray(fp, fp_array)
-        ligand_vector = fp_array.reshape(1, -1).astype(np.float32)
-    except Exception as e:
-        return {"error": f"Ошибка генерации QSAR-вектора признаков: {e}", "desc": desc}
+    fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=required_features)
+    fp_array = np.zeros((1,), dtype=np.int8)
+    Chem.DataStructs.ConvertToNumpyArray(fp, fp_array)
+    ligand_vector = fp_array.reshape(1, -1).astype(np.float32)
 
-    # 3. МАТЕМАТИЧЕСКИЙ ПРОГНОЗ МОДЕЛИ
+    # 2. Берем сырой прогноз модели
     try:
         raw_prediction = pocket_model.predict(ligand_vector)
-        base_score = float(raw_prediction[0])
+        raw_score = float(raw_prediction[0])
     except Exception as e:
-        return {"error": f"Ошибка прогноза QSAR-модели: {e}", "desc": desc}
+        return {"error": f"Ошибка .predict(): {e}", "desc": desc}
 
-    # 4. Распределение по 5 извлеченным мишеням Core Set
-    target_weights = {
-        "2D3U": {"name": "Человеческая гидролаза (DPP-IV)", "shift": 0.15, "desc": "Анализ углеводного обмена."},
-        "3CYX": {"name": "Глутаматный нейрорецептор", "shift": -0.42, "desc": "Нейротропная активность."},
-        "3UO4": {"name": "Клеточная киназа опухоли", "shift": 0.85, "desc": "Онкомаркер. Оптимально для диеноновых производных пиперидона."},
-        "1P1Q": {"name": "Протеинкиназа A", "shift": -0.12, "desc": "Регуляция клеточного метаболизма."},
-        "3AG9": {"name": "Митохондриальная оксидоредуктаза", "shift": 0.31, "desc": "Антиоксидантный потенциал."}
-    }
-
-    scored_proteins = []
-    for pdb_id, info in target_weights.items():
-        final_score = base_score + info["shift"]
-        
-        # Корректировка на случай, если СЛ выдает константу из-за несовместимости версий архива.
-        # В этом случае QSAR завязывается на честный, рассчитанный ВАШЕЙ функцией LogP!
-        if abs(final_score - 1.0) < 0.01 or final_score < 2.0:
-            final_score = 5.4 + (desc["logp"] * 0.4) + info["shift"]
-
-        scored_proteins.append({
-            "id": pdb_id,
-            "name": info["name"],
-            "reason": f"Математический прогноз QSAR на основе дескрипторов Morgan (радиус 2). {info['desc']}",
-            "score": float(final_score)
-        })
-
-    # Сортируем по убыванию pKd
-    scored_proteins = sorted(scored_proteins, key=lambda x: x["score"], reverse=True)
-
+    # Возвращаем СЫРЫЕ данные для диагностики
     return {
         "success": True,
         "desc": desc,
-        "top_match": scored_proteins[0]
+        "raw_score": raw_score,
+        "features_expected": required_features,
+        "fp_sum": int(fp_array.sum()) # Показывает, сколько единичек в фингерпринте
     }
