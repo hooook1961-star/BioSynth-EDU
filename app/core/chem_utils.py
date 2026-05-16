@@ -1,5 +1,5 @@
 from rdkit import Chem
-from rdkit.Chem import AllChem
+from rdkit.Chem import AllChem, Descriptors
 import pubchempy as pcp
 import pandas as pd
 from meeko import MoleculePreparation
@@ -112,3 +112,28 @@ def prepare_ligand_for_docking(smiles: str):
     except Exception as e:
         print(f"Meeko Error: {e}")
         return None
+
+def calculate_molecule_descriptors(smiles_str):
+    """
+    Принимает SMILES и рассчитывает ключевые хемоинформатические дескрипторы.
+    Возвращает словарь со значениями по умолчанию в случае ошибки или пустого ввода.
+    """
+    default_values = {"mw": 200.0, "logp": 1.5, "tpsa": 40.0, "hbd": 1, "hba": 2}
+    if not smiles_str:
+        return default_values
+        
+    try:
+        mol = Chem.MolFromSmiles(smiles_str)
+        if mol is None:
+            return default_values
+            
+        return {
+            "mw": float(Descriptors.MolWt(mol)),
+            "logp": float(Descriptors.MolLogP(mol)),
+            "tpsa": float(Descriptors.TPSA(mol)),
+            "hbd": int(Descriptors.NumHDonors(mol)),
+            "hba": int(Descriptors.NumHAcceptors(mol))
+        }
+    except Exception as e:
+        # Логирование ошибки можно добавить при необходимости (например, print(e))
+        return default_values
