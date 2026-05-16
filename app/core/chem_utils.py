@@ -1,7 +1,8 @@
-from rdkit import Chem
-from rdkit.Chem import AllChem, Descriptors
+import numpy as np
 import pubchempy as pcp
 import pandas as pd
+from rdkit import Chem
+from rdkit.Chem import AllChem, Descriptors
 from meeko import MoleculePreparation
 
 def safe_float(value, default=0.0):
