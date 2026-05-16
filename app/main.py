@@ -105,6 +105,26 @@ def load_catalog():
 
 catalog = load_catalog()
 
+# --- 0. ФУНКЦИИ ВЗАИМНОГО СБРОСА (Колбэки, которые выполняются ДО рендера) ---
+def on_kaz_change():
+    # Если выбрали что-то в казахстанском каталоге — сбрасываем мировой и ручной ввод
+    if st.session_state.kaz_select != t["select_placeholder"]:
+        st.session_state.world_select = t["select_placeholder"]
+        # Обновляем активный SMILES из казахстанского словаря
+        st.session_state.active_smiles = kaz_options_global[st.session_state.kaz_select]
+
+def on_world_change():
+    # Если выбрали мировой пример — сбрасываем казахстанский каталог
+    if st.session_state.world_select != t["select_placeholder"]:
+        st.session_state.kaz_select = t["select_placeholder"]
+        # Обновляем активный SMILES из мирового словаря
+        st.session_state.active_smiles = world_examples_global[st.session_state.world_select]
+
+# Инициализируем базовый SMILES в сессии, если приложения только открылось
+if "active_smiles" not in st.session_state:
+    st.session_state.active_smiles = "CC(=O)OC1=CC=CC=C1C(=O)O"  # Аспирин по дефолту
+
+
 # --- 4. БОКОВАЯ ПАНЕЛЬ ---
 st.sidebar.header(t["sidebar_select_mol"])
 
@@ -116,10 +136,14 @@ for m in catalog:
     class_name = m.get('classification_local', {}).get(L_CODE, m.get('classification', 'Bioactiv'))
     kaz_options[f"{display_name} ({class_name})"] = m['smiles']
 
+# Сохраняем в global для доступа внутри колбэка
+kaz_options_global = kaz_options
+
 selected_kaz = st.sidebar.selectbox(
     t["sidebar_kaz_label"], 
     options=[t["select_placeholder"]] + list(kaz_options.keys()),
-    key="kaz_select"
+    key="kaz_select",
+    on_change=on_kaz_change  # Жесткий триггер сброса мирового каталога
 )
 
 # СТАНДАРТНЫЕ ПРИМЕРЫ
@@ -133,52 +157,51 @@ world_examples = {
     f"Никотин ({t['cat_alkaloid']})": "CN1CCCC1C2=CN=CC=C2",
     f"Дофамин ({t['cat_neuro']})": "C1=CC(=C(C=C1CCN)O)O"
 }
+world_examples_global = world_examples
 
 selected_world = st.sidebar.selectbox(
     t["sidebar_world_label"], 
     options=[t["select_placeholder"]] + list(world_examples.keys()),
-    key="world_select"
+    key="world_select",
+    on_change=on_world_change  # Жесткий триггер сброса казахского каталога
 )
 
-# === ВЗАИМНЫЙ СБРОС ===
-if selected_kaz != t["select_placeholder"] and st.session_state.get("world_select") != t["select_placeholder"]:
-    st.session_state.world_select = t["select_placeholder"]
 
-if selected_world != t["select_placeholder"] and st.session_state.get("kaz_select") != t["select_placeholder"]:
-    st.session_state.kaz_select = t["select_placeholder"]
-
-# === ТЕКУЩИЙ SMILES ===
-current_smiles = "CC(=O)OC1=CC=CC=C1C(=O)O"
-
-if selected_kaz != t["select_placeholder"]:
-    current_smiles = kaz_options[selected_kaz]
-elif selected_world != t["select_placeholder"]:
-    current_smiles = world_examples[selected_world]
-
+# === УПРАВЛЕНИЕ РУЧНЫМ ВВОДОМ И ОЧИСТКОЙ ПАМЯТИ ===
 st.sidebar.markdown("---")
 st.sidebar.header(t["sidebar_manual"])
 
-# Поле SMILES — с ключом!
-smiles = st.sidebar.text_input(
-    t["sidebar_manual_label"], 
-    value=current_smiles,
-    key="manual_smiles_input"
-)
-
-# Сохранение активного SMILES
-if "active_smiles" not in st.session_state or st.session_state.get("active_smiles") != smiles:
+# Поле ввода слушает session_state.active_smiles, но при ручном изменении обновляет его
+def on_manual_smiles_change():
+    st.session_state.active_smiles = st.session_state.manual_smiles_input
+    # Раз ввели руками — сбрасываем оба селектбокса каталогов
+    st.session_state.kaz_select = t["select_placeholder"]
+    st.session_state.world_select = t["select_placeholder"]
+    # Сбрасываем кэш старого докинга и 3D-модели
     st.session_state.prepared_pdbqt = None
     st.session_state.mol_block = None
-    st.session_state.active_smiles = smiles
 
-# current_mol
-if selected_kaz != t["select_placeholder"]:
-    current_mol_candidate = next((m for m in catalog if m.get('smiles') == current_smiles), None)
-    st.session_state.current_mol = current_mol_candidate
+smiles = st.sidebar.text_input(
+    t["sidebar_manual_label"], 
+    value=st.session_state.active_smiles,
+    key="manual_smiles_input",
+    on_change=on_manual_smiles_change
+)
+
+
+# === СИНХРОНИЗАЦИЯ ИНФОРМАЦИИ О ТЕКУЩЕЙ МОЛЕКУЛЕ (current_mol) ===
+# Если выбран казахский каталог — вытаскиваем паспорт молекулы из базы данных
+if st.session_state.kaz_select != t["select_placeholder"]:
+    current_smiles = kaz_options[st.session_state.kaz_select]
+    st.session_state.current_mol = next((m for m in catalog if m.get('smiles') == current_smiles), None)
 else:
     st.session_state.current_mol = None
 
-st.session_state.selected_mol_name = st.session_state.current_mol.get('name') if st.session_state.current_mol else None
+# Сохраняем локальное имя для бота/интерфейса
+if st.session_state.current_mol:
+    st.session_state.selected_mol_name = st.session_state.current_mol.get('name')
+else:
+    st.session_state.selected_mol_name = None
 
 # 4. ОСНОВНОЙ ИНТЕРФЕЙС
 st.title(f"🧪 {t.get('title_main', 'BioSynth-EDU')}")
