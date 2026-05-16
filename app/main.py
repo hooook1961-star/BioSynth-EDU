@@ -13,13 +13,18 @@ from pathlib import Path
 from translations import LANGUAGES
 from core.chem_utils import safe_float, smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking
 
+import os
+import streamlit as st
+
 @st.cache_resource
 def load_or_train_pocket_model():
+    # Импортируем joblib ТОЛЬКО внутри функции, чтобы Streamlit не падал при сборке
+    import joblib 
+    
     # Полный путь к папке app (/mount/src/biosynth-edu/app)
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # Жестко фиксируем корень репозитория (/mount/src/biosynth-edu)
-    # Если папка называется по-другому, этот метод гарантированно найдет её корень
+    # Жестко отрезаем хвост /app, чтобы получить корень (/mount/src/biosynth-edu)
     root_dir = current_script_dir.split(os.sep + "app")[0]
     
     # Собираем абсолютные пути от корня проекта
@@ -40,7 +45,7 @@ def load_or_train_pocket_model():
         
     return joblib.load(model_path)
 
-# Активируем модель
+# Активируем модель карманов безопасным вызовом
 try:
     pocket_model = load_or_train_pocket_model()
 except Exception as e:
