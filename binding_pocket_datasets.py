@@ -105,11 +105,21 @@ def featurize_pdbbind_pockets(data_dir=None, subset="core"):
   
   try:
       import gzip
-      import pickle
+      import pandas as pd
+      
+      # Альтернативный безопасный метод чтения старых pickle-структур в новом Pandas
       with gzip.open(pkl_file, "rb") as f:
-          df = pickle.load(f, encoding="latin1")
+          df = pd.read_pickle(f)
+          
   except Exception as e:
-      raise RuntimeError(f"Не удалось прочитать .pkl.gz архив. Ошибка: {str(e)}")
+      # Если pd.read_pickle тоже не справится, используем хак с принудительным чтением через классический pickle
+      try:
+          import gzip
+          import pickle
+          with gzip.open(pkl_file, "rb") as f:
+              df = pickle.load(f, encoding="latin1")
+      except Exception as inner_e:
+          raise RuntimeError(f"Не удалось прочитать .pkl.gz архив способами Pandas и Pickle. Ошибка: {str(inner_e)}")
 
   print(f"Успешно загружено {len(df)} complexes.")
 
