@@ -34,8 +34,10 @@ def load_or_train_pocket_model():
     # Если модели нет, запускаем обучение
     if not os.path.exists(model_path):
         with st.spinner("Инициализация модуля карманов... Обучаем ИИ на PDBbind Core Set (это займет около минуты)..."):
-            # Выполняем скрипт из корня репозитория
-            exit_code = os.system(f"python3 {script_path}")
+            # 🔥 ИСПРАВЛЕНИЕ: Используем абсолютный путь к Python внутри виртуального окружения Streamlit Cloud
+            venv_python = "/home/adminuser/venv/bin/python3"
+            
+            exit_code = os.system(f"{venv_python} {script_path}")
             
             if exit_code != 0:
                 raise RuntimeError(f"Скрипт binding_pocket_rf.py упал с кодом {exit_code}. Проверь логи панели.")
