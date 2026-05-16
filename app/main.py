@@ -400,11 +400,10 @@ with tab2:
             st.error(f"{t.get('error_interp', 'Ошибка интерпретации: ')} {e}")
             
 # --- Вкладка Докинг ---            
+# --- Вкладка Докинг ---            
 with tab3:
     st.header("🧬 Молекулярный докинг: Подбор сайта связывания")
     
-    if st.session_state.get('mol_block') or smiles:
-        st.success(t.get("docking_mol_ready", "Лиганд готов к исследованию"))    
     # ЭТАП 1: Подготовка лиганда
     st.header(t["docking_header"])
     
@@ -456,10 +455,10 @@ with tab3:
         st.subheader(t["docking_next_steps_header"])
         st.write(t["docking_next_steps_text"])
         
-    else:
-        st.warning(t["docking_warn_no_3d"])
-# ШАГ 2: МОДЕЛИРОВАНИЕ КАРМАНА (ИИ-модель)
         # ------------------------------------------------------------------
+        # ШАГ 2: МОДЕЛИРОВАНИЕ КАРМАНА (Выполняется, ТОЛЬКО если молекула есть)
+        # ------------------------------------------------------------------
+        st.divider()
         st.subheader("🎯 Шаг 2: Подбор идеального белкового кармана с помощью ИИ")
         st.markdown("""
         Каждая молекула требует определенной геометрии активного центра белка. На основе данных 
@@ -469,29 +468,26 @@ with tab3:
         
         col_p1, col_p2 = st.columns(2)
         
-        # Вытаскиваем массу из PubChem, чтобы завязать на неё логику кармана
         try:
             pubchem_data = get_pubchem_data(smiles)
             mol_weight = float(pubchem_data.get('mw', 200))
         except:
             mol_weight = 200.0
 
+        is_kaz = (selected_kaz != t.get("select_placeholder"))
+
         with col_p1:
-            st.info(f"📋 **Текущий лиганд:** Масса = {mol_weight:.1f} g/mol. Подберите под него размеры полости белка:")
+            st.info(f"📋 **Текущий лиганд:** Масса = {mol_weight:.1f} г/моль. Подберите под него размеры полости белка:")
             
-            # Студент крутит геометрию под свою молекулу
             vdw_volume = st.slider("Предполагаемый объем кармана (Å³)", min_value=100, max_value=2000, value=600, step=50)
             hydrophobic_ratio = st.slider("Требуемая гидрофобность сайта связывания", min_value=0.0, max_value=1.0, value=0.5, step=0.05)
             
             if st.button("🚀 Проверить комплементарность через СЛ-1", use_container_width=True):
                 with st.spinner("Оценка вектора признаков..."):
-                    # Стабильный вектор 2048 признаков для scikit-learn
                     mock_features = np.zeros((1, 2048))
                     seed_val = int(vdw_volume * hydrophobic_ratio + mol_weight)
                     rng = np.random.default_rng(seed_val)
                     mock_features[0, :] = rng.normal(loc=0.0, scale=1.0, size=(2048,))
-                    
-                    # Защита от бесконечностей (клиппинг)
                     mock_features = np.clip(mock_features, np.finfo(np.float32).min, np.finfo(np.float32).max)
                     
                     prediction = pocket_model.predict(mock_features)[0]
@@ -502,33 +498,64 @@ with tab3:
             if st.session_state.get('ai_evaluated'):
                 st.markdown("### 📊 Заключение ИИ BioSynth-EDU:")
                 
-                # Логика комплементарности массы молекулы и объема кармана
-                # Большой молекуле — большой карман, маленькой — маленький.
                 is_perfect = False
                 if mol_weight > 350 and vdw_volume > 800 and hydrophobic_ratio > 0.6:
-                    is_perfect = True  # Идеально для тяжелых структур 
+                    is_perfect = True 
                 elif mol_weight <= 350 and 300 <= vdw_volume <= 700:
-                    is_perfect = True  # Идеально для легких структур (Аспирин/Парацетамол)
+                    is_perfect = True 
                 
                 if is_perfect:
                     st.success("✅ **Высокая геометрическая совместимость!**")
-                    st.markdown(f"""
-                    Выбранные параметры кармана (Объем: {vdw_volume} $Å^3$, Гидрофобность: {hydrophobic_ratio}) 
-                    идеально подходят под пространственную структуру вашей молекулы. 
-                    При поиске белков в базах данных (PDB) ориентируйтесь именно на эти размеры активных центров.
-                    """)
+                    st.markdown(f"Выбранные параметры кармана (Объем: {vdw_volume} $Å^3$, Гидрофобность: {hydrophobic_ratio}) идеально подходят.")
+                    
+                    st.divider()
+                    st.markdown("### 🧬 Рекомендованная ИИ белок-мишень для докинга:")
+                    
+                    if is_kaz:
+                        recommended_protein = "Клеточная киназа опухоли (Рецептор EGFR)"
+                        recommended_pdb = "1UWH"
+                        reason = "Этот белок является классической мишенью для анализа цитотоксичности и противоопухолевой активности синтезированных в Казахстане диеноновых производных пиперидона."
+                    elif "Аспирин" in selected_world or "Ибупрофен" in selected_world or "Парацетамол" in selected_world:
+                        recommended_protein = "Циклооксигеназа-2 (ЦОГ-2) — фермент воспаления"
+                        recommended_pdb = "1CX2"
+                        reason = "Целевой воспалительный фермент, фармакологический эффект нестероидных противовоспалительных средств (НПВП) обусловлен ингибированием именно этого центра."
+                    elif "Кофеин" in selected_world:
+                        recommended_protein = "Аденозиновый рецептор A2A человека"
+                        recommended_pdb = "3PWH"
+                        reason = "Рецептор центральной нервной системы. Блокирование этого кармана кофеином приводит к стимуляции нервной деятельности."
+                    else:
+                        recommended_protein = "Модельный сывороточный альбумин (Транспортный белок)"
+                        recommended_pdb = "3G0W"
+                        reason = "Универсальная мишень для проверки связывающей способности малых органических молекул в плазме крови."
+
+                    st.info(f"**Название белка:** {recommended_protein}\n\n**PDB ID:** `{recommended_pdb}`\n\nℹ️ **Обоснование:** {reason}")
+                    
+                    btn_cols = st.columns(2)
+                    btn_cols[0].link_button(f"🌐 Открыть {recommended_pdb} на RCSB.org", f"https://www.rcsb.org/structure/{recommended_pdb}", use_container_width=True)
+                    btn_cols[1].link_button(f"📥 Скачать структуру {recommended_pdb}.pdb", f"https://files.rcsb.org/download/{recommended_pdb}.pdb", use_container_width=True, type="primary")
+                    
+                    try:
+                        view_p = py3Dmol.view(query=f'pdb:{recommended_pdb}', width=380, height=220)
+                        view_p.setStyle({'cartoon': {'color': 'spectrum'}})
+                        view_p.addSurface(py3Dmol.VDW, {'opacity': 0.15, 'color': 'lightblue'})
+                        view_p.zoomTo()
+                        components.html(view_p._make_html(), height=230)
+                    except:
+                        pass
                 else:
-                    st.warning("⚠️ **Низкая энергетическая стабильность**")
+                    st.error("⚠️ **Низкая энергетическая стабильность**")
                     st.markdown(f"""
-                    Модель прогнозирует стерическое несоответствие. Либо карман слишком тесен для этой массы 
-                    соединения, либо гидрофобные взаимодействия недостаточны для удержания лиганда. 
-                    Измените параметры геометрии кармана.
+                    Модель прогнозирует стерическое несоответствие. Лиганд либо не помещается в карман, либо гидрофобность недостаточна.
+                    
+                    **Подсказка:** * Для крупных молекул ({mol_weight:.1f} г/моль) увеличьте объем кармана (>800) и гидрофобность.
+                    * Для маленьких молекул уменьшите объем кармана (<700).
                     """)
             else:
                 st.caption("Настройте слайдеры слева и нажмите кнопку проверки, чтобы модель проанализировала совместимость структуры лиганда со свойствами кармана белка.")
 
-        else:
-            st.warning(t.get("docking_warn_no_3d", "Сначала выберите или вставьте SMILES на боковой панели!"))
+    else:
+        # Этот блок сработает, ТОЛЬКО если молекула вообще не выбрана на боковой панели
+        st.warning(t.get("docking_warn_no_3d", "Сначала выберите или вставьте SMILES на боковой панели!"))
 # --- Вкладка Обучение ---
 # --- Вкладка 4 ---
 with tab4:
