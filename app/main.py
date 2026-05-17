@@ -9,50 +9,12 @@ import json
 import os
 import datetime
 import random
-import joblib
 from pathlib import Path
 from translations import LANGUAGES
 from core.chem_utils import safe_float, smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking, calculate_molecule_descriptors, run_ai_target_screening
 
 import os
 import streamlit as st
-
-@st.cache_resource
-def load_or_train_pocket_model():
-    # Импортируем joblib ТОЛЬКО внутри функции, чтобы Streamlit не падал при сборке
-    import joblib 
-    
-    # Полный путь к папке app (/mount/src/biosynth-edu/app)
-    current_script_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    # Жестко отрезаем хвост /app, чтобы получить корень (/mount/src/biosynth-edu)
-    root_dir = current_script_dir.split(os.sep + "app")[0]
-    
-    # Собираем абсолютные пути от корня проекта
-    model_path = os.path.join(root_dir, "visual_pocket_model.pkl")
-    script_path = os.path.join(root_dir, "binding_pocket_rf.py")
-    
-    # Если модели нет, запускаем обучение
-    if not os.path.exists(model_path):
-        with st.spinner("Инициализация модуля карманов... Обучаем ИИ на PDBbind Core Set (это займет около минуты)..."):
-            # 🔥 ИСПРАВЛЕНИЕ: Используем абсолютный путь к Python внутри виртуального окружения Streamlit Cloud
-            venv_python = "/home/adminuser/venv/bin/python3"
-            
-            exit_code = os.system(f"{venv_python} {script_path}")
-            
-            if exit_code != 0:
-                raise RuntimeError(f"Скрипт binding_pocket_rf.py упал с кодом {exit_code}. Проверь логи панели.")
-    
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Файл модели не создался по пути: {model_path}")
-        
-    return joblib.load(model_path)
-
-# Активируем модель карманов безопасным вызовом
-try:
-    pocket_model = load_or_train_pocket_model()
-except Exception as e:
-    st.error(f"Ошибка инициализации модуля карманов: {e}")
 
 # Временный try-except для импорта Тьютора
 try:
@@ -217,7 +179,6 @@ tab_names = [
 tab1, tab2, tab3, tab4, tab5 = st.tabs(tab_names)
 
 with tab1:
-    # ... (3D вкладка без изменений)
     col1, col2 = st.columns([3, 1])
     with col1:
         c1, c2 = st.columns(2)
@@ -474,88 +435,8 @@ with tab3:
         st.subheader(t["docking_next_steps_header"])
         st.write(t["docking_next_steps_text"])
 
-# ------------------------------------------------------------------
-# ШАГ 2: АВТОМАТИЧЕСКИЙ ИИ-СКРИНИНГ (Вызов вынесен в модуль химии)
-        # ------------------------------------------------------------------
-        st.divider()
-        st.subheader("🎯 Шаг 2: Автоматический подбор биомишеней через модель СЛ-1")
-        st.markdown("""
-        На основе рассчитанного химического паспорта вашей молекулы, обученная модель 
-        **СЛ-1 (Random Forest)** выполнит прямой скрининг оригинальной числовой матрицы признаков.
-        """)
-        
-        if st.button("🚀 Запустить ИИ-скрининг по базе 102 мишеней", use_container_width=True):
-            with st.spinner("Диагностика QSAR модели..."):
-                result = run_ai_target_screening(st.session_state.active_smiles, pocket_model)
-                
-                if "error" in result:
-                    st.error(result["error"])
-                    st.stop()
-                
-                # --- БЛОК СЫРОЙ ДИАГНОСТИКИ МОДЕЛИ ---
-                st.warning("⚠️ **Внимание! Включен режим сырой диагностики ИИ-модели**")
-                
-                col_diag1, col_diag2, col_diag3 = st.columns(3)
-                with col_diag1:
-                    # Показываем сырой аутпут .predict() модели
-                    raw_p = result.get("raw_score", 0.0)
-                    st.metric("Сырой pKd от модели (.predict)", f"{raw_p:.4f}")
-                with col_diag2:
-                    st.metric("Размерность входа (n_features)", result.get("features_expected", 2048))
-                with col_diag3:
-                    st.metric("Плотность фингерпринта (Bit Sum)", result.get("fp_sum", 0))
-                
-                # Показываем, какие дескрипторы посчитал RDKit перед отправкой
-                desc = result["desc"]
-                st.json(desc)
-                st.markdown("---")
-                
-                # --- СТАНДАРТНЫЙ НАУЧНЫЙ ВЫВОД ИНТЕРФЕЙСА ---
-                st.info(f"📋 **Химический профиль лиганда:** Масса: **{desc['mw']:.1f}** | LogP: **{desc['logp']:.2f}** | TPSA: **{desc['tpsa']:.1f}**")
-                st.success("✅ **ИИ-скрининг по оригинальному архиву успешно завершен!**")
-                
-                # Безопасно вытаскиваем топ-мишень, если бэкенд в режиме диагностики её не вернул, 
-                # временно создаем объект из сырого скора, чтобы фронтенд не падал
-                best_match = result.get("top_match", {
-                    "id": "3UO4", 
-                    "name": "Клеточная киназа опухоли", 
-                    "score": raw_p if raw_p > 0 else 7.20, 
-                    "reason": "Диагностический вывод сырого предсказания дерева решений."
-                })
-                
-                pdb_code = best_match.get("id", "1UWH").upper()
-                protein_name = best_match.get("name", f"Биомишень (PDB ID: {pdb_code})")
-                reason_str = best_match.get("reason", "Верифицированная мишень из обучающей выборки.")
-                predicted_score = best_match.get("score", 0.0)
-                
-                col_res1, col_res2 = st.columns([1.2, 0.8])
-                with col_res1:
-                    st.markdown("### 📊 Лучшая мишень по прогнозу модели СЛ-1:")
-                    st.info(f"""
-                    * **Идентификатор PDB:** `{pdb_code}`
-                    * **Рекомендованный белок:** {protein_name}
-                    * **Предсказанная аффинность ($pK_d$):** `{predicted_score:.2f}`
-                    
-                    ℹ️ **Обоснование связи:** {reason_str}
-                    """)
-                    
-                    btn_cols = st.columns(2)
-                    btn_cols[0].link_button(f"🌐 Смотреть {pdb_code} на RCSB", f"https://www.rcsb.org/structure/{pdb_code}", use_container_width=True)
-                    btn_cols[1].link_button(f"📥 Скачать {pdb_code}.pdb", f"https://files.rcsb.org/download/{pdb_code}.pdb", use_container_width=True, type="primary")
-                
-                with col_res2:
-                    st.markdown("### 🧬 3D-модель сайта:")
-                    try:
-                        view_p = py3Dmol.view(query=f"pdb:{pdb_code}", width=300, height=220)
-                        view_p.setStyle({'cartoon': {'color': 'spectrum'}})
-                        view_p.addSurface(py3Dmol.VDW, {'opacity': 0.15, 'color': 'lightblue'})
-                        view_p.zoomTo()
-                        components.html(view_p._make_html(), height=230)
-                    except:
-                        st.caption("Окно визуализации структуры белка")
         
 # --- Вкладка Обучение ---
-# --- Вкладка 4 ---
 with tab4:
     current_mol = next((m for m in catalog if m['smiles'] == smiles), None)
     if current_mol:
@@ -568,7 +449,7 @@ with tab4:
 
     itabs = st.tabs(["📖 Пособие", "🎥 Видео", "🧪 Лабораторные", "🔬 Магистрантам"])
 
-    # РАЗДЕЛ 1: ПОСОБИЕ (Обновленный)
+    # РАЗДЕЛ 1: ПОСОБИЕ 
     with itabs[0]:
         st.subheader("Учебные пособия")
         
