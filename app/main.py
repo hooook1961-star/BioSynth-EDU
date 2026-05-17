@@ -244,7 +244,7 @@ with tab1:
 
    # --- ИНТЕГРАЦИЯ КХ-ЭКСПРЕСС-ЛАБОРАТОРНЫХ (ИСПРАВЛЕННЫЙ) ---
             st.divider()
-            st.subheader("🔬 Квантово-химический экспресс-анализ (СРСП)")
+            st.subheader("🔬 Квантово-химический экспресс-анализ")
             
             kx_tabs = st.tabs(["📊 Конформации", "⚡ Заряды (Эл. плотность)", "📝 Дескрипторы РС"])
             
@@ -269,14 +269,14 @@ with tab1:
                     # Методическая кнопка скачивания правильного конформера!
                     if st.session_state.get('best_sdf_block'):
                         st.download_button(
-                            label="📥 Скачать самый стабильный конформер (для Gaussian)",
+                            label="📥 Скачать самый стабильный конформер",
                             data=st.session_state.best_sdf_block,
                             file_name=f"global_minimum_{selected_kaz.split()[0]}.sdf",
                             mime="chemical/x-mdl-sdfile",
                             type="primary",
                             use_container_width=True
                         )
-                        st.success("Файл выше оптимизирован! Студент может сразу импортировать его в GaussView для расчета задач СРСП.")
+                        st.success("Файл выше оптимизирован!")
 
             # Вкладка 2: Заряды по Гастейгеру
             with kx_tabs[1]:
