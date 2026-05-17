@@ -275,6 +275,7 @@ with tab1:
         else:
             st.warning(t.get("warn_no_pubchem", "Данные не найдены"))
 
+#---Вкладка ADMET---
 with tab2:
     st.header(t["admet_header"])
     st.markdown(t["admet_instructions"])
@@ -435,6 +436,39 @@ with tab3:
         st.subheader(t["docking_next_steps_header"])
         st.write(t["docking_next_steps_text"])
 
+        # Векторный скрининг и выбор биологической мишени scPDB
+        st.subheader(t["docking_stage2_title"])
+        st.write(t["docking_stage2_desc"])
+        
+        if st.button(t["btn_run_screening"], use_container_width=True):
+            with st.spinner(t["spinner_screening"]):
+                res = run_ai_target_screening(smiles)
+                
+            if "error" in res:
+                st.error(f"Error: {res['error']}")
+            else:
+                st.success(t["screening_success"])
+                
+                top = res["top_match"]
+                
+                st.info(
+                    t["top_match_title"].format(pdb_id=top['id']) + "\n\n" +
+                    t["top_match_reason"].format(sim=top['sim']) + "\n\n" +
+                    t["top_match_instruction"].format(pdb_id=top['id'])
+                )
+
+                df_data = []
+                for item in res["all_candidates"]:
+                    df_data.append({
+                        t["col_pdb_id"]: item["id"],
+                        t["col_tanimoto"]: f"{item['sim']:.4f}",
+                        t["col_pkd"]: f"{item['score']:.2f}"
+                    })
+                
+                df = pd.DataFrame(df_data)
+                
+                st.write(t["table_title"])
+                st.dataframe(df, use_container_width=True, hide_index=True)
         
 # --- Вкладка Обучение ---
 with tab4:
