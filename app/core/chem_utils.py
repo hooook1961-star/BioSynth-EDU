@@ -1,10 +1,11 @@
 import numpy as np
 import pubchempy as pcp
 import pandas as pd
-import gzip
 import pickle
+import os
+import streamlit as st
 from rdkit import Chem
-from rdkit.Chem import AllChem, Descriptors
+from rdkit.Chem import AllChem, Descriptors, DataStructs
 from meeko import MoleculePreparation
 from chembl_webresource_client.new_client import new_client
 
@@ -110,62 +111,81 @@ def prepare_ligand_for_docking(smiles: str):
         print(f"Meeko Error: {e}")
         return None
 
-def calculate_molecule_descriptors(smiles_str):
+@st.cache_resource
+def load_scpdb_database():
     """
-    Принимает SMILES и рассчитывает ключевые хемоинформатические дескрипторы.
-    Возвращает словарь со значениями по умолчанию в случае ошибки или пустого ввода.
+    Кэширует 17 188 предсчитанных фингерпринтов scPDB в оперативной памяти.
+    Сначала проверяет локальный рабочий путь в WSL на диске E:, 
+    если его нет — ищет внутри папки деплоя.
     """
-    default_values = {"mw": 200.0, "logp": 1.5, "tpsa": 40.0, "hbd": 1, "hba": 2}
-    if not smiles_str:
-        return default_values
+    # Твой точный путь к созданной базе на диске E внутри WSL
+    local_wsl_path = "/mnt/e/scPDB/data/target_database.pkl"
+    # Путь для будущего деплоя на GitHub / Streamlit Cloud
+    cloud_path = os.path.join("data", "target_database.pkl")
+    
+    # Выбираем, какой путь использовать
+    if os.path.exists(local_wsl_path):
+        file_path = local_wsl_path
+    else:
+        file_path = cloud_path
         
     try:
-        mol = Chem.MolFromSmiles(smiles_str)
-        if mol is None:
-            return default_values
-            
-        return {
-            "mw": float(Descriptors.MolWt(mol)),
-            "logp": float(Descriptors.MolLogP(mol)),
-            "tpsa": float(Descriptors.TPSA(mol)),
-            "hbd": int(Descriptors.NumHDonors(mol)),
-            "hba": int(Descriptors.NumHAcceptors(mol))
-        }
+        with open(file_path, "rb") as f:
+            return pickle.load(f)
     except Exception as e:
-        return default_values
+        st.error(f"Критическая ошибка: не удалось загрузить файл базы scPDB по пути {file_path}. Ошибка: {e}")
+        return {}
 
-def run_ai_target_screening(smiles_str, pocket_model):
+def run_ai_target_screening(smiles_str):
     """
-    Абсолютно голый диагностический QSAR без цензуры и заглушек.
+    Высокоскоростной векторный QSAR-скрининг по 17 188 мишеням из scPDB.
+    Чистый побитовый поиск без ML-дескрипторов.
     """
-    desc = calculate_molecule_descriptors(smiles_str)
+    # Пустая заглушка, чтобы не ломался интерфейс main.py, ожидающий этот ключ
+    desc = {} 
+    
     mol = Chem.MolFromSmiles(smiles_str) if smiles_str else None
     if mol is None:
         return {"error": "Некорректный SMILES", "desc": desc}
 
-    # 1. Генерируем фингерпринт
-    try:
-        required_features = pocket_model.n_features_in_
-    except:
-        required_features = 2048 
+    # Загружаем базу данных (использует настроенные выше пути)
+    target_db = load_scpdb_database()
+    if not target_db:
+        return {"error": "База данных мишеней недоступна или пуста", "desc": desc}
 
-    fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=required_features)
-    fp_array = np.zeros((1,), dtype=np.int8)
-    Chem.DataStructs.ConvertToNumpyArray(fp, fp_array)
-    ligand_vector = fp_array.reshape(1, -1).astype(np.float32)
+    # Генерируем фингерпринт исследуемой структуры (Morgan, r=2, 2048 бит)
+    query_fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048)
+    
+    scored_proteins = []
 
-    # 2. Берем сырой прогноз модели
-    try:
-        raw_prediction = pocket_model.predict(ligand_vector)
-        raw_score = float(raw_prediction[0])
-    except Exception as e:
-        return {"error": f"Ошибка .predict(): {e}", "desc": desc}
+    # Побитовое сравнение со всей базой scPDB
+    for custom_name, ref_fp in target_db.items():
+        similarity = DataStructs.TanimotoSimilarity(query_fp, ref_fp)
+        
+        # Извлекаем оригинальный ID папки scPDB (например, 3UO4_2)
+        pdb_id = custom_name.replace("lig_", "").upper()
+        
+        # Переводим в шкалу score аффинности для сохранения совместимости со старым main.py
+        dynamic_score = 5.0 + (similarity * 4.0)
 
-    # Возвращаем СЫРЫЕ данные для диагностики
+        scored_proteins.append({
+            "id": pdb_id,
+            "name": f"Мишень из базы scPDB (ID: {pdb_id})",
+            "reason": f"Индекс сходства Танимото с нативным лигандом: {similarity:.2f}.",
+            "score": float(dynamic_score),
+            "sim": similarity
+        })
+
+    # Сортируем результат по убыванию сходства Танимото
+    scored_proteins.sort(key=lambda x: x["sim"], reverse=True)
+    best_match = scored_proteins[0]
+
     return {
         "success": True,
-        "desc": desc,
-        "raw_score": raw_score,
-        "features_expected": required_features,
-        "fp_sum": int(fp_array.sum()) # Показывает, сколько единичек в фингерпринте
+        "desc": desc,                 
+        "raw_score": best_match["sim"], 
+        "features_expected": 2048,
+        "fp_sum": int(np.array(query_fp).sum()),
+        "top_match": best_match,
+        "all_candidates": scored_proteins[:15] 
     }
