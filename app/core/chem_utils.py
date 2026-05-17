@@ -163,3 +163,102 @@ def run_ai_target_screening(smiles_str):
         "top_match": best_match,
         "all_candidates": scored_proteins[:15] 
     }
+    
+def calculate_conformer_energies(smiles: str, num_conformers: int = 15) -> list:
+    """
+    Генерирует ансамбль конформеров и рассчитывает их энергию напряжения (MMFF94).
+    Используется для Лабораторной работы №4 (Конформационный анализ).
+    """
+    try:
+        # Создаем молекулу и добавляем водороды (критично для геометрии!)
+        mol = Chem.MolFromSmiles(smiles)
+        mol = Chem.AddHs(mol)
+        
+        # Генерируем несколько конформеров
+        cids = AllChem.EmbedMultipleConfs(mol, numConfs=num_conformers, randomSeed=42)
+        
+        energies = []
+        for cid in cids:
+            # Оптимизируем каждый конформер в силовом поле MMFF94
+            ff = AllChem.MMFFGetMoleculeForceField(mol, AllChem.MMFFGetMoleculeProperties(mol), confId=cid)
+            if ff:
+                ff.Minimize()
+                energy = ff.CalcEnergy() # Энергия в ккал/моль
+                energies.append(energy)
+        
+        # Сортируем от самой выгодной (минимум) к максимальной
+        energies.sort()
+        return energies
+    except Exception as e:
+        print(f"Ошибка конформационного анализа: {e}")
+        return []
+
+def compute_gasteiger_charges_block(smiles: str) -> str:
+    """
+    Рассчитывает парциальные заряды по Гастейгеру-Марсили.
+    Сохраняет их в свойства атомов SDF-блока, чтобы py3Dmol мог их считать.
+    Используется для Лабораторной работы №7 (Электронная плотность).
+    """
+    try:
+        mol = Chem.MolFromSmiles(smiles)
+        mol = Chem.AddHs(mol)
+        
+        # Шаг 1: Генерируем 3D координаты, чтобы py3Dmol мог отобразить структуру
+        AllChem.EmbedMolecule(mol, randomSeed=42)
+        AllChem.MMFFOptimizeMolecule(mol)
+        
+        # Шаг 2: Считаем квантово-химические топологические заряды
+        AllChem.ComputeGasteigerCharges(mol)
+        
+        # Шаг 3: Переносим заряды из свойств атома в специальное поле py3Dmol (partialCharge)
+        for atom in mol.GetAtoms():
+            charge = float(atom.GetProp('_GasteigerCharge'))
+            # Записываем в double-свойство атома
+            atom.SetDoubleProp('partialCharge', charge)
+            
+        # Конвертируем молекулу в SDF-блок. V3000 формат гарантирует сохранение свойств атомов
+        sio = Chem.SDWriter.to_string(mol)
+        return sio
+    except Exception as e:
+        print(f"Ошибка расчета зарядов: {e}")
+        return ""
+
+def get_quantum_descriptors(smiles: str) -> pd.DataFrame:
+    """
+    Рассчитывает хемоинформатические аналоги квантовых дескрипторов.
+    Используется для Лабораторной работы №7.
+    """
+    try:
+        mol = Chem.MolFromSmiles(smiles)
+        if not mol:
+            return None
+            
+        # Считаем дескрипторы
+        tpsa = Descriptors.TPSA(mol)                          # Топологическая площадь полярной поверхности
+        mol_wt = Descriptors.MolWt(mol)                        # Молекулярная масса
+        labute_asa = Descriptors.LabuteASA(mol)                # Объем/Площадь доступной поверхности Ван-дер-Ваальса
+        heavy_atoms = mol.GetNumHeavyAtoms()                   # Количество тяжелых атомов
+        
+        # Индекс овальности / стерической жесткости (аппроксимация через вращаемые связи на тяжелый атом)
+        rot_bonds = Descriptors.RotatableBonds(mol)
+        steric_index = round(rot_bonds / heavy_atoms, 3) if heavy_atoms > 0 else 0
+
+        # Формируем красивую таблицу для Streamlit
+        df_data = {
+            "Дескриптор структуре (Замена строгим КХ-индексам)": [
+                "TPSA (Площадь полярной поверхности, Å²)",
+                "Объем Ван-дер-Ваальса (Labute ASA, Å²)",
+                "Стерический индекс жесткости (RotB/Heavy)",
+                "Количество электронодонорных центров (N, O)"
+            ],
+            "Значение экспресс-метода": [
+                round(tpsa, 2),
+                round(labute_asa, 2),
+                steric_index,
+                len([at for at in mol.GetAtoms() if at.GetSymbol() in ['N', 'O']])
+            ]
+        }
+        return pd.DataFrame(df_data)
+    except Exception as e:
+        print(f"Ошибка сбора дескрипторов: {e}")
+        return None
