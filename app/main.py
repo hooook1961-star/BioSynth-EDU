@@ -11,7 +11,7 @@ import datetime
 import random
 from pathlib import Path
 from translations import LANGUAGES
-from core.chem_utils import safe_float, smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking, run_ai_target_screening
+from core.chem_utils import safe_float, smiles_to_3d_block, get_pubchem_data, get_chembl_data, calculate_conformer_energies, compute_gasteiger_charges_block, get_quantum_descriptors, prepare_ligand_for_docking, run_ai_target_screening
 
 import os
 import streamlit as st
@@ -204,6 +204,12 @@ with tab1:
             view = py3Dmol.view(width=None, height=450)
             view.addModel(st.session_state.mol_block, "mol")
             
+            if st.session_state.get('kx_mode') == 'charges' and 'mol_block_charges' in st.session_state:
+                view.addModel(st.session_state.mol_block_charges, "mol")
+                # Красим по свойству partialCharge, которое мы зашили в хем-утилитах
+                view.setColorByProperty({'prop': 'partialCharge', 'gradient': 'rwb', 'min': -0.5, 'max': 0.5})
+            else:
+                view.addModel(st.session_state.mol_block, "mol")
             if st.session_state.viz_style == 'stick':
                 view.setStyle({'stick': {'radius': 0.25}})
             elif st.session_state.viz_style == 'sphere':
@@ -235,9 +241,53 @@ with tab1:
                 mime="chemical/x-mdl-sdfile",
                 use_container_width=True
             )
+
+    # --- ИНТЕГРАЦИЯ КХ-ЭКСПРЕСС-ЛАБОРАТОРНЫХ (Новый блок) ---
+            st.divider()
+            st.subheader("🔬 Квантово-химический экспресс-анализ (СРСП)")
+            
+            kx_tabs = st.tabs(["📊 Конформации", "⚡ Заряды (Эл. плотность)", "📝 Дескрипторы РС"])
+            
+            # Вкладка 1: Конформационный анализ (Лаба 4)
+            with kx_tabs[0]:
+                if st.button("Рассчитать энергию конформеров", use_container_width=True):
+                    with st.spinner("Генерация ансамбля конформеров..."):
+                        # Вызов вашей будущей хем-утилиты
+                        energies = calculate_conformer_energies(smiles) 
+                        st.session_state.conf_energies = energies
+                
+                if 'conf_energies' in st.session_state:
+                    st.line_chart(st.session_state.conf_energies)
+                    st.caption("График потенциальной энергии напряжения конформеров (ккал/моль). Используйте конформер с минимальной энергией для расчетов в Gaussian.")
+
+            # Вкладка 2: Заряды по Гастейгеру (Лаба 7)
+            with kx_tabs[1]:
+                cc1, cc2 = st.columns(2)
+                if cc1.button("Показать электронную плотность", type="primary", use_container_width=True):
+                    with st.spinner("Расчет зарядов по Гастейгеру..."):
+                        # Вызов хем-утилиты, которая вернет специальный SDF-блок с флагами зарядов
+                        st.session_state.mol_block_charges = compute_gasteiger_charges_block(smiles)
+                        st.session_state.kx_mode = 'charges'
+                        st.rerun() # Перезапускаем, чтобы py3Dmol перерисовал цвета
+                
+                if cc2.button("Сбросить окрашивание", use_container_width=True):
+                    st.session_state.kx_mode = 'standard'
+                    st.rerun()
+                st.caption("Цветовая шкала (RWB): Красный (электрофильный центр / дефицит электронов) -> Белый -> Синий (нуклеофильный центр / избыток плотности).")
+
+            # Вкладка 3: Индексы и дескрипторы (Лаба 7)
+            with kx_tabs[2]:
+                with st.spinner("Сбор дескрипторов..."):
+                    # Вызов утилиты для генерации словаря дескрипторов (TPSA, объем и т.д.)
+                    kx_descriptors = get_quantum_descriptors(smiles) 
+                
+                if kx_descriptors:
+                    st.dataframe(kx_descriptors, use_container_width=True)
+                else:
+                    st.caption("Ошибка расчета дескрипторов.")
+
         else:
             st.info(t.get("info_select_mol", "Выберите молекулу"))
-
     with col2:
         st.subheader(t.get("header_ref", "Свойства"))
         data = get_pubchem_data(smiles)
