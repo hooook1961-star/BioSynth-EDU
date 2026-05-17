@@ -467,12 +467,9 @@ with tab3:
                 
                 df = pd.DataFrame(df_data)
                 
-               st.write(t["table_title"])
+                st.write(t["table_title"])
                 st.dataframe(df, use_container_width=True, hide_index=True)
-                
-                # -------------------------------------------------------------------------
-                # ИДЕАЛЬНЫЙ ВАРИАНТ: Одна кнопка-ссылка на лидера скрининга
-                # -------------------------------------------------------------------------
+                               
                 if top['id']:
                     # Вырезаем первые 4 символа (PDB ID) из ID сайта scPDB
                     best_pdb = top['id'][:4].upper()
