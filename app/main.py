@@ -469,6 +469,28 @@ with tab3:
                 
                 st.write(t["table_title"])
                 st.dataframe(df, use_container_width=True, hide_index=True)
+                st.write("---")
+                st.subheader(t["pdb_lookup_title"])
+                
+                # ID лидера скрининга (первые 4 символа папки scPDB)
+                default_pdb = top['id'][:4] if top['id'] else ""
+                
+                pdb_input = st.text_input(
+                    t["pdb_lookup_label"], 
+                    value=default_pdb,
+                    max_chars=4
+                ).strip().upper()
+                
+                if pdb_input:
+                    if len(pdb_input) == 4:
+                        # прямая ссылку на структуру в RCSB PDB
+                        pdb_url = f"https://www.rcsb.org/structure/{pdb_input}"
+                        
+                        st.markdown(
+                            f"🔗 [{t['btn_go_to_pdb'].format(pdb_id=pdb_input)}]({pdb_url})"
+                        )
+                    else:
+                        st.warning(t["pdb_error_length"])
         
 # --- Вкладка Обучение ---
 with tab4:
