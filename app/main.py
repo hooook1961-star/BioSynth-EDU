@@ -13,9 +13,6 @@ from pathlib import Path
 from translations import LANGUAGES
 from core.chem_utils import safe_float, smiles_to_3d_block, get_pubchem_data, get_chembl_data, calculate_conformer_energies, compute_gasteiger_charges_block, get_quantum_descriptors, prepare_ligand_for_docking, run_ai_target_screening
 
-import os
-import streamlit as st
-
 # Временный try-except для импорта Тьютора
 try:
     from core.bot import tutor_dialog
@@ -204,21 +201,30 @@ with tab1:
             view = py3Dmol.view(width=None, height=450)
             view.addModel(st.session_state.mol_block, "mol")
             
-            if st.session_state.get('kx_mode') == 'charges' and 'mol_block_charges' in st.session_state:
+            if st.session_state.get('kx_mode') == 'charges' and st.session_state.get('mol_block_charges'):
                 view.addModel(st.session_state.mol_block_charges, "mol")
-                # Красим по свойству partialCharge, которое мы зашили в хем-утилитах
-                view.setColorByProperty({'prop': 'partialCharge', 'gradient': 'rwb', 'min': -0.5, 'max': 0.5})
+                # Градиент: Красный (дефицит) -> Белый -> Синий (избыток плотности)
+                view.setColorByProperty({'prop': 'partialCharge', 'gradient': 'rwb', 'min': -0.4, 'max': 0.4})
             else:
-                view.addModel(st.session_state.mol_block, "mol")
-            if st.session_state.viz_style == 'stick':
-                view.setStyle({'stick': {'radius': 0.25}})
-            elif st.session_state.viz_style == 'sphere':
-                view.setStyle({'sphere': {'scale': 0.9}}) 
-            elif st.session_state.viz_style == 'line':
-                view.setStyle({'line': {'linewidth': 2}})
-            elif st.session_state.viz_style == 'surface':
-                view.setStyle({'stick': {'radius': 0.1}})
-                view.addSurface(py3Dmol.VDW, {'opacity': 0.5, 'color': 'white'})
+                # В противном случае — ваш стандартный рендеринг молекулы
+                if st.session_state.get('mol_block'):
+                    view.addModel(st.session_state.mol_block, "mol")
+                    if st.session_state.get('viz_style') == 'stick':
+                        view.setStyle({'stick': {'radius': 0.25}})
+                    elif st.session_state.get('viz_style') == 'sphere':
+                        view.setStyle({'sphere': {'scale': 0.9}})
+                    elif st.session_state.get('viz_style') == 'line':
+                        view.setStyle({'line': {'linewidth': 2}})
+                    elif st.session_state.get('viz_style') == 'surface':
+                        view.setStyle({'stick': {'radius': 0.1}})
+                        view.addSurface(py3Dmol.VDW, {'opacity': 0.5, 'color': 'white'})
+                else:
+                    # Если mol_block почему-то пуст, подстраховываемся активным SMILES
+                    active_sm = st.session_state.get('active_smiles', 'CC(=O)OC1=CC=CC=C1C(=O)O')
+                    from core.chem_utils import smiles_to_3d_block
+                    st.session_state.mol_block = smiles_to_3d_block(active_sm, optimize=True)
+                    view.addModel(st.session_state.mol_block, "mol")
+                    view.setStyle({'stick': {'radius': 0.25}})
             
             view.zoomTo()
             view.setBackgroundColor('#ffffff')
