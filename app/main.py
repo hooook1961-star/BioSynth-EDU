@@ -11,7 +11,7 @@ import datetime
 import random
 from pathlib import Path
 from translations import LANGUAGES
-from core.chem_utils import safe_float, smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking, calculate_molecule_descriptors, run_ai_target_screening
+from core.chem_utils import safe_float, smiles_to_3d_block, get_pubchem_data, get_chembl_data, prepare_ligand_for_docking
 
 import os
 import streamlit as st
