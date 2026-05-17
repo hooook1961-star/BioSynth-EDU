@@ -5,12 +5,8 @@ py3Dmol
 pandas
 chembl_webresource_client
 meeko
-scipy
 numpy
 gemmi
 streamlit-ketcher
 openpyxl
 openai
-scikit-learn
-joblib
-deepchem
