@@ -217,8 +217,7 @@ def compute_gasteiger_charges_block(smiles: str) -> str:
             atom.SetDoubleProp('partialCharge', charge)
             
         # Конвертируем молекулу в SDF-блок. V3000 формат гарантирует сохранение свойств атомов
-        sio = Chem.SDWriter.to_string(mol)
-        return sio
+        return Chem.MolToMolBlock(mol)
     except Exception as e:
         print(f"Ошибка расчета зарядов: {e}")
         return ""
