@@ -242,49 +242,65 @@ with tab1:
                 use_container_width=True
             )
 
-    # --- ИНТЕГРАЦИЯ КХ-ЭКСПРЕСС-ЛАБОРАТОРНЫХ (Новый блок) ---
+   # --- ИНТЕГРАЦИЯ КХ-ЭКСПРЕСС-ЛАБОРАТОРНЫХ (ИСПРАВЛЕННЫЙ) ---
             st.divider()
             st.subheader("🔬 Квантово-химический экспресс-анализ (СРСП)")
             
             kx_tabs = st.tabs(["📊 Конформации", "⚡ Заряды (Эл. плотность)", "📝 Дескрипторы РС"])
             
-            # Вкладка 1: Конформационный анализ (Лаба 4)
+            # Вкладка 1: Конформационный анализ
             with kx_tabs[0]:
-                if st.button("Рассчитать энергию конформеров", use_container_width=True):
-                    with st.spinner("Генерация ансамбля конформеров..."):
-                        # Вызов вашей будущей хем-утилиты
-                        energies = calculate_conformer_energies(smiles) 
+                if st.button("Сгенерировать и рассчитать конформеры", use_container_width=True):
+                    with st.spinner("Поиск глобального минимума энергии..."):
+                        energies, best_sdf = calculate_conformer_energies(smiles)
                         st.session_state.conf_energies = energies
+                        st.session_state.best_sdf_block = best_sdf
                 
-                if 'conf_energies' in st.session_state:
-                    st.line_chart(st.session_state.conf_energies)
-                    st.caption("График потенциальной энергии напряжения конформеров (ккал/моль). Используйте конформер с минимальной энергией для расчетов в Gaussian.")
+                if 'conf_energies' in st.session_state and st.session_state.conf_energies:
+                    # Создаем красивую столбчатую диаграмму вместо размазанной линии
+                    chart_data = pd.DataFrame({
+                        "Конформер №": [f"№{i+1}" for i in range(len(st.session_state.conf_energies))],
+                        "Энергия (ккал/моль)": st.session_state.conf_energies
+                    }).set_index("Конформер №")
+                    
+                    st.bar_chart(chart_data)
+                    st.caption("Гистограмма распределения энергии напряжения конформеров. Первый столбец — глобальный минимум.")
+                    
+                    # Методическая кнопка скачивания правильного конформера!
+                    if st.session_state.get('best_sdf_block'):
+                        st.download_button(
+                            label="📥 Скачать самый стабильный конформер (для Gaussian)",
+                            data=st.session_state.best_sdf_block,
+                            file_name=f"global_minimum_{selected_kaz.split()[0]}.sdf",
+                            mime="chemical/x-mdl-sdfile",
+                            type="primary",
+                            use_container_width=True
+                        )
+                        st.success("Файл выше оптимизирован! Студент может сразу импортировать его в GaussView для расчета задач СРСП.")
 
-            # Вкладка 2: Заряды по Гастейгеру (Лаба 7)
+            # Вкладка 2: Заряды по Гастейгеру
             with kx_tabs[1]:
                 cc1, cc2 = st.columns(2)
                 if cc1.button("Показать электронную плотность", type="primary", use_container_width=True):
-                    with st.spinner("Расчет зарядов по Гастейгеру..."):
-                        # Вызов хем-утилиты, которая вернет специальный SDF-блок с флагами зарядов
+                    with st.spinner("Расчет молекулярных зарядов..."):
                         st.session_state.mol_block_charges = compute_gasteiger_charges_block(smiles)
                         st.session_state.kx_mode = 'charges'
-                        st.rerun() # Перезапускаем, чтобы py3Dmol перерисовал цвета
+                        st.rerun()
                 
                 if cc2.button("Сбросить окрашивание", use_container_width=True):
                     st.session_state.kx_mode = 'standard'
                     st.rerun()
-                st.caption("Цветовая шкала (RWB): Красный (электрофильный центр / дефицит электронов) -> Белый -> Синий (нуклеофильный центр / избыток плотности).")
+                    
+                st.caption("🔴 **Красный цвет:** дефицит электронов (электрофильный центр). 🔵 **Синий цвет:** избыток электронной плотности (нуклеофильный центр).")
 
-            # Вкладка 3: Индексы и дескрипторы (Лаба 7)
+            # Вкладка 3: Индексы и дескрипторы
             with kx_tabs[2]:
-                with st.spinner("Сбор дескрипторов..."):
-                    # Вызов утилиты для генерации словаря дескрипторов (TPSA, объем и т.д.)
-                    kx_descriptors = get_quantum_descriptors(smiles) 
-                
-                if kx_descriptors:
-                    st.dataframe(kx_descriptors, use_container_width=True)
+                # Передаем smiles напрямую
+                kx_descriptors = get_quantum_descriptors(smiles)
+                if kx_descriptors is not None:
+                    st.dataframe(kx_descriptors, use_container_width=True, hide_index=True)
                 else:
-                    st.caption("Ошибка расчета дескрипторов.")
+                    st.error("Ошибка при обработке структуры. Проверьте валидность SMILES.")
 
         else:
             st.info(t.get("info_select_mol", "Выберите молекулу"))
