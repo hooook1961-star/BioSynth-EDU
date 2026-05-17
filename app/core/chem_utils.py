@@ -113,21 +113,7 @@ def prepare_ligand_for_docking(smiles: str):
 
 @st.cache_resource
 def load_scpdb_database():
-    """
-    Кэширует 17 188 предсчитанных фингерпринтов scPDB в оперативной памяти.
-    Сначала проверяет локальный рабочий путь в WSL на диске E:, 
-    если его нет — ищет внутри папки деплоя.
-    """
-    # Твой точный путь к созданной базе на диске E внутри WSL
-    local_wsl_path = "/mnt/e/scPDB/data/target_database.pkl"
-    # Путь для будущего деплоя на GitHub / Streamlit Cloud
-    cloud_path = os.path.join("data", "target_database.pkl")
-    
-    # Выбираем, какой путь использовать
-    if os.path.exists(local_wsl_path):
-        file_path = local_wsl_path
-    else:
-        file_path = cloud_path
+    file_path = os.path.join("data", "target_database.pkl")
         
     try:
         with open(file_path, "rb") as f:
@@ -137,35 +123,24 @@ def load_scpdb_database():
         return {}
 
 def run_ai_target_screening(smiles_str):
-    """
-    Высокоскоростной векторный QSAR-скрининг по 17 188 мишеням из scPDB.
-    Чистый побитовый поиск без ML-дескрипторов.
-    """
-    # Пустая заглушка, чтобы не ломался интерфейс main.py, ожидающий этот ключ
     desc = {} 
     
     mol = Chem.MolFromSmiles(smiles_str) if smiles_str else None
     if mol is None:
         return {"error": "Некорректный SMILES", "desc": desc}
 
-    # Загружаем базу данных (использует настроенные выше пути)
     target_db = load_scpdb_database()
     if not target_db:
         return {"error": "База данных мишеней недоступна или пуста", "desc": desc}
 
-    # Генерируем фингерпринт исследуемой структуры (Morgan, r=2, 2048 бит)
     query_fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048)
     
     scored_proteins = []
 
-    # Побитовое сравнение со всей базой scPDB
     for custom_name, ref_fp in target_db.items():
         similarity = DataStructs.TanimotoSimilarity(query_fp, ref_fp)
         
-        # Извлекаем оригинальный ID папки scPDB (например, 3UO4_2)
         pdb_id = custom_name.replace("lig_", "").upper()
-        
-        # Переводим в шкалу score аффинности для сохранения совместимости со старым main.py
         dynamic_score = 5.0 + (similarity * 4.0)
 
         scored_proteins.append({
@@ -176,7 +151,6 @@ def run_ai_target_screening(smiles_str):
             "sim": similarity
         })
 
-    # Сортируем результат по убыванию сходства Танимото
     scored_proteins.sort(key=lambda x: x["sim"], reverse=True)
     best_match = scored_proteins[0]
 
