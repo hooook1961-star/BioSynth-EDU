@@ -274,11 +274,13 @@ with tab1:
                             st.session_state.best_sdf_block = best_sdf
                     
                     if 'conf_energies' in st.session_state and st.session_state.conf_energies:
+                        # Создаем DataFrame, где имя колонки строго совпадает с тем, что передается в set_index
                         chart_data = pd.DataFrame({
                             "Конформер": [f"№{i+1}" for i in range(len(st.session_state.conf_energies))],
                             "Энергия (ккал/моль)": st.session_state.conf_energies
-                        }).set_index("Conformer")
+                        }).set_index("Конформер")
                         
+                        # Отрисовка графика
                         st.bar_chart(chart_data)
                         st.caption("Гистограмма потенциальной энергии сгенерированных конформационных пространств. Первый столбец соответствует глобальному минимуму.")
                         
