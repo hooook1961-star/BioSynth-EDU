@@ -559,37 +559,72 @@ with tab4:
     itabs = st.tabs(["📖 Пособие", "🎥 Видео", "🧪 Лабораторные", "🔬 Магистрантам"])
 
     # РАЗДЕЛ 1: ПОСОБИЕ 
-    with itabs[0]:
-        st.subheader("Учебные пособия")
+with itabs[0]:
+    st.subheader("📚 Электронная библиотека и учебные пособия")
+    st.markdown("Выберите необходимый научно-методический материал для изучения теории и работы с ИИ-тьютором:")
+    
+    # 1. Инициализируем выбор в session_state, если его там еще нет
+    if "selected_manual" not in st.session_state:
+        st.session_state.selected_manual = "Компьютерная химия: прогнозирование"
+
+    # Словарь безопасных ссылок (заменили /view на /preview)
+    manual_links = {
+        "Компьютерная химия: прогнозирование": "https://drive.google.com/file/d/1CxTdwJmiaqsa54wZoODhADYIqHoIk23g/preview",
+        "Квантово-химические расчеты и молекулярное моделирование": "https://drive.google.com/file/d/1JeO18y1QNPl-YzA_aRTSe8owaNMvms7k/preview"
+    }
+
+    # 2. Визуальный блок выбора вместо некрасивого st.radio
+    m_col1, m_col2 = st.columns(2)
+    
+    with m_col1:
+        # Карточка для первого пособия
+        is_active_1 = st.session_state.selected_manual == "Компьютерная химия: прогнозирование"
+        if st.button(
+            "📖 Тетрадь I: Компьютерная химия: прогнозирование", 
+            type="primary" if is_active_1 else "secondary", 
+            use_container_width=True
+        ):
+            st.session_state.selected_manual = "Компьютерная химия: прогнозирование"
+            st.rerun()
+
+    with m_col2:
+        # Карточка для второго пособия
+        is_active_2 = st.session_state.selected_manual == "Квантово-химические расчеты и молекулярное моделирование"
+        if st.button(
+            "🧪 Тетрадь II: Квантово-химические расчеты и моделирование", 
+            type="primary" if is_active_2 else "secondary", 
+            use_container_width=True
+        ):
+            st.session_state.selected_manual = "Квантово-химические расчеты и молекулярное моделирование"
+            st.rerun()
+
+    st.divider()
+
+    # 3. Основная рабочая зона: Пособие + Тьютор
+    col_pdf, col_tutor = st.columns([2, 1])
+    active_choice = st.session_state.selected_manual
+
+    with col_pdf:
+        st.markdown(f"##### 📄 Текущий материал: *{active_choice}*")
         
-        # Выбор пособия
-        manual_choice = st.radio(
-            "Выберите литературу для изучения:",
-            ["Компьютерная химия: прогнозирование", "Квантово-химические расчеты и молекулярное моделирование"],
-            horizontal=True
+        # Интегрируем через безопасный preview
+        display_pdf(manual_links[active_choice])
+        
+        # Добавляем аккуратную альтернативу, если у кого-то в браузере все равно стоят жесткие блокировки
+        st.caption("Если интерактивный просмотр заблокирован вашим браузером, вы можете использовать прямую кнопку:")
+        st.link_button(
+            "🔗 Открыть пособие в новой вкладке Google Drive", 
+            manual_links[active_choice], 
+            use_container_width=True
         )
 
-        # Словарь ссылок
-        manual_links = {
-            "Компьютерная химия: прогнозирование": "https://drive.google.com/file/d/1CxTdwJmiaqsa54wZoODhADYIqHoIk23g/view?usp=drivesdk",
-            "Квантово-химические расчеты и молекулярное моделирование": "https://drive.google.com/file/d/1JeO18y1QNPl-YzA_aRTSe8owaNMvms7k/view?usp=drivesdk"
-        }
-
-        col_pdf, col_tutor = st.columns([2, 1])
-
-        with col_pdf:
-            # Отображаем выбранный PDF
-            display_pdf(manual_links[manual_choice])
-            st.caption(f"Просмотр файла: {manual_choice}. Если файл не отображается, проверьте доступ по ссылке.")
-
-        with col_tutor:
-            st.subheader("🤖 ИИ-Тьютор")
-            st.write("Используйте материалы пособия для подготовки вопросов.")
-            
-            #  ИИ-Тьютор 
-            if st.button("💬 Открыть диалог с Тьютором", type="primary", use_container_width=True):
-                tutor_dialog()
-
+    with col_tutor:
+        st.subheader("🤖 ИИ-Тьютор")
+        st.info("Ассистент готов ответить на вопросы по содержанию выбранного методического пособия.")
+        
+        # Кнопка открытия диалога
+        if st.button("💬 Открыть ассистента", type="primary", use_container_width=True):
+            tutor_dialog()
     # Остальные разделы
     with itabs[1]:
         st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
