@@ -64,25 +64,28 @@ def load_catalog():
 
 catalog = load_catalog()
 
-# --- 0. ФУНКЦИИ ВЗАИМНОГО СБРОСА (Колбэки, которые выполняются ДО рендера) ---
+# --- 0. ФУНКЦИИ ВЗАИМНОГО СБРОСА (Адаптированные и безопасные) ---
 def on_kaz_change():
-    # Если выбрали что-то в казахстанском каталоге — сбрасываем мировой и ручной ввод
+    # Проверяем, существует ли уже виджет в памяти сессии
+    if "kaz_select" not in st.session_state:
+        return
+        
     if st.session_state.kaz_select != t["select_placeholder"]:
         st.session_state.world_select = t["select_placeholder"]
-        # Обновляем активный SMILES из казахстанского словаря
-        st.session_state.active_smiles = kaz_options_global[st.session_state.kaz_select]
+        # Обновляем активный SMILES, только если глобальный словарь уже доступен
+        if 'kaz_options_global' in globals() and st.session_state.kaz_select in kaz_options_global:
+            st.session_state.active_smiles = kaz_options_global[st.session_state.kaz_select]
 
 def on_world_change():
-    # Если выбрали мировой пример — сбрасываем казахстанский каталог
+    # Проверяем, существует ли уже виджет в памяти сессии
+    if "world_select" not in st.session_state:
+        return
+        
     if st.session_state.world_select != t["select_placeholder"]:
         st.session_state.kaz_select = t["select_placeholder"]
-        # Обновляем активный SMILES из мирового словаря
-        st.session_state.active_smiles = world_examples_global[st.session_state.world_select]
-
-# Инициализируем базовый SMILES в сессии, если приложения только открылось
-if "active_smiles" not in st.session_state:
-    st.session_state.active_smiles = "CC(=O)OC1=CC=CC=C1C(=O)O"  # Аспирин по дефолту
-
+        # Обновляем активный SMILES, только если глобальный словарь уже доступен
+        if 'world_examples_global' in globals() and st.session_state.world_select in world_examples_global:
+            st.session_state.active_smiles = world_examples_global[st.session_state.world_select]
 
 # --- 4. БОКОВАЯ ПАНЕЛЬ ---
 st.sidebar.header(t["sidebar_select_mol"])
