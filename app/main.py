@@ -201,27 +201,13 @@ with tab1:
             if style_cols[2].button("Line", use_container_width=True): st.session_state.viz_style = 'line'
             if style_cols[3].button("Surface", use_container_width=True): st.session_state.viz_style = 'surface'
 
-            # --- АВТОМАТИЧЕСКИЙ БЛОК ОТРИСОВКИ 3D (ЗАВЯЗАН НА ИНДЕКС ВКЛАДКИ) ---
+            # --- СТАНДАРТНЫЙ И СТАБИЛЬНЫЙ БЛОК ОТРИСОВКИ 3D ---
             view = py3Dmol.view(width=None, height=450)
             
-            # Проверяем, открыта ли сейчас вкладка "Заряды" (ее индекс равен 1)
-            is_charge_tab_active = st.session_state.get("srsp_tab_index") == 1
-            
-            if is_charge_tab_active and st.session_state.get('mol_block_charges'):
-                # Рендерим молекулу с зарядами
-                view.addModel(st.session_state.mol_block_charges, "mol")
-                view.setColorByProperty({'prop': 'partialCharge', 'gradient': 'rwb', 'min': -0.3, 'max': 0.3})
-            else:
-                # В противном случае (вкладки 0, 2 или обычный режим) — стандартный вид
-                if st.session_state.get('mol_block'):
-                    view.addModel(st.session_state.mol_block, "mol")
-                else:
-                    active_sm = st.session_state.get('active_smiles', 'CC(=O)OC1=CC=CC=C1C(=O)O')
-                    from core.chem_utils import smiles_to_3d_block
-                    st.session_state.mol_block = smiles_to_3d_block(active_sm, optimize=True)
-                    view.addModel(st.session_state.mol_block, "mol")
+            if st.session_state.get('mol_block'):
+                view.addModel(st.session_state.mol_block, "mol")
                 
-                # Применяем выбранный студентом стиль отображения структуры
+                # Применяем стандартный стиль отображения
                 viz_st = st.session_state.get('viz_style', 'stick')
                 if viz_st == 'stick':
                     view.setStyle({'stick': {'radius': 0.25}})
@@ -232,6 +218,12 @@ with tab1:
                 elif viz_st == 'surface':
                     view.setStyle({'stick': {'radius': 0.1}})
                     view.addSurface(py3Dmol.VDW, {'opacity': 0.5, 'color': 'white'})
+            else:
+                active_sm = st.session_state.get('active_smiles', 'CC(=O)OC1=CC=CC=C1C(=O)O')
+                from core.chem_utils import smiles_to_3d_block
+                st.session_state.mol_block = smiles_to_3d_block(active_sm, optimize=True)
+                view.addModel(st.session_state.mol_block, "mol")
+                view.setStyle({'stick': {'radius': 0.25}})
             
             view.zoomTo()
             view.setBackgroundColor('#ffffff')
@@ -239,95 +231,71 @@ with tab1:
             html_content = view._make_html().replace('width: 700px', 'width: 100%')
             components.html(html_content, height=480)
             
-            try:
-                prefix = selected_kaz.split()[0] if selected_kaz != t.get("select_placeholder") else "molecule"
-            except:
-                prefix = "molecule"
-            
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            unique_filename = f"{prefix}_{timestamp}.sdf"
-
+            # Кнопка скачивания стандартного SDF
             st.download_button(
                 label=t.get("download_sdf", "Скачать SDF"),
-                data=st.session_state.mol_block,
-                file_name=unique_filename,
+                data=st.session_state.mol_block if st.session_state.mol_block else "",
+                file_name="molecule.sdf",
                 mime="chemical/x-mdl-sdfile",
                 use_container_width=True
             )
-
-   # --- СТРОГИЙ НАУЧНО-МЕТОДИЧЕСКИЙ БЛОК АНАЛИЗА СТРУКТУРЫ ---
-            st.divider()
-            st.subheader("🔮 Расширенный физико-химический анализ")
             
-            current_active_smiles = st.session_state.get("active_smiles", "")
-            
-            if not current_active_smiles:
-                st.info("⚠️ Выберите или введите структуру молекулы для активации расчетных модулей.")
-            else:
-                # Классические академические вкладки без привязки к учебным планам
-                analys_tabs = st.tabs(["📊 Конформационный анализ", "⚡ Распределение зарядов", "📝 Топологические дескрикторы"])
-                
-                # Вкладка 1: Конформационный анализ
-                with analys_tabs[0]:
-                    st.markdown("**Анализ энергетического профиля конформеров (силовое поле MMFF94)**")
-                    if st.button("Рассчитать конформационный ансамбль", use_container_width=True):
-                        with st.spinner("Поиск конформационных минимумов..."):
-                            energies, best_sdf = calculate_conformer_energies(current_active_smiles)
-                            st.session_state.conf_energies = energies
-                            st.session_state.best_sdf_block = best_sdf
-                    
-                    if 'conf_energies' in st.session_state and st.session_state.conf_energies:
-                        # Создаем DataFrame, где имя колонки строго совпадает с тем, что передается в set_index
-                        chart_data = pd.DataFrame({
-                            "Конформер": [f"№{i+1}" for i in range(len(st.session_state.conf_energies))],
-                            "Энергия (ккал/моль)": st.session_state.conf_energies
-                        }).set_index("Конформер")
-                        
-                        # Отрисовка графика
-                        st.bar_chart(chart_data)
-                        st.caption("Гистограмма потенциальной энергии сгенерированных конформационных пространств. Первый столбец соответствует глобальному минимуму.")
-                        
-                        if st.session_state.get('best_sdf_block'):
-                            st.download_button(
-                                label="📥 Скачать пространственную структуру глобального минимума (SDF)",
-                                data=st.session_state.best_sdf_block,
-                                file_name="global_minimum_structure.sdf",
-                                mime="chemical/x-mdl-sdfile",
-                                use_container_width=True,
-                                type="primary"
-                            )
-
-                # Вкладка 2: Распределение зарядов (Изолированное и стабильное отображение)
-                with analys_tabs[1]:
-                    st.markdown("**Картирование парциальных зарядов по методу Гастейгера-Марсили**")
-                    
-                    # Генерируем блок зарядов прямо внутри контекста вкладки
-                    charges_block = compute_gasteiger_charges_block(current_active_smiles)
-                    
-                    if charges_block:
-                        # Строим локальное расчетное 3D-окно, которое никогда не сотрется основным кодом
-                        c_view = py3Dmol.view(width=None, height=380)
-                        c_view.addModel(charges_block, "mol")
-                        c_view.setColorByProperty({'prop': 'partialCharge', 'gradient': 'rwb', 'min': -0.3, 'max': 0.3})
-                        c_view.setStyle({'stick': {'radius': 0.2}})
-                        c_view.zoomTo()
-                        c_view.setBackgroundColor('#ffffff')
-                        
-                        c_html = c_view._make_html().replace('width: 700px', 'width: 100%')
-                        components.html(c_html, height=400)
-                        
-                        st.caption("🔴 **Красный цвет:** дефицит электронной плотности (электрофильные центры). 🔵 **Синий цвет:** избыток электронной плотности (нуклеофильные центры).")
-                    else:
-                        st.error("Не удалось построить модель распределения зарядов для данной топологии.")
-
-                # Вкладка 3: Структурные и квантовые дескрипторы
-                with analys_tabs[2]:
-                    st.markdown("**Дескрипторы реакционной способности и полярной поверхности**")
-                    kx_descriptors = get_quantum_descriptors(current_active_smiles)
-                    if kx_descriptors is not None:
-                        st.dataframe(kx_descriptors, use_container_width=True, hide_index=True)
-                    else:
-                        st.error("Ошибка дескрипторов. Не удалось верифицировать топологическую матрицу SMILES.")
+  # ==============================================================================
+            # --- БЛОК ФИЗИКО-ХИМИЧЕСКОГО АНАЛИЗА ВРЕМЕННО ОТКЛЮЧЕН ДО СТАБИЛИЗАЦИИ RDKit ---
+            # ==============================================================================
+            # st.divider()
+            # st.subheader("🔮 Расширенный физико-химический анализ")
+            # 
+            # current_active_smiles = st.session_state.get("active_smiles", "")
+            # 
+            # if not current_active_smiles:
+            #     st.info("⚠️ Выберите или введите структуру молекулы.")
+            # else:
+            #     analys_tabs = st.tabs(["📊 Конформационный анализ", "⚡ Распределение зарядов", "📝 Топологические дескрикторы"])
+            #     
+            #     with analys_tabs[0]:
+            #         st.markdown("**Анализ энергетического профиля конформеров (силовое поле MMFF94)**")
+            #         if st.button("Рассчитать конформационный ансамбль", use_container_width=True):
+            #             with st.spinner("Поиск конформационных минимумов..."):
+            #                 energies, best_sdf = calculate_conformer_energies(current_active_smiles)
+            #                 st.session_state.conf_energies = energies
+            #                 st.session_state.best_sdf_block = best_sdf
+            #         
+            #         if 'conf_energies' in st.session_state and st.session_state.conf_energies:
+            #             chart_data = pd.DataFrame({
+            #                 "Конформер": [f"№{i+1}" for i in range(len(st.session_state.conf_energies))],
+            #                 "Энергия (ккал/моль)": st.session_state.conf_energies
+            #             }).set_index("Конформер")
+            #             st.bar_chart(chart_data)
+            #             
+            #             if st.session_state.get('best_sdf_block'):
+            #                 st.download_button(
+            #                     label="📥 Скачать пространственную структуру минимума (SDF)",
+            #                     data=st.session_state.best_sdf_block,
+            #                     file_name="global_minimum_structure.sdf",
+            #                     mime="chemical/x-mdl-sdfile",
+            #                     use_container_width=True
+            #                 )
+            # 
+            #     with analys_tabs[1]:
+            #         st.markdown("**Картирование парциальных зарядов по методу Гастейгера-Марсили**")
+            #         charges_block = compute_gasteiger_charges_block(current_active_smiles)
+            #         if charges_block:
+            #             c_view = py3Dmol.view(width=None, height=380)
+            #             c_view.addModel(charges_block, "mol")
+            #             c_view.setColorByProperty({'prop': 'partialCharge', 'gradient': 'rwb', 'min': -0.3, 'max': 0.3})
+            #             c_view.setStyle({'stick': {'radius': 0.2}})
+            #             c_view.zoomTo()
+            #             c_view.setBackgroundColor('#ffffff')
+            #             c_html = c_view._make_html().replace('width: 700px', 'width: 100%')
+            #             components.html(c_html, height=400)
+            # 
+            #     with analys_tabs[2]:
+            #         st.markdown("**Дескрипторы реакционной способности и полярной поверхности**")
+            #         kx_descriptors = get_quantum_descriptors(current_active_smiles)
+            #         if kx_descriptors is not None:
+            #             st.dataframe(kx_descriptors, use_container_width=True, hide_index=True)
+            # ==============================================================================
                         
         else:
             st.info(t.get("info_select_mol", "Выберите молекулу"))
