@@ -205,25 +205,24 @@ def calculate_conformer_energies(smiles: str, num_conformers: int = 15):
 
 def compute_gasteiger_charges_block(smiles: str) -> str:
     """
-    Рассчитывает заряды по Гастейгеру и возвращает стабильную MolBlock-строку.
+    Рассчитывает парциальные заряды по Гастейгеру-Марсили и возвращает 
+    строку MolBlock с внедренными свойствами зарядов для py3Dmol.
     """
     try:
         mol = Chem.MolFromSmiles(smiles)
         if not mol:
             return ""
-        
-        # Обязательная санитация и добавление водородов
         Chem.SanitizeMol(mol)
         mol = Chem.AddHs(mol)
         
-        # Строим 3D геометрию, необходимую для py3Dmol
+        # Генерируем стабильные 3D-координаты
         AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
         AllChem.MMFFOptimizeMolecule(mol)
         
         # Считаем заряды
         AllChem.ComputeGasteigerCharges(mol)
         
-        # Записываем парциальные заряды в свойства атомов
+        # Переносим заряды в стандартное свойство, которое распознает py3Dmol
         for atom in mol.GetAtoms():
             if atom.HasProp('_GasteigerCharge'):
                 charge = float(atom.GetProp('_GasteigerCharge'))
@@ -231,22 +230,19 @@ def compute_gasteiger_charges_block(smiles: str) -> str:
             else:
                 atom.SetDoubleProp('partialCharge', 0.0)
                 
-        # Конвертируем в MolBlock, сохраняющий свойства атомов
         return Chem.MolToMolBlock(mol)
     except Exception as e:
-        print(f"Критическая ошибка в расчете зарядов RDKit: {e}")
+        print(f"Ошибка расчета зарядов: {e}")
         return ""
 
 def get_quantum_descriptors(smiles: str) -> pd.DataFrame:
     """
-    Отказоустойчивый расчет аналогов квантовых дескрипторов с полной санитацией структуры.
+    Расчет фундаментальных структурно-химических и полярных дескрипторов.
     """
     try:
         mol = Chem.MolFromSmiles(smiles)
         if not mol:
             return None
-            
-        # Принудительная подготовка структуры, чтобы Descriptors не падал
         Chem.SanitizeMol(mol)
         
         tpsa = Descriptors.TPSA(mol)
@@ -254,15 +250,14 @@ def get_quantum_descriptors(smiles: str) -> pd.DataFrame:
         heavy_atoms = mol.GetNumHeavyAtoms()
         rot_bonds = Descriptors.RotatableBonds(mol)
         steric_index = round(rot_bonds / heavy_atoms, 3) if heavy_atoms > 0 else 0
-        
         hetero_atoms = len([at for at in mol.GetAtoms() if at.GetSymbol() in ['N', 'O']])
 
         df_data = {
-            "Квантово-химический дескриптор (Инфо-аналог)": [
+            "Молекулярный дескриптор": [
                 "Топологическая полярная поверхность (TPSA, Å²)",
                 "Доступный объем Ван-дер-Ваальса (Labute ASA)",
-                "Стерический индекс жесткости молекулы",
-                "Электронодонорные центры (Кол-во N, O)"
+                "Стерический индекс жесткости (RotB/Heavy)",
+                "Количество гетероатомов-доноров (N, O)"
             ],
             "Значение": [
                 f"{tpsa:.2f} Å²",
@@ -273,6 +268,5 @@ def get_quantum_descriptors(smiles: str) -> pd.DataFrame:
         }
         return pd.DataFrame(df_data)
     except Exception as e:
-        # Если упало — выводим техническую причину в консоль сервера
-        print(f"Ошибка расчета дескрипторов для {smiles}: {e}")
+        print(f"Ошибка дескрипторов: {e}")
         return None
