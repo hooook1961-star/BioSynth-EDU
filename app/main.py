@@ -198,33 +198,37 @@ with tab1:
             if style_cols[2].button("Line", use_container_width=True): st.session_state.viz_style = 'line'
             if style_cols[3].button("Surface", use_container_width=True): st.session_state.viz_style = 'surface'
 
+            # --- АВТОМАТИЧЕСКИЙ БЛОК ОТРИСОВКИ 3D (ЗАВЯЗАН НА ИНДЕКС ВКЛАДКИ) ---
             view = py3Dmol.view(width=None, height=450)
-            view.addModel(st.session_state.mol_block, "mol")
             
-            if st.session_state.get('kx_mode') == 'charges' and st.session_state.get('mol_block_charges'):
+            # Проверяем, открыта ли сейчас вкладка "Заряды" (ее индекс равен 1)
+            is_charge_tab_active = st.session_state.get("srsp_tab_index") == 1
+            
+            if is_charge_tab_active and st.session_state.get('mol_block_charges'):
+                # Рендерим молекулу с зарядами
                 view.addModel(st.session_state.mol_block_charges, "mol")
-                # Градиент: Красный (дефицит) -> Белый -> Синий (избыток плотности)
-                view.setColorByProperty({'prop': 'partialCharge', 'gradient': 'rwb', 'min': -0.4, 'max': 0.4})
+                view.setColorByProperty({'prop': 'partialCharge', 'gradient': 'rwb', 'min': -0.3, 'max': 0.3})
             else:
-                # В противном случае — ваш стандартный рендеринг молекулы
+                # В противном случае (вкладки 0, 2 или обычный режим) — стандартный вид
                 if st.session_state.get('mol_block'):
                     view.addModel(st.session_state.mol_block, "mol")
-                    if st.session_state.get('viz_style') == 'stick':
-                        view.setStyle({'stick': {'radius': 0.25}})
-                    elif st.session_state.get('viz_style') == 'sphere':
-                        view.setStyle({'sphere': {'scale': 0.9}})
-                    elif st.session_state.get('viz_style') == 'line':
-                        view.setStyle({'line': {'linewidth': 2}})
-                    elif st.session_state.get('viz_style') == 'surface':
-                        view.setStyle({'stick': {'radius': 0.1}})
-                        view.addSurface(py3Dmol.VDW, {'opacity': 0.5, 'color': 'white'})
                 else:
-                    # Если mol_block почему-то пуст, подстраховываемся активным SMILES
                     active_sm = st.session_state.get('active_smiles', 'CC(=O)OC1=CC=CC=C1C(=O)O')
                     from core.chem_utils import smiles_to_3d_block
                     st.session_state.mol_block = smiles_to_3d_block(active_sm, optimize=True)
                     view.addModel(st.session_state.mol_block, "mol")
+                
+                # Применяем выбранный студентом стиль отображения структуры
+                viz_st = st.session_state.get('viz_style', 'stick')
+                if viz_st == 'stick':
                     view.setStyle({'stick': {'radius': 0.25}})
+                elif viz_st == 'sphere':
+                    view.setStyle({'sphere': {'scale': 0.9}})
+                elif viz_st == 'line':
+                    view.setStyle({'line': {'linewidth': 2}})
+                elif viz_st == 'surface':
+                    view.setStyle({'stick': {'radius': 0.1}})
+                    view.addSurface(py3Dmol.VDW, {'opacity': 0.5, 'color': 'white'})
             
             view.zoomTo()
             view.setBackgroundColor('#ffffff')
@@ -248,22 +252,22 @@ with tab1:
                 use_container_width=True
             )
 
-   # --- ИНТЕГРАЦИЯ КХ-ЭКСПРЕСС-ЛАБОРАТОРНЫХ (СВЯЗАННАЯ С СЕССИЕЙ) ---
+   # --- ОБНОВЛЕННЫЙ БЛОК УПРАВЛЕНИЯ ЛАБОРАТОРНЫМИ (БЕЗ KX_MODE) ---
             st.divider()
-            st.subheader("🔬 Квантово-химический экспресс-анализ")
+            st.subheader("🔬 Квантово-химический экспресс-анализ (СРСП)")
             
-            # Извлекаем SMILES напрямую из вашей сессии, где он гарантированно лежит
             current_active_smiles = st.session_state.get("active_smiles", "")
             
-            if not current_active_smiles or pd.isna(current_active_smiles) or str(current_active_smiles).strip() == "":
-                st.info("⚠️ Пожалуйста, выберите вещество из каталога или введите SMILES, чтобы активировать расчетный модуль.")
+            if not current_active_smiles:
+                st.info("⚠️ Выберите молекулу для активации экспресс-анализа.")
             else:
-                kx_tabs = st.tabs(["📊 Конформации", "⚡ Заряды (Эл. плотность)", "📝 Дескрипторы РС"])
+                # Присваиваем вкладкам key, чтобы Streamlit сам отслеживал, где находится студент
+                kx_tabs = st.tabs(["📊 Конформации", "⚡ Заряды (Эл. плотность)", "📝 Дескрипторы РС"], key="srsp_tab_index")
                 
-                # Вкладка 1: Конформационный анализ (Лаба 4)
+                # Вкладка 1: Конформации (Индекс 0)
                 with kx_tabs[0]:
                     if st.button("Сгенерировать и рассчитать конформеры", use_container_width=True):
-                        with st.spinner("Поиск глобального минимума энергии..."):
+                        with st.spinner("Поиск глобального минимума..."):
                             energies, best_sdf = calculate_conformer_energies(current_active_smiles)
                             st.session_state.conf_energies = energies
                             st.session_state.best_sdf_block = best_sdf
@@ -273,50 +277,44 @@ with tab1:
                             "Конформер №": [f"№{i+1}" for i in range(len(st.session_state.conf_energies))],
                             "Энергия (ккал/моль)": st.session_state.conf_energies
                         }).set_index("Конформер №")
-                        
                         st.bar_chart(chart_data)
-                        st.caption("Гистограмма потенциальной энергии напряжения конформеров. Первый столбец — глобальный минимум.")
                         
                         if st.session_state.get('best_sdf_block'):
                             st.download_button(
-                                label="📥 Скачать самый стабильный конформер (для Gaussian)",
+                                label="📥 Скачать самый стабильный конформер (SDF)",
                                 data=st.session_state.best_sdf_block,
                                 file_name="global_minimum_conformer.sdf",
                                 mime="chemical/x-mdl-sdfile",
                                 type="primary",
                                 use_container_width=True
                             )
-                            st.success("Файл успешно оптимизирован.")
-
-                # Вкладка 2: Заряды по Гастейгеру (Лаба 7)
+                
+                # Вкладка 2: Заряды (Индекс 1)
                 with kx_tabs[1]:
-                    cc1, cc2 = st.columns(2)
-                    if cc1.button("Показать электронную плотность", type="primary", use_container_width=True):
-                        with st.spinner("Расчет молекулярных зарядов..."):
+                    # Заряды считаются автоматически ОДИН раз при переходе на вкладку и кешируются в сессию
+                    if 'last_charged_smiles' not in st.session_state or st.session_state.last_charged_smiles != current_active_smiles:
+                        with st.spinner("Расчет парциальных зарядов по Гастейгеру..."):
                             res_charges = compute_gasteiger_charges_block(current_active_smiles)
                             if res_charges:
                                 st.session_state.mol_block_charges = res_charges
-                                st.session_state.kx_mode = 'charges'
+                                st.session_state.last_charged_smiles = current_active_smiles
+                                # Принудительно обновляем интерфейс, чтобы 3D-окно выше перекрасилось
                                 st.rerun()
-                            else:
-                                st.error("Ошибка расчета. Проверьте корректность структуры химической связи.")
                     
-                    if cc2.button("Сбросить окрашивание", use_container_width=True):
-                        st.session_state.kx_mode = 'standard'
-                        st.rerun()
-                        
+                    st.success("✅ Электронная плотность успешно рассчитана и выведена на 3D-модель выше!")
                     st.caption("🔴 **Красный цвет:** дефицит электронов (электрофильный центр). 🔵 **Синий цвет:** избыток плотности (нуклеофильный центр).")
-
-                # Вкладка 3: Индексы и дескрипторы (Лаба 7)
+                
+                # Вкладка 3: Дескрипторы (Индекс 2)
                 with kx_tabs[2]:
-                    with st.spinner("Расчет индексов реакционной способности..."):
-                        kx_descriptors = get_quantum_descriptors(current_active_smiles)
+                    kx_descriptors = get_quantum_descriptors(current_active_smiles)
                     if kx_descriptors is not None:
                         st.dataframe(kx_descriptors, use_container_width=True, hide_index=True)
                     else:
-                        st.error("Не удалось рассчитать индексы для данной структуры.")
+                        st.error("Ошибка дескрипторов. RDKit не смог верифицировать структуру SMILES.")
+                        
         else:
             st.info(t.get("info_select_mol", "Выберите молекулу"))
+            
     with col2:
         st.subheader(t.get("header_ref", "Свойства"))
         data = get_pubchem_data(smiles)
