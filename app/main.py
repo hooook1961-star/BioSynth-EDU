@@ -252,65 +252,77 @@ with tab1:
                 use_container_width=True
             )
 
-   # --- ОБНОВЛЕННЫЙ БЛОК УПРАВЛЕНИЯ ЛАБОРАТОРНЫМИ (БЕЗ KX_MODE) ---
+   # --- СТРОГИЙ НАУЧНО-МЕТОДИЧЕСКИЙ БЛОК АНАЛИЗА СТРУКТУРЫ ---
             st.divider()
-            st.subheader("🔬 Квантово-химический экспресс-анализ (СРСП)")
+            st.subheader("🔮 Расширенный физико-химический анализ")
             
             current_active_smiles = st.session_state.get("active_smiles", "")
             
             if not current_active_smiles:
-                st.info("⚠️ Выберите молекулу для активации экспресс-анализа.")
+                st.info("⚠️ Выберите или введите структуру молекулы для активации расчетных модулей.")
             else:
-                # Присваиваем вкладкам key, чтобы Streamlit сам отслеживал, где находится студент
-                kx_tabs = st.tabs(["📊 Конформации", "⚡ Заряды (Эл. плотность)", "📝 Дескрипторы РС"], key="srsp_tab_index")
+                # Классические академические вкладки без привязки к учебным планам
+                analys_tabs = st.tabs(["📊 Конформационный анализ", "⚡ Распределение зарядов", "📝 Топологические дескрикторы"])
                 
-                # Вкладка 1: Конформации (Индекс 0)
-                with kx_tabs[0]:
-                    if st.button("Сгенерировать и рассчитать конформеры", use_container_width=True):
-                        with st.spinner("Поиск глобального минимума..."):
+                # Вкладка 1: Конформационный анализ
+                with analys_tabs[0]:
+                    st.markdown("**Анализ энергетического профиля конформеров (силовое поле MMFF94)**")
+                    if st.button("Рассчитать конформационный ансамбль", use_container_width=True):
+                        with st.spinner("Поиск конформационных минимумов..."):
                             energies, best_sdf = calculate_conformer_energies(current_active_smiles)
                             st.session_state.conf_energies = energies
                             st.session_state.best_sdf_block = best_sdf
                     
                     if 'conf_energies' in st.session_state and st.session_state.conf_energies:
                         chart_data = pd.DataFrame({
-                            "Конформер №": [f"№{i+1}" for i in range(len(st.session_state.conf_energies))],
+                            "Конформер": [f"№{i+1}" for i in range(len(st.session_state.conf_energies))],
                             "Энергия (ккал/моль)": st.session_state.conf_energies
-                        }).set_index("Конформер №")
+                        }).set_index("Conformer")
+                        
                         st.bar_chart(chart_data)
+                        st.caption("Гистограмма потенциальной энергии сгенерированных конформационных пространств. Первый столбец соответствует глобальному минимуму.")
                         
                         if st.session_state.get('best_sdf_block'):
                             st.download_button(
-                                label="📥 Скачать самый стабильный конформер (SDF)",
+                                label="📥 Скачать пространственную структуру глобального минимума (SDF)",
                                 data=st.session_state.best_sdf_block,
-                                file_name="global_minimum_conformer.sdf",
+                                file_name="global_minimum_structure.sdf",
                                 mime="chemical/x-mdl-sdfile",
-                                type="primary",
-                                use_container_width=True
+                                use_container_width=True,
+                                type="primary"
                             )
-                
-                # Вкладка 2: Заряды (Индекс 1)
-                with kx_tabs[1]:
-                    # Заряды считаются автоматически ОДИН раз при переходе на вкладку и кешируются в сессию
-                    if 'last_charged_smiles' not in st.session_state or st.session_state.last_charged_smiles != current_active_smiles:
-                        with st.spinner("Расчет парциальных зарядов по Гастейгеру..."):
-                            res_charges = compute_gasteiger_charges_block(current_active_smiles)
-                            if res_charges:
-                                st.session_state.mol_block_charges = res_charges
-                                st.session_state.last_charged_smiles = current_active_smiles
-                                # Принудительно обновляем интерфейс, чтобы 3D-окно выше перекрасилось
-                                st.rerun()
+
+                # Вкладка 2: Распределение зарядов (Изолированное и стабильное отображение)
+                with analys_tabs[1]:
+                    st.markdown("**Картирование парциальных зарядов по методу Гастейгера-Марсили**")
                     
-                    st.success("✅ Электронная плотность успешно рассчитана и выведена на 3D-модель выше!")
-                    st.caption("🔴 **Красный цвет:** дефицит электронов (электрофильный центр). 🔵 **Синий цвет:** избыток плотности (нуклеофильный центр).")
-                
-                # Вкладка 3: Дескрипторы (Индекс 2)
-                with kx_tabs[2]:
+                    # Генерируем блок зарядов прямо внутри контекста вкладки
+                    charges_block = compute_gasteiger_charges_block(current_active_smiles)
+                    
+                    if charges_block:
+                        # Строим локальное расчетное 3D-окно, которое никогда не сотрется основным кодом
+                        c_view = py3Dmol.view(width=None, height=380)
+                        c_view.addModel(charges_block, "mol")
+                        c_view.setColorByProperty({'prop': 'partialCharge', 'gradient': 'rwb', 'min': -0.3, 'max': 0.3})
+                        c_view.setStyle({'stick': {'radius': 0.2}})
+                        c_view.zoomTo()
+                        c_view.setBackgroundColor('#ffffff')
+                        
+                        c_html = c_view._make_html().replace('width: 700px', 'width: 100%')
+                        components.html(c_html, height=400)
+                        
+                        st.caption("🔴 **Красный цвет:** дефицит электронной плотности (электрофильные центры). 🔵 **Синий цвет:** избыток электронной плотности (нуклеофильные центры).")
+                    else:
+                        st.error("Не удалось построить модель распределения зарядов для данной топологии.")
+
+                # Вкладка 3: Структурные и квантовые дескрипторы
+                with analys_tabs[2]:
+                    st.markdown("**Дескрипторы реакционной способности и полярной поверхности**")
                     kx_descriptors = get_quantum_descriptors(current_active_smiles)
                     if kx_descriptors is not None:
                         st.dataframe(kx_descriptors, use_container_width=True, hide_index=True)
                     else:
-                        st.error("Ошибка дескрипторов. RDKit не смог верифицировать структуру SMILES.")
+                        st.error("Ошибка дескрипторов. Не удалось верифицировать топологическую матрицу SMILES.")
                         
         else:
             st.info(t.get("info_select_mol", "Выберите молекулу"))
