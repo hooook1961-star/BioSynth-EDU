@@ -154,12 +154,31 @@ def extract_pdb_id_from_lig_key(custom_name: str) -> str:
     return custom_name.upper()
 
 
+def classify_tanimoto_similarity(similarity: float) -> str:
+    if similarity >= 0.70:
+        return "high"
+
+    if similarity >= 0.50:
+        return "moderate"
+
+    if similarity >= 0.35:
+        return "weak"
+
+    return "low"
+
+
+def extract_pdb_id_from_lig_key(custom_name: str) -> str:
+    if custom_name.startswith("lig_"):
+        return custom_name.removeprefix("lig_").upper()
+
+    return custom_name.upper()
+
+
 def run_ai_target_screening(
     smiles_str,
     top_n: int = 15,
     min_similarity: float = 0.30,
 ):
-
     desc = {}
 
     mol = Chem.MolFromSmiles(smiles_str.strip()) if smiles_str else None
@@ -189,10 +208,16 @@ def run_ai_target_screening(
     names = list(target_db.keys())
     reference_fps = list(target_db.values())
 
-    similarities = DataStructs.BulkTanimotoSimilarity(
-        query_fp,
-        reference_fps,
-    )
+    try:
+        similarities = DataStructs.BulkTanimotoSimilarity(
+            query_fp,
+            reference_fps,
+        )
+    except TypeError:
+        similarities = [
+            DataStructs.TanimotoSimilarity(query_fp, ref_fp)
+            for ref_fp in reference_fps
+        ]
 
     candidates = []
 
@@ -210,13 +235,11 @@ def run_ai_target_screening(
             "pdb_id": pdb_id,
             "source_key": custom_name,
 
-            # Основные численные результаты
             "similarity": similarity,
             "sim": similarity,
             "score": similarity,
             "score_0_100": round(similarity * 100.0, 1),
 
-            # Коды для интерфейса
             "similarity_level": similarity_level,
             "similarity_label_key": f"target_similarity_{similarity_level}",
             "name_key": "target_candidate_name",
@@ -232,7 +255,7 @@ def run_ai_target_screening(
         return {
             "success": True,
             "desc": desc,
-            "method_key": "target_method_short",
+            "method": "scPDB ligand similarity screening",
             "method_note_key": "target_method_note",
             "message_key": "target_no_hits_message",
             "raw_score": 0.0,
@@ -250,20 +273,13 @@ def run_ai_target_screening(
     return {
         "success": True,
         "desc": desc,
-
-        # Метод
         "method": "scPDB ligand similarity screening",
-        "method_key": "target_method_short",
         "method_note_key": "target_method_note",
-
-        # Основной результат
         "raw_score": best_match["similarity"],
         "features_expected": 2048,
         "fp_sum": int(query_fp.GetNumOnBits()),
         "top_match": best_match,
         "all_candidates": candidates[:top_n],
-
-        # Диагностика
         "n_database_entries": len(target_db),
         "n_hits_above_threshold": len(candidates),
         "min_similarity": min_similarity,
