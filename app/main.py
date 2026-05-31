@@ -524,7 +524,7 @@ with tab3:
         st.subheader(t["docking_stage2_title"])
         st.write(t["docking_stage2_desc"])
         
-            if st.button(t["btn_run_screening"], use_container_width=True):
+        if st.button(t["btn_run_screening"], use_container_width=True):
             with st.spinner(t["spinner_screening"]):
                 res = run_ai_target_screening(
                     smiles,
