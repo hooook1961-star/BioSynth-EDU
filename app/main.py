@@ -50,6 +50,8 @@ t = LANGUAGES[st.session_state.lang]
 lang_code_map = {"Русский": "ru", "Қазақша": "kz", "English": "en"}
 L_CODE = lang_code_map[st.session_state.lang]
 
+ADVANCED_CNS_MODULE_URL = "https://biosynth-edu-qsar-admet-a7yn5wtt49m647cazrq6qt.streamlit.app/"
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = os.path.join(BASE_DIR, 'data', 'catalog.json')
 
@@ -338,6 +340,7 @@ with tab1:
             st.warning(t.get("warn_no_pubchem", "Данные не найдены"))
 
 #---Вкладка ADMET---
+#---Вкладка ADMET---
 with tab2:
     st.header(t["admet_header"])
     st.markdown(t["admet_instructions"])
@@ -442,6 +445,25 @@ with tab2:
 
         except Exception as e:
             st.error(f"{t.get('error_interp', 'Ошибка интерпретации: ')} {e}")
+
+    st.divider()
+
+    with st.container(border=True):
+        st.subheader(t["advanced_cns_title"])
+        st.caption(t["advanced_cns_caption"])
+        st.write(t["advanced_cns_body"])
+
+        st.markdown(f"**{t['advanced_cns_features_title']}**")
+        for feature in t["advanced_cns_features"]:
+            st.markdown(f"- {feature}")
+
+        st.info(t["advanced_cns_note"])
+
+        st.link_button(
+            t["advanced_cns_button"],
+            ADVANCED_CNS_MODULE_URL,
+            use_container_width=True,
+        )
             
 # --- Вкладка Докинг ---                   
 with tab3:
