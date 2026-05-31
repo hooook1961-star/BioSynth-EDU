@@ -465,25 +465,26 @@ with tab2:
             use_container_width=True,
         )
             
-# --- Вкладка Докинг ---                   
+# --- Вкладка Докинг ---
 with tab3:
-    st.header("🧬 Молекулярный докинг: Подбор сайта связывания")
-    
+    st.header(t["docking_main_title"])
+
     # ЭТАП 1: Подготовка лиганда
     st.header(t["docking_header"])
-    
-    if st.session_state.get('mol_block') or smiles:
+
+    if st.session_state.get("mol_block") or smiles:
         st.success(t["docking_mol_ready"])
-        
+
         col_prep1, col_prep2 = st.columns(2)
-        
+
         with col_prep1:
             st.markdown(t["docking_checklist_title"])
             st.markdown(t["docking_checklist_items"])
-            
+
             if st.button(t["btn_run_prep"], use_container_width=True):
                 with st.spinner(t["spinner_meeko"]):
                     pdbqt_data = prepare_ligand_for_docking(smiles)
+
                     if pdbqt_data:
                         st.session_state.prepared_pdbqt = pdbqt_data
                         st.session_state.mol_block = smiles_to_3d_block(smiles, optimize=True)
@@ -493,29 +494,35 @@ with tab3:
 
         with col_prep2:
             st.info(t["docking_note_student"])
-            
-            if st.session_state.get('prepared_pdbqt'):
+
+            if st.session_state.get("prepared_pdbqt"):
                 st.download_button(
                     label=t["btn_download_pdbqt"],
                     data=st.session_state.prepared_pdbqt,
                     file_name="ligand.pdbqt",
                     mime="text/plain",
-                    use_container_width=True
+                    use_container_width=True,
                 )
-                
+
                 st.write(t["docking_view_label"])
-                
+
                 try:
                     view = py3Dmol.view(width=400, height=400)
                     view.addModel(st.session_state.mol_block, "sdf")
-                    view.setStyle({'stick': {'color': 'spectrum', 'radius': 0.15}, 'sphere': {'scale': 0.25}})
+                    view.setStyle(
+                        {
+                            "stick": {"color": "spectrum", "radius": 0.15},
+                            "sphere": {"scale": 0.25},
+                        }
+                    )
                     view.zoomTo()
-                    view.setBackgroundColor('#ffffff')
+                    view.setBackgroundColor("#ffffff")
                     components.html(view._make_html(), height=410)
                     st.caption(t["docking_caption"])
+
                 except Exception as e:
                     st.error(f"Render error: {e}")
-            
+
         st.divider()
         st.subheader(t["docking_next_steps_header"])
         st.write(t["docking_next_steps_text"])
@@ -523,7 +530,7 @@ with tab3:
         # Векторный скрининг и выбор биологической мишени scPDB
         st.subheader(t["docking_stage2_title"])
         st.write(t["docking_stage2_desc"])
-        
+
         if st.button(t["btn_run_screening"], use_container_width=True):
             with st.spinner(t["spinner_screening"]):
                 res = run_ai_target_screening(
@@ -538,25 +545,45 @@ with tab3:
                 if error_key and error_key in t:
                     st.error(t[error_key])
                 else:
-                    st.error(res.get("error", t.get("target_error_unknown", "Screening error")))
+                    st.error(res.get("error", t["target_error_unknown"]))
 
             else:
                 st.success(t["screening_success"])
 
-                if res.get("method_note_key") and res["method_note_key"] in t:
-                    st.info(t[res["method_note_key"]])
+                method_note_key = res.get("method_note_key")
+                if method_note_key and method_note_key in t:
+                    st.info(t[method_note_key])
 
                 top = res.get("top_match")
 
                 if top is None:
                     message_key = res.get("message_key", "target_no_hits_message")
-                    st.warning(t.get(message_key, "No sufficiently close matches were found."))
+                    st.warning(t[message_key])
 
                 else:
-                    similarity_label = t.get(
-                        top.get("similarity_label_key", ""),
-                        top.get("similarity_level", "")
-                    )
+                    c1, c2, c3 = st.columns(3)
+
+                    with c1:
+                        st.metric(
+                            t["target_metric_best_similarity"],
+                            f"{res['raw_score']:.2f}",
+                        )
+
+                    with c2:
+                        st.metric(
+                            t["target_metric_hits"],
+                            res["n_hits_above_threshold"],
+                        )
+
+                    with c3:
+                        st.metric(
+                            t["target_metric_database_size"],
+                            res["n_database_entries"],
+                        )
+
+                    similarity_label = t[
+                        top.get("similarity_label_key", "target_similarity_low")
+                    ]
 
                     top_name = t["target_candidate_name"].format(
                         pdb_id=top["pdb_id"]
@@ -568,20 +595,24 @@ with tab3:
                         similarity_label=similarity_label,
                     )
 
+                    st.subheader(t["target_best_match_header"])
+
                     st.info(
-                        top_name + "\n\n" +
-                        top_reason + "\n\n" +
-                        t["target_student_interpretation"] + "\n\n" +
-                        t["target_limitation"]
+                        top_name
+                        + "\n\n"
+                        + top_reason
+                        + "\n\n"
+                        + t["target_student_interpretation"]
+                        + "\n\n"
+                        + t["target_limitation"]
                     )
 
                     df_data = []
 
                     for idx, item in enumerate(res["all_candidates"], start=1):
-                        item_similarity_label = t.get(
-                            item.get("similarity_label_key", ""),
-                            item.get("similarity_level", "")
-                        )
+                        item_similarity_label = t[
+                            item.get("similarity_label_key", "target_similarity_low")
+                        ]
 
                         df_data.append({
                             t["target_col_rank"]: idx,
