@@ -79,6 +79,29 @@ LANGUAGES = {
         "lipinski_warn": "⚠️ Нарушений правила Липинского: ",
         "lipinski_info": "💡 Напоминание: Допускается 1 нарушение для сохранения 'drug-likeness'.",
         "error_interp": "❌ Ошибка интерпретации: ",
+                # Advanced CNS / BBB / QSAR module
+        "advanced_cns_title": "🧠 Продвинутое исследование CNS / BBB / P-gp",
+        "advanced_cns_caption": "Отдельный модуль для углублённого QSAR/ADMET-анализа молекул",
+        "advanced_cns_body": (
+            "Этот модуль предназначен для более подробного исследования молекулы по SMILES. "
+            "Он позволяет не только получить ADMET-прогноз, но и разобрать, какие свойства "
+            "молекулы влияют на проникновение через гематоэнцефалический барьер, риск P-gp "
+            "эффлюкса и потенциальную CNS-доступность."
+        ),
+        "advanced_cns_features_title": "В модуле доступны:",
+        "advanced_cns_features": [
+            "расчёт RDKit-дескрипторов и BBB/ГЭБ-профиля;",
+            "разбор влияния LogP, TPSA, MW, HBD/HBA, pKa, заряда и P-gp;",
+            "матрица BBB × P-gp для объяснения пассивной проницаемости и активного эффлюкса;",
+            "What-if лаборатория для учебного изменения дескрипторов;",
+            "учебный отчёт по молекуле;",
+            "дополнительный ML/SHAP-разбор RandomForest-моделей."
+        ],
+        "advanced_cns_note": (
+            "Модуль предназначен для учебного и исследовательского QSAR/ADMET-анализа. "
+            "Результаты являются in silico-прогнозом и не заменяют экспериментальную проверку."
+        ),
+        "advanced_cns_button": "Открыть модуль продвинутого исследования CNS",
         "docking_header": "🛠️ Подготовка лиганда к докингу",
         "docking_mol_ready": "✅ 3D-структура обнаружена и готова к обработке.",
         "docking_checklist_title": "**Чек-лист подготовки:**",
@@ -258,6 +281,29 @@ LANGUAGES = {
         "lipinski_warn": "⚠️ Липинский ережесін бұзу саны: ",
         "lipinski_info": "💡 Ескерту: 'drug-likeness' қасиетін сақтау үшін 1 бұзушылыққа жол беріледі.",
         "error_interp": "❌ Интерпретация қатесі: ",
+                # Advanced CNS / BBB / QSAR module
+        "advanced_cns_title": "🧠 CNS / BBB / P-gp кеңейтілген зерттеу модулі",
+        "advanced_cns_caption": "Молекулаларды терең QSAR/ADMET талдауға арналған жеке модуль",
+        "advanced_cns_body": (
+            "Бұл модуль SMILES бойынша молекуланы тереңірек зерттеуге арналған. "
+            "Ол тек ADMET-болжам беріп қана қоймай, молекуланың қандай қасиеттері "
+            "гематоэнцефалдық бөгеттен өтуге, P-gp эффлюкс қаупіне және ықтимал "
+            "CNS-қолжетімділікке әсер ететінін түсіндіреді."
+        ),
+        "advanced_cns_features_title": "Модульде қолжетімді:",
+        "advanced_cns_features": [
+            "RDKit дескрипторларын және BBB профилін есептеу;",
+            "LogP, TPSA, MW, HBD/HBA, pKa, заряд және P-gp әсерін талдау;",
+            "пассивті өткізгіштік пен белсенді эффлюксті түсіндіретін BBB × P-gp матрицасы;",
+            "дескрипторларды оқу мақсатында өзгертуге арналған What-if зертханасы;",
+            "молекула бойынша оқу есебін қалыптастыру;",
+            "RandomForest модельдері үшін қосымша ML/SHAP талдауы."
+        ],
+        "advanced_cns_note": (
+            "Модуль оқу және зерттеу мақсатындағы QSAR/ADMET талдауға арналған. "
+            "Нәтижелер in silico-болжам болып табылады және эксперименттік тексеруді алмастырмайды."
+        ),
+        "advanced_cns_button": "CNS кеңейтілген зерттеу модулін ашу",
         "docking_header": "🛠️ Лигандты докингке дайындау",
         "docking_mol_ready": "✅ 3D-құрылым табылды және өңдеуге дайын.",
         "docking_checklist_title": "**Дайындық тізімі (чек-лист):**",
@@ -437,6 +483,29 @@ LANGUAGES = {
         "lipinski_warn": "⚠️ Lipinski's Rule violations: ",
         "lipinski_info": "💡 Note: 1 violation is allowed to maintain 'drug-likeness'.",
         "error_interp": "❌ Interpretation error: ",
+                # Advanced CNS / BBB / QSAR module
+        "advanced_cns_title": "🧠 Advanced CNS / BBB / P-gp investigation",
+        "advanced_cns_caption": "A standalone module for advanced QSAR/ADMET analysis of molecules",
+        "advanced_cns_body": (
+            "This module is designed for a deeper SMILES-based investigation of a molecule. "
+            "It provides not only an ADMET prediction, but also an explanation of which molecular "
+            "properties affect blood-brain barrier penetration, P-gp efflux risk and potential "
+            "CNS exposure."
+        ),
+        "advanced_cns_features_title": "The module includes:",
+        "advanced_cns_features": [
+            "RDKit descriptor calculation and BBB profile analysis;",
+            "interpretation of LogP, TPSA, MW, HBD/HBA, pKa, charge and P-gp effects;",
+            "BBB × P-gp matrix explaining passive permeability and active efflux;",
+            "What-if laboratory for educational descriptor modification;",
+            "student report generation for a molecule;",
+            "additional ML/SHAP analysis of RandomForest models."
+        ],
+        "advanced_cns_note": (
+            "The module is intended for educational and research-oriented QSAR/ADMET analysis. "
+            "The results are in silico predictions and do not replace experimental validation."
+        ),
+        "advanced_cns_button": "Open advanced CNS investigation module",
         "docking_header": "🛠️ Ligand Preparation for Docking",
         "docking_mol_ready": "✅ 3D structure detected and ready for processing.",
         "docking_checklist_title": "**Preparation Checklist:**",
