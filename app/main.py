@@ -524,47 +524,87 @@ with tab3:
         st.subheader(t["docking_stage2_title"])
         st.write(t["docking_stage2_desc"])
         
-        if st.button(t["btn_run_screening"], use_container_width=True):
+            if st.button(t["btn_run_screening"], use_container_width=True):
             with st.spinner(t["spinner_screening"]):
-                res = run_ai_target_screening(smiles)
-                
-            if "error" in res:
-                st.error(f"Error: {res['error']}")
-            else:
-                st.success(t["screening_success"])
-                
-                top = res["top_match"]
-                
-                st.info(
-                    t["top_match_title"].format(pdb_id=top['id']) + "\n\n" +
-                    t["top_match_reason"].format(sim=top['sim']) + "\n\n" +
-                    t["top_match_instruction"].format(pdb_id=top['id'])
+                res = run_ai_target_screening(
+                    smiles,
+                    top_n=15,
+                    min_similarity=0.30,
                 )
 
-                df_data = []
-                for item in res["all_candidates"]:
-                    df_data.append({
-                        t["col_pdb_id"]: item["id"],
-                        t["col_tanimoto"]: f"{item['sim']:.4f}",
-                        t["col_pkd"]: f"{item['score']:.2f}"
-                    })
-                
-                df = pd.DataFrame(df_data)
-                
-                st.write(t["table_title"])
-                st.dataframe(df, use_container_width=True, hide_index=True)
-                               
-                if top['id']:
-                    # Вырезаем первые 4 символа (PDB ID) из ID сайта scPDB
-                    best_pdb = top['id'][:4].upper()
+            if not res.get("success", False):
+                error_key = res.get("error_key")
+
+                if error_key and error_key in t:
+                    st.error(t[error_key])
+                else:
+                    st.error(res.get("error", t.get("target_error_unknown", "Screening error")))
+
+            else:
+                st.success(t["screening_success"])
+
+                if res.get("method_note_key") and res["method_note_key"] in t:
+                    st.info(t[res["method_note_key"]])
+
+                top = res.get("top_match")
+
+                if top is None:
+                    message_key = res.get("message_key", "target_no_hits_message")
+                    st.warning(t.get(message_key, "No sufficiently close matches were found."))
+
+                else:
+                    similarity_label = t.get(
+                        top.get("similarity_label_key", ""),
+                        top.get("similarity_level", "")
+                    )
+
+                    top_name = t["target_candidate_name"].format(
+                        pdb_id=top["pdb_id"]
+                    )
+
+                    top_reason = t["target_reason_ligand_similarity"].format(
+                        pdb_id=top["pdb_id"],
+                        similarity=top["similarity"],
+                        similarity_label=similarity_label,
+                    )
+
+                    st.info(
+                        top_name + "\n\n" +
+                        top_reason + "\n\n" +
+                        t["target_student_interpretation"] + "\n\n" +
+                        t["target_limitation"]
+                    )
+
+                    df_data = []
+
+                    for idx, item in enumerate(res["all_candidates"], start=1):
+                        item_similarity_label = t.get(
+                            item.get("similarity_label_key", ""),
+                            item.get("similarity_level", "")
+                        )
+
+                        df_data.append({
+                            t["target_col_rank"]: idx,
+                            t["col_pdb_id"]: item["pdb_id"],
+                            t["col_tanimoto"]: f"{item['similarity']:.4f}",
+                            t["target_col_similarity_level"]: item_similarity_label,
+                            t["target_col_score"]: f"{item['score_0_100']:.1f}",
+                        })
+
+                    df = pd.DataFrame(df_data)
+
+                    st.write(t["table_title"])
+                    st.dataframe(df, use_container_width=True, hide_index=True)
+
+                    best_pdb = top["pdb_id"][:4].upper()
                     pdb_url = f"https://www.rcsb.org/structure/{best_pdb}"
-                    
-                    st.write("") # Небольшой отступ
+
+                    st.write("")
                     st.link_button(
                         label=t["btn_go_to_pdb"].format(pdb_id=best_pdb),
                         url=pdb_url,
                         use_container_width=True,
-                        type="primary" # Сделаем её яркой и акцентной
+                        type="primary",
                     )
         
 # --- Вкладка Обучение ---
