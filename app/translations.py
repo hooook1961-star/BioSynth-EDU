@@ -143,6 +143,54 @@ LANGUAGES = {
         "btn_go_to_pdb": "Открыть карточку мишени {pdb_id} на сайте rcsb.org",
         "pdb_error_length": "⚠️ PDB ID должен состоять ровно из 4 символов.",
         "docking_warn_no_3d": "⚠️ Сначала постройте 3D модель на первой вкладке!",
+                # scPDB target screening
+        "target_screening_header": "🎯 Гипотезы мишеней по scPDB",
+        "target_screening_subtitle": "Поиск возможных мишеней по сходству с нативными лигандами scPDB",
+        "target_screening_input_label": "Введите SMILES для поиска target-гипотез",
+        "target_screening_button": "Запустить поиск по scPDB",
+        "target_screening_top15": "Топ-15 target-гипотез",
+        "target_screening_best_match": "Лучшее совпадение",
+        "target_screening_method": "Метод",
+        "target_method_short": "scPDB ligand similarity screening",
+        "target_method_note": (
+            "Метод сравнивает введённую молекулу с нативными лигандами из scPDB. "
+            "В текущей версии используются fingerprint структур ligand.mol2. "
+            "Активный сайт напрямую не учитывается, поэтому результат является target-гипотезой, "
+            "а не доказательством связывания."
+        ),
+        "target_error_invalid_smiles": "Некорректный SMILES. Проверьте запись молекулы.",
+        "target_error_db_unavailable": "База данных scPDB недоступна или пуста.",
+        "target_no_hits_message": (
+            "Не найдено достаточно близких совпадений с нативными лигандами scPDB. "
+            "Это не означает отсутствие мишеней, но ligand-based поиск не дал сильной гипотезы."
+        ),
+        "target_candidate_name": "Гипотеза мишени из scPDB: PDB {pdb_id}",
+        "target_reason_ligand_similarity": (
+            "Введённая молекула похожа на нативный лиганд комплекса {pdb_id}. "
+            "Индекс Танимото = {similarity:.2f}; уровень: {similarity_label}."
+        ),
+        "target_student_interpretation": (
+            "Это ligand-based гипотеза: если молекула похожа на лиганд, найденный "
+            "в комплексе с белком, соответствующий белок можно рассматривать как "
+            "возможную мишень для дальнейшего анализа."
+        ),
+        "target_limitation": (
+            "Этот результат не является docking-расчётом, прогнозом affinity или "
+            "экспериментальным доказательством активности."
+        ),
+        "target_similarity_high": "высокое сходство",
+        "target_similarity_moderate": "умеренное сходство",
+        "target_similarity_weak": "слабое сходство",
+        "target_similarity_low": "низкое сходство",
+        "target_col_rank": "Ранг",
+        "target_col_pdb": "PDB ID",
+        "target_col_similarity": "Tanimoto",
+        "target_col_similarity_level": "Уровень сходства",
+        "target_col_score": "Score, %",
+        "target_metric_best_similarity": "Лучшее Tanimoto-сходство",
+        "target_metric_hits": "Совпадений выше порога",
+        "target_metric_database_size": "Размер базы scPDB",
+        "target_min_similarity": "Минимальный порог similarity",
         "project_warning": "👈 Пожалуйста, выберите соединение в боковой панели (База KZ), чтобы начать проект.",
         "project_mol_header": "Объект исследования",
         "project_smiles_label": "SMILES код",
@@ -345,6 +393,52 @@ LANGUAGES = {
         3. AutoDock Vina немесе ұқсас БҚ-да есептеуді іске қосу қажет.
         """,
         "docking_warn_no_3d": "⚠️ Алдымен бірінші қосымша бетте 3D модельді құрастырыңыз!",
+                # scPDB target screening
+        "target_screening_header": "🎯 scPDB бойынша нысана-гипотезалар",
+        "target_screening_subtitle": "scPDB нативті лигандтарымен ұқсастық бойынша ықтимал нысаналарды іздеу",
+        "target_screening_input_label": "Target-гипотезаларды іздеу үшін SMILES енгізіңіз",
+        "target_screening_button": "scPDB бойынша іздеуді бастау",
+        "target_screening_top15": "Топ-15 target-гипотеза",
+        "target_screening_best_match": "Ең жақсы сәйкестік",
+        "target_screening_method": "Әдіс",
+        "target_method_short": "scPDB ligand similarity screening",
+        "target_method_note": (
+            "Әдіс енгізілген молекуланы scPDB базасындағы нативті лигандтармен салыстырады. "
+            "Қазіргі нұсқада ligand.mol2 құрылымдарының fingerprint-тері қолданылады. "
+            "Белсенді сайт тікелей есепке алынбайды, сондықтан нәтиже нысана-гипотеза болып табылады, "
+            "байланысудың дәлелі емес."
+        ),
+        "target_error_invalid_smiles": "SMILES қате. Молекула жазбасын тексеріңіз.",
+        "target_error_db_unavailable": "scPDB дерекқоры қолжетімсіз немесе бос.",
+        "target_no_hits_message": (
+            "scPDB нативті лигандтарымен жеткілікті жақын сәйкестіктер табылмады. "
+            "Бұл мишень жоқ дегенді білдірмейді, бірақ ligand-based іздеу күшті гипотеза берген жоқ."
+        ),
+        "target_candidate_name": "scPDB нысана-гипотезасы: PDB {pdb_id}",
+        "target_reason_ligand_similarity": (
+            "Енгізілген молекула {pdb_id} кешеніндегі нативті лигандқа ұқсайды. "
+            "Танимото индексі = {similarity:.2f}; деңгейі: {similarity_label}."
+        ),
+        "target_student_interpretation": (
+            "Бұл ligand-based гипотеза: егер молекула белок кешенінде табылған лигандқа "
+            "ұқсас болса, сәйкес белок әрі қарай талдау үшін ықтимал нысана ретінде қарастырылуы мүмкін."
+        ),
+        "target_limitation": (
+            "Бұл нәтиже docking есебі, affinity болжамы немесе белсенділіктің эксперименттік дәлелі емес."
+        ),
+        "target_similarity_high": "жоғары ұқсастық",
+        "target_similarity_moderate": "орташа ұқсастық",
+        "target_similarity_weak": "әлсіз ұқсастық",
+        "target_similarity_low": "төмен ұқсастық",
+        "target_col_rank": "Ранг",
+        "target_col_pdb": "PDB ID",
+        "target_col_similarity": "Tanimoto",
+        "target_col_similarity_level": "Ұқсастық деңгейі",
+        "target_col_score": "Score, %",
+        "target_metric_best_similarity": "Ең жақсы Танимото ұқсастығы",
+        "target_metric_hits": "Порогтан жоғары сәйкестіктер",
+        "target_metric_database_size": "scPDB база көлемі",
+        "target_min_similarity": "ұқсастықтың минималды шегі",
         "project_warning": "👈 Жобаны бастау үшін бүйірлік панельден қосылысты таңдаңыз (KZ базасы).",
         "project_mol_header": "Зерттеу нысаны",
         "project_smiles_label": "SMILES коды",
@@ -547,6 +641,53 @@ LANGUAGES = {
         "btn_go_to_pdb": "Open target {pdb_id} page on rcsb.org",
         "pdb_error_length": "⚠️ PDB ID must be exactly 4 characters long.",
         "docking_warn_no_3d": "⚠️ Build the 3D model on the first tab first!",
+                # scPDB target screening
+        "target_screening_header": "🎯 Target hypotheses from scPDB",
+        "target_screening_subtitle": "Search for possible targets based on similarity to native scPDB ligands",
+        "target_screening_input_label": "Enter SMILES for target-hypothesis search",
+        "target_screening_button": "Run scPDB screening",
+        "target_screening_top15": "Top-15 target hypotheses",
+        "target_screening_best_match": "Best match",
+        "target_screening_method": "Method",
+        "target_method_short": "scPDB ligand similarity screening",
+        "target_method_note": (
+            "The method compares the query molecule with native ligands from scPDB. "
+            "In the current version, fingerprints generated from ligand.mol2 structures are used. "
+            "The binding site is not directly included, so the result is a target hypothesis, "
+            "not proof of binding."
+        ),
+        "target_error_invalid_smiles": "Invalid SMILES. Please check the molecular notation.",
+        "target_error_db_unavailable": "The scPDB target database is unavailable or empty.",
+        "target_no_hits_message": (
+            "No sufficiently close matches to native scPDB ligands were found. "
+            "This does not mean that the molecule has no targets, but ligand-based screening "
+            "did not produce a strong hypothesis."
+        ),
+        "target_candidate_name": "scPDB target hypothesis: PDB {pdb_id}",
+        "target_reason_ligand_similarity": (
+            "The query molecule resembles the native ligand of complex {pdb_id}. "
+            "Tanimoto index = {similarity:.2f}; level: {similarity_label}."
+        ),
+        "target_student_interpretation": (
+            "This is a ligand-based hypothesis: if a molecule resembles a ligand found in a protein complex, "
+            "the corresponding protein can be considered as a possible target for further analysis."
+        ),
+        "target_limitation": (
+            "This result is not docking, not an affinity prediction and not experimental evidence of activity."
+        ),
+        "target_similarity_high": "high similarity",
+        "target_similarity_moderate": "moderate similarity",
+        "target_similarity_weak": "weak similarity",
+        "target_similarity_low": "low similarity",
+        "target_col_rank": "Rank",
+        "target_col_pdb": "PDB ID",
+        "target_col_similarity": "Tanimoto",
+        "target_col_similarity_level": "Similarity level",
+        "target_col_score": "Score, %",
+        "target_metric_best_similarity": "Best Tanimoto similarity",
+        "target_metric_hits": "Hits above threshold",
+        "target_metric_database_size": "scPDB database size",
+        "target_min_similarity": "Minimum similarity threshold",
         "project_warning": "👈 Please select a compound in the sidebar (KZ Base) to start the project.",
         "project_mol_header": "Research Object",
         "project_smiles_label": "SMILES code",
