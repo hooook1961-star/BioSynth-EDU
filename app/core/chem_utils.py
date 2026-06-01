@@ -123,37 +123,6 @@ def load_scpdb_database():
         st.error(f"Критическая ошибка: не удалось загрузить файл базы scPDB по пути {file_path}. Ошибка: {e}")
         return {}
 
-from rdkit import Chem, DataStructs
-from rdkit.Chem import AllChem
-
-
-def classify_tanimoto_similarity(similarity: float) -> str:
-    """
-    Возвращает только код уровня сходства.
-    Текстовые подписи должны храниться в translations.py.
-    """
-    if similarity >= 0.70:
-        return "high"
-
-    if similarity >= 0.50:
-        return "moderate"
-
-    if similarity >= 0.35:
-        return "weak"
-
-    return "low"
-
-
-def extract_pdb_id_from_lig_key(custom_name: str) -> str:
-    """
-    Для вашей базы ключ гарантированно имеет вид lig_1abc.
-    """
-    if custom_name.startswith("lig_"):
-        return custom_name.removeprefix("lig_").upper()
-
-    return custom_name.upper()
-
-
 def classify_tanimoto_similarity(similarity: float) -> str:
     if similarity >= 0.70:
         return "high"
