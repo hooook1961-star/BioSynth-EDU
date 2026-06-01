@@ -340,7 +340,6 @@ with tab1:
             st.warning(t.get("warn_no_pubchem", "Данные не найдены"))
 
 #---Вкладка ADMET---
-#---Вкладка ADMET---
 with tab2:
     st.header(t["admet_header"])
     st.markdown(t["admet_instructions"])
@@ -540,19 +539,14 @@ with tab3:
                 )
 
             if not res.get("success", False):
-                error_key = res.get("error_key")
-
-                if error_key and error_key in t:
-                    st.error(t[error_key])
-                else:
-                    st.error(res.get("error", t["target_error_unknown"]))
+                error_key = res.get("error_key", "target_error_unknown")
+                st.error(t[error_key])
 
             else:
                 st.success(t["screening_success"])
 
-                method_note_key = res.get("method_note_key")
-                if method_note_key and method_note_key in t:
-                    st.info(t[method_note_key])
+                method_note_key = res.get("method_note_key", "target_method_note")
+                st.info(t[method_note_key])
 
                 top = res.get("top_match")
 
@@ -616,15 +610,15 @@ with tab3:
 
                         df_data.append({
                             t["target_col_rank"]: idx,
-                            t["col_pdb_id"]: item["pdb_id"],
-                            t["col_tanimoto"]: f"{item['similarity']:.4f}",
+                            t["target_col_pdb"]: item["pdb_id"],
+                            t["target_col_similarity"]: f"{item['similarity']:.4f}",
                             t["target_col_similarity_level"]: item_similarity_label,
                             t["target_col_score"]: f"{item['score_0_100']:.1f}",
                         })
 
                     df = pd.DataFrame(df_data)
 
-                    st.write(t["table_title"])
+                    st.write(t["target_screening_top15"])
                     st.dataframe(df, use_container_width=True, hide_index=True)
 
                     best_pdb = top["pdb_id"][:4].upper()
