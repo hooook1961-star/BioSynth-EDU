@@ -154,10 +154,11 @@ LANGUAGES = {
         "target_screening_method": "Метод",
         "target_method_short": "scPDB ligand similarity screening",
         "target_method_note": (
-            "Метод сравнивает введённую молекулу с нативными лигандами из scPDB. "
-            "В текущей версии используются fingerprint структур ligand.mol2. "
-            "Активный сайт напрямую не учитывается, поэтому результат является target-гипотезой, "
-            "а не доказательством связывания."
+            "Метод предлагает target-гипотезы на основе сходства введённой молекулы "
+            "с нативными лигандами scPDB. Если доступен расширенный индекс, ranking "
+            "дополнительно учитывает совместимость с признаками сайта связывания, cavity "
+            "и interaction fingerprint. Результат является вычислительной гипотезой, "
+            "а не docking-расчётом, прогнозом affinity или экспериментальным доказательством активности."
         ),
         "target_error_invalid_smiles": "Некорректный SMILES. Проверьте запись молекулы.",
         "target_error_db_unavailable": "База данных scPDB недоступна или пуста.",
@@ -410,12 +411,13 @@ LANGUAGES = {
 
         "target_method_short": "scPDB ligand similarity screening",
         "target_method_note": (
-            "Әдіс енгізілген молекуланы scPDB базасындағы нативті лигандтармен салыстырады. "
-            "Қазіргі нұсқада ligand.mol2 құрылымдарының fingerprint-тері қолданылады. "
-            "Белсенді сайт тікелей есепке алынбайды, сондықтан нәтиже нысана-гипотеза болып табылады, "
-            "байланысудың дәлелі емес."
+            "Әдіс енгізілген молекуланың scPDB базасындағы нативті лигандтармен "
+            "ұқсастығына сүйеніп target-гипотезалар ұсынады. Егер кеңейтілген индекс "
+            "қолжетімді болса, ranking байланысу сайтының белгілерін, cavity сипаттамаларын "
+            "және interaction fingerprint деректерін қосымша ескереді. Нәтиже есептік гипотеза "
+            "болып табылады; ол docking есебі, affinity болжамы немесе белсенділіктің "
+            "эксперименттік дәлелі емес."
         ),
-
         "target_error_invalid_smiles": "SMILES қате. Молекула жазбасын тексеріңіз.",
         "target_error_db_unavailable": "scPDB дерекқоры қолжетімсіз немесе бос.",
         "target_error_unknown": "scPDB-скринингті орындау кезінде қате пайда болды.",
@@ -667,10 +669,11 @@ LANGUAGES = {
         "target_screening_method": "Method",
         "target_method_short": "scPDB ligand similarity screening",
         "target_method_note": (
-            "The method compares the query molecule with native ligands from scPDB. "
-            "In the current version, fingerprints generated from ligand.mol2 structures are used. "
-            "The binding site is not directly included, so the result is a target hypothesis, "
-            "not proof of binding."
+            "The method proposes target hypotheses based on similarity between the query molecule "
+            "and native scPDB ligands. When the extended index is available, the ranking also uses "
+            "binding-site descriptors, cavity features and interaction fingerprint information. "
+            "The result is a computational hypothesis, not docking, not an affinity prediction and "
+            "not experimental evidence of activity."
         ),
         "target_error_invalid_smiles": "Invalid SMILES. Please check the molecular notation.",
         "target_error_db_unavailable": "The scPDB target database is unavailable or empty.",
