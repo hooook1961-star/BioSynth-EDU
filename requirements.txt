@@ -11,3 +11,4 @@ gemmi
 streamlit-ketcher
 openpyxl
 openai
+joblib>=1.3
