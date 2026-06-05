@@ -1,12 +1,16 @@
 import numpy as np
 import pubchempy as pcp
 import pandas as pd
+from functools import lru_cache
+from pathlib import Path
+import math
+import joblib
 import pickle
 import os
 import io
 import streamlit as st
 from rdkit import Chem
-from rdkit.Chem import AllChem, Descriptors, DataStructs
+from rdkit.Chem import AllChem, Descriptors, DataStructs, rdFingerprintGenerator
 from meeko import MoleculePreparation
 from chembl_webresource_client.new_client import new_client
 
@@ -123,41 +127,227 @@ def load_scpdb_database():
         st.error(f"Критическая ошибка: не удалось загрузить файл базы scPDB по пути {file_path}. Ошибка: {e}")
         return {}
 
+MORGAN_GEN = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+
+
 def classify_tanimoto_similarity(similarity: float) -> str:
     if similarity >= 0.70:
         return "high"
-
     if similarity >= 0.50:
         return "moderate"
-
     if similarity >= 0.35:
         return "weak"
-
     return "low"
 
 
 def extract_pdb_id_from_lig_key(custom_name: str) -> str:
     if custom_name.startswith("lig_"):
         return custom_name.removeprefix("lig_").upper()
-
     return custom_name.upper()
 
 
-def run_ai_target_screening(
-    smiles_str,
+def _clamp(x, lo=0.0, hi=1.0):
+    try:
+        x = float(x)
+    except Exception:
+        return 0.0
+
+    if not np.isfinite(x):
+        return 0.0
+
+    return max(lo, min(hi, x))
+
+
+def _safe_float(value, default=0.0):
+    try:
+        x = float(value)
+    except Exception:
+        return default
+
+    if not np.isfinite(x):
+        return default
+
+    return x
+
+
+def _exp_similarity(a, b, scale):
+    try:
+        a = float(a)
+        b = float(b)
+        scale = float(scale)
+    except Exception:
+        return 0.0
+
+    if not np.isfinite(a) or not np.isfinite(b) or scale <= 0:
+        return 0.0
+
+    return math.exp(-abs(a - b) / scale)
+
+
+def _get_runtime_index_path() -> Path:
+    repo_root = Path(__file__).resolve().parents[2]
+    return repo_root / "data" / "scpdb_runtime_index.joblib"
+
+
+@lru_cache(maxsize=1)
+def _load_scpdb_runtime_index():
+    path = _get_runtime_index_path()
+
+    if not path.exists():
+        return None
+
+    try:
+        runtime = joblib.load(path)
+    except Exception:
+        return None
+
+    required_keys = {"target_keys", "fingerprints", "metadata"}
+
+    if not required_keys.issubset(set(runtime.keys())):
+        return None
+
+    return runtime
+
+
+def _query_descriptors(mol):
+    return {
+        "mw": Descriptors.MolWt(mol),
+        "logp": Descriptors.MolLogP(mol),
+        "tpsa": Descriptors.TPSA(mol),
+        "hbd": Descriptors.NumHDonors(mol),
+        "hba": Descriptors.NumHAcceptors(mol),
+        "rotatable_bonds": Descriptors.NumRotatableBonds(mol),
+        "heavy_atom_count": Descriptors.HeavyAtomCount(mol),
+        "formal_charge": Chem.GetFormalCharge(mol),
+    }
+
+
+def _descriptor_compatibility(query_desc, row):
+    scores = [
+        _exp_similarity(query_desc["mw"], row.get("ligand_mw"), 220.0),
+        _exp_similarity(query_desc["logp"], row.get("ligand_logp"), 2.5),
+        _exp_similarity(query_desc["tpsa"], row.get("ligand_tpsa"), 90.0),
+        _exp_similarity(query_desc["hbd"], row.get("ligand_hbd"), 3.0),
+        _exp_similarity(query_desc["hba"], row.get("ligand_hba"), 5.0),
+    ]
+
+    ref_charge = _safe_float(row.get("ligand_formal_charge"), 0.0)
+    charge_score = 1.0 if query_desc["formal_charge"] == ref_charge else 0.5
+    scores.append(charge_score)
+
+    return float(np.mean(scores))
+
+
+def _site_compatibility(query_desc, row):
+    query_polarity = _clamp(query_desc["tpsa"] / 140.0)
+    query_hydrophobicity = _clamp(query_desc["logp"] / 5.0)
+
+    site_polar = _safe_float(row.get("site_polar_atom_fraction"), 0.0)
+    site_hydro = _safe_float(row.get("site_hydrophobic_atom_fraction"), 0.0)
+    cavity6_count = _safe_float(row.get("cavity6_atom_count"), 0.0)
+
+    polar_score = 1.0 - _clamp(abs(query_polarity - site_polar) * 2.0)
+    hydro_score = 1.0 - _clamp(abs(query_hydrophobicity - site_hydro) * 2.0)
+
+    required_cavity_points = max(query_desc["heavy_atom_count"] * 3.0, 1.0)
+    size_score = _clamp(cavity6_count / required_cavity_points)
+
+    metal_count = _safe_float(row.get("site_metal_atom_count"), 0.0)
+    metal_score = 0.6 if metal_count > 0 and query_desc["hba"] < 2 else 1.0
+
+    return float(np.mean([polar_score, hydro_score, size_score, metal_score]))
+
+
+def _interaction_compatibility(query_desc, row):
+    ifp_active_bits = _safe_float(row.get("ifp_active_bits"), 0.0)
+    ifp_residues = _safe_float(row.get("ifp_residues_with_interactions"), 0.0)
+
+    ints_sel = _safe_float(row.get("ints_group_SEL"), 0.0)
+    ints_all = _safe_float(row.get("ints_group_ALL"), 0.0)
+    ints_gll = _safe_float(row.get("ints_group_GLL"), 0.0)
+    ints_sep = _safe_float(row.get("ints_group_SEP"), 0.0)
+    ints_alp = _safe_float(row.get("ints_group_ALP"), 0.0)
+    ints_glp = _safe_float(row.get("ints_group_GLP"), 0.0)
+    ints_sec = _safe_float(row.get("ints_group_SEC"), 0.0)
+    ints_alc = _safe_float(row.get("ints_group_ALC"), 0.0)
+    ints_glc = _safe_float(row.get("ints_group_GLC"), 0.0)
+
+    ifp_score = _clamp(ifp_active_bits / 24.0)
+    residue_score = _clamp(ifp_residues / 12.0)
+
+    query_hbond_capacity = query_desc["hbd"] + query_desc["hba"]
+
+    polar_interaction_groups = (
+        ints_sel
+        + ints_all
+        + ints_sep
+        + ints_alp
+        + ints_sec
+        + ints_alc
+    )
+
+    hbond_score = _clamp(
+        (query_hbond_capacity + 1.0) / (polar_interaction_groups + 1.0)
+    )
+
+    hydrophobic_groups = ints_gll + ints_glp + ints_glc
+    query_lipophilicity = _clamp(query_desc["logp"] / 5.0)
+
+    hydrophobic_score = _clamp(
+        (query_lipophilicity + 0.25) * (1.0 if hydrophobic_groups > 0 else 0.6)
+    )
+
+    return float(np.mean([ifp_score, residue_score, hbond_score, hydrophobic_score]))
+
+
+def _calculate_hybrid_score(
+    ligand_similarity,
+    descriptor_score,
+    site_score,
+    interaction_score,
+):
+    compatibility_score = (
+        0.40 * descriptor_score
+        + 0.35 * site_score
+        + 0.25 * interaction_score
+    )
+
+    ligand_gate = _clamp(ligand_similarity / 0.35)
+
+    final_score = (
+        0.75 * ligand_similarity
+        + 0.25 * compatibility_score * ligand_gate
+    )
+
+    return {
+        "final_score": float(final_score),
+        "compatibility_score": float(compatibility_score),
+        "ligand_gate": float(ligand_gate),
+    }
+
+
+def _confidence_from_scores(final_score, ligand_similarity):
+    if ligand_similarity < 0.30:
+        return "low"
+
+    if final_score >= 0.70 and ligand_similarity >= 0.55:
+        return "high"
+
+    if final_score >= 0.55 and ligand_similarity >= 0.40:
+        return "moderate"
+
+    if final_score >= 0.40:
+        return "weak"
+
+    return "low"
+
+
+def _run_legacy_ligand_similarity_screening(
+    mol,
     top_n: int = 15,
     min_similarity: float = 0.30,
 ):
     desc = {}
-
-    mol = Chem.MolFromSmiles(smiles_str.strip()) if smiles_str else None
-
-    if mol is None:
-        return {
-            "success": False,
-            "error_key": "target_error_invalid_smiles",
-            "desc": desc,
-        }
 
     target_db = load_scpdb_database()
 
@@ -209,6 +399,13 @@ def run_ai_target_screening(
             "score": similarity,
             "score_0_100": round(similarity * 100.0, 1),
 
+            "final_score": similarity,
+            "confidence": similarity_level,
+            "ligand_similarity": similarity,
+            "descriptor_compatibility": None,
+            "site_compatibility": None,
+            "interaction_compatibility": None,
+
             "similarity_level": similarity_level,
             "similarity_label_key": f"target_similarity_{similarity_level}",
             "name_key": "target_candidate_name",
@@ -235,6 +432,7 @@ def run_ai_target_screening(
             "n_database_entries": len(target_db),
             "n_hits_above_threshold": 0,
             "min_similarity": min_similarity,
+            "screening_mode": "legacy_ligand_similarity",
         }
 
     best_match = candidates[0]
@@ -252,7 +450,166 @@ def run_ai_target_screening(
         "n_database_entries": len(target_db),
         "n_hits_above_threshold": len(candidates),
         "min_similarity": min_similarity,
+        "screening_mode": "legacy_ligand_similarity",
     }
+
+
+def _run_hybrid_scpdb_screening(
+    mol,
+    top_n: int = 15,
+    min_similarity: float = 0.30,
+    candidate_pool: int = 1000,
+):
+    runtime = _load_scpdb_runtime_index()
+
+    if runtime is None:
+        return _run_legacy_ligand_similarity_screening(
+            mol=mol,
+            top_n=top_n,
+            min_similarity=min_similarity,
+        )
+
+    query_desc = _query_descriptors(mol)
+    query_fp = MORGAN_GEN.GetFingerprint(mol)
+
+    metadata = runtime["metadata"].copy()
+
+    similarities = DataStructs.BulkTanimotoSimilarity(
+        query_fp,
+        runtime["fingerprints"],
+    )
+
+    metadata["ligand_similarity"] = similarities
+
+    n_hits_above_threshold = int(
+        (metadata["ligand_similarity"] >= min_similarity).sum()
+    )
+
+    candidates = (
+        metadata
+        .sort_values("ligand_similarity", ascending=False)
+        .head(candidate_pool)
+        .copy()
+    )
+
+    rows = []
+
+    for _, row in candidates.iterrows():
+        ligand_similarity = _safe_float(row.get("ligand_similarity"), 0.0)
+
+        descriptor_score = _descriptor_compatibility(query_desc, row)
+        site_score = _site_compatibility(query_desc, row)
+        interaction_score = _interaction_compatibility(query_desc, row)
+
+        score_info = _calculate_hybrid_score(
+            ligand_similarity=ligand_similarity,
+            descriptor_score=descriptor_score,
+            site_score=site_score,
+            interaction_score=interaction_score,
+        )
+
+        final_score = score_info["final_score"]
+        confidence = _confidence_from_scores(final_score, ligand_similarity)
+        similarity_level = classify_tanimoto_similarity(ligand_similarity)
+
+        pdb_id = str(row["pdb_id"]).upper()
+
+        rows.append({
+            "id": pdb_id,
+            "pdb_id": pdb_id,
+            "entry_id": row["entry_id"],
+            "target_key": row["target_key"],
+            "source_key": row["target_key"],
+
+            "similarity": ligand_similarity,
+            "sim": ligand_similarity,
+            "ligand_similarity": ligand_similarity,
+
+            "score": final_score,
+            "score_0_100": round(final_score * 100.0, 1),
+            "final_score": final_score,
+            "confidence": confidence,
+
+            "descriptor_compatibility": descriptor_score,
+            "site_compatibility": site_score,
+            "interaction_compatibility": interaction_score,
+            "compatibility_score": score_info["compatibility_score"],
+            "ligand_gate": score_info["ligand_gate"],
+
+            "similarity_level": similarity_level,
+            "similarity_label_key": f"target_similarity_{similarity_level}",
+            "name_key": "target_candidate_name",
+            "reason_key": "target_reason_ligand_similarity",
+            "interpretation_key": "target_student_interpretation",
+            "limitation_key": "target_limitation",
+            "method_key": "target_method_short",
+        })
+
+    rows.sort(key=lambda x: x["final_score"], reverse=True)
+
+    top_candidates = rows[:top_n]
+    top_match = top_candidates[0] if top_candidates else None
+
+    if top_match is None:
+        return {
+            "success": True,
+            "desc": {},
+            "method": "hybrid_scpdb_target_hypothesis_screening",
+            "method_note_key": "target_method_note",
+            "message_key": "target_no_hits_message",
+            "raw_score": 0.0,
+            "features_expected": 2048,
+            "fp_sum": int(query_fp.GetNumOnBits()),
+            "top_match": None,
+            "all_candidates": [],
+            "n_database_entries": int(len(metadata)),
+            "n_hits_above_threshold": n_hits_above_threshold,
+            "min_similarity": min_similarity,
+            "screening_mode": "hybrid_scpdb",
+        }
+
+    return {
+        "success": True,
+        "desc": query_desc,
+        "method": "hybrid_scpdb_target_hypothesis_screening",
+        "method_note_key": "target_method_note",
+
+        # main.py показывает raw_score как лучшее Tanimoto-сходство.
+        "raw_score": top_match["similarity"],
+
+        "features_expected": 2048,
+        "fp_sum": int(query_fp.GetNumOnBits()),
+        "top_match": top_match,
+        "all_candidates": top_candidates,
+        "n_database_entries": int(len(metadata)),
+        "n_hits_above_threshold": n_hits_above_threshold,
+        "min_similarity": min_similarity,
+        "screening_mode": "hybrid_scpdb",
+    }
+
+
+def run_ai_target_screening(
+    smiles_str,
+    top_n: int = 15,
+    min_similarity: float = 0.30,
+):
+    desc = {}
+
+    mol = Chem.MolFromSmiles(smiles_str.strip()) if smiles_str else None
+
+    if mol is None:
+        return {
+            "success": False,
+            "error_key": "target_error_invalid_smiles",
+            "desc": desc,
+        }
+
+    return _run_hybrid_scpdb_screening(
+        mol=mol,
+        top_n=top_n,
+        min_similarity=min_similarity,
+        candidate_pool=1000,
+    )
     
 def calculate_conformer_energies(smiles: str, num_conformers: int = 15):
     """
