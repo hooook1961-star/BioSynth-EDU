@@ -813,3 +813,91 @@ def get_quantum_descriptors(smiles: str) -> pd.DataFrame:
     except Exception as e:
         print(f"Ошибка дескрипторов: {e}")
         return None
+
+def calculate_conformer_energies(smiles: str, num_conformers: int = 15):
+    """
+    Генерирует конформеры, находит самый стабильный и возвращает:
+    (список энергий, SDF-блок лучшего конформера)
+    """
+    try:
+        mol = Chem.MolFromSmiles(smiles)
+
+        if not mol:
+            return [], ""
+
+        mol = Chem.AddHs(mol)
+
+        cids = AllChem.EmbedMultipleConfs(
+            mol,
+            numConfs=num_conformers,
+            randomSeed=42,
+        )
+
+        conformer_data = []
+
+        props = AllChem.MMFFGetMoleculeProperties(mol)
+
+        for cid in cids:
+            ff = AllChem.MMFFGetMoleculeForceField(
+                mol,
+                props,
+                confId=cid,
+            )
+
+            if ff:
+                ff.Minimize()
+                energy = ff.CalcEnergy()
+                conformer_data.append((energy, cid))
+
+        conformer_data.sort(key=lambda x: x[0])
+
+        energies = [item[0] for item in conformer_data]
+        best_cid = conformer_data[0][1] if conformer_data else -1
+
+        best_sdf_block = ""
+
+        if best_cid != -1:
+            sio = io.StringIO()
+            writer = Chem.SDWriter(sio)
+            writer.write(mol, confId=best_cid)
+            writer.close()
+            best_sdf_block = sio.getvalue()
+
+        return energies, best_sdf_block
+
+    except Exception as e:
+        print(f"Ошибка конформационного анализа: {e}")
+        return [], ""
+
+
+def compute_gasteiger_charges_block(smiles: str) -> str:
+    """
+    Рассчитывает парциальные заряды Гастейгера и возвращает MolBlock
+    для отображения в py3Dmol.
+    """
+    try:
+        mol = Chem.MolFromSmiles(smiles)
+
+        if not mol:
+            return ""
+
+        Chem.SanitizeMol(mol)
+        mol = Chem.AddHs(mol)
+
+        AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
+        AllChem.MMFFOptimizeMolecule(mol)
+
+        AllChem.ComputeGasteigerCharges(mol)
+
+        for atom in mol.GetAtoms():
+            if atom.HasProp("_GasteigerCharge"):
+                charge = float(atom.GetProp("_GasteigerCharge"))
+                atom.SetDoubleProp("partialCharge", charge)
+            else:
+                atom.SetDoubleProp("partialCharge", 0.0)
+
+        return Chem.MolToMolBlock(mol)
+
+    except Exception as e:
+        print(f"Ошибка расчета зарядов: {e}")
+        return ""
