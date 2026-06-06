@@ -342,6 +342,144 @@ def _confidence_from_scores(final_score, ligand_similarity):
     return "low"
 
 
+def _format_vina_config_txt(
+    receptor_filename: str,
+    ligand_filename: str,
+    center,
+    size,
+    exhaustiveness: int = 8,
+    num_modes: int = 9,
+    energy_range: int = 3,
+) -> str:
+    return (
+        f"receptor = {receptor_filename}\n"
+        f"ligand = {ligand_filename}\n\n"
+        f"center_x = {center['x']:.3f}\n"
+        f"center_y = {center['y']:.3f}\n"
+        f"center_z = {center['z']:.3f}\n\n"
+        f"size_x = {size['x']:.3f}\n"
+        f"size_y = {size['y']:.3f}\n"
+        f"size_z = {size['z']:.3f}\n\n"
+        f"exhaustiveness = {int(exhaustiveness)}\n"
+        f"num_modes = {int(num_modes)}\n"
+        f"energy_range = {int(energy_range)}\n"
+    )
+
+
+def _format_vina_config_yml(
+    receptor_filename: str,
+    ligand_filename: str,
+    center,
+    size,
+    exhaustiveness: int = 8,
+    num_modes: int = 9,
+    energy_range: int = 3,
+) -> str:
+    return (
+        f"receptor: {receptor_filename}\n"
+        f"ligand: {ligand_filename}\n"
+        f"center:\n"
+        f"  x: {center['x']:.3f}\n"
+        f"  y: {center['y']:.3f}\n"
+        f"  z: {center['z']:.3f}\n"
+        f"size:\n"
+        f"  x: {size['x']:.3f}\n"
+        f"  y: {size['y']:.3f}\n"
+        f"  z: {size['z']:.3f}\n"
+        f"exhaustiveness: {int(exhaustiveness)}\n"
+        f"num_modes: {int(num_modes)}\n"
+        f"energy_range: {int(energy_range)}\n"
+    )
+
+
+def _build_docking_payload(row):
+    required_columns = [
+        "box_center_x",
+        "box_center_y",
+        "box_center_z",
+        "box_size_x",
+        "box_size_y",
+        "box_size_z",
+    ]
+
+    missing_columns = [
+        col for col in required_columns
+        if col not in row.index
+    ]
+
+    if missing_columns:
+        return {
+            "box_center": None,
+            "box_size": None,
+            "box_center_source": None,
+            "box_size_source": None,
+            "docking_box_status": "unavailable",
+            "docking_config_txt": "",
+            "docking_config_yml": "",
+            "receptor_available": False,
+            "receptor_source": "external_or_local_required",
+            "receptor_filename": "receptor.pdbqt",
+            "ligand_filename": "ligand.pdbqt",
+        }
+
+    center = {
+        "x": _safe_float(row.get("box_center_x"), None),
+        "y": _safe_float(row.get("box_center_y"), None),
+        "z": _safe_float(row.get("box_center_z"), None),
+    }
+
+    size = {
+        "x": _safe_float(row.get("box_size_x"), None),
+        "y": _safe_float(row.get("box_size_y"), None),
+        "z": _safe_float(row.get("box_size_z"), None),
+    }
+
+    has_invalid_center = any(v is None for v in center.values())
+    has_invalid_size = any(v is None for v in size.values())
+
+    receptor_filename = "receptor.pdbqt"
+    ligand_filename = "ligand.pdbqt"
+
+    if has_invalid_center or has_invalid_size:
+        return {
+            "box_center": None,
+            "box_size": None,
+            "box_center_source": row.get("box_center_source", None),
+            "box_size_source": row.get("box_size_source", None),
+            "docking_box_status": "unavailable",
+            "docking_config_txt": "",
+            "docking_config_yml": "",
+            "receptor_available": False,
+            "receptor_source": "external_or_local_required",
+            "receptor_filename": receptor_filename,
+            "ligand_filename": ligand_filename,
+        }
+
+    return {
+        "box_center": center,
+        "box_size": size,
+        "box_center_source": row.get("box_center_source", "site.mol2"),
+        "box_size_source": row.get("box_size_source", "cavity6.mol2"),
+        "docking_box_status": row.get("docking_box_status", "ok"),
+        "docking_config_txt": _format_vina_config_txt(
+            receptor_filename=receptor_filename,
+            ligand_filename=ligand_filename,
+            center=center,
+            size=size,
+        ),
+        "docking_config_yml": _format_vina_config_yml(
+            receptor_filename=receptor_filename,
+            ligand_filename=ligand_filename,
+            center=center,
+            size=size,
+        ),
+        "receptor_available": False,
+        "receptor_source": "external_or_local_required",
+        "receptor_filename": receptor_filename,
+        "ligand_filename": ligand_filename,
+    }
+
+
 def _run_legacy_ligand_similarity_screening(
     mol,
     top_n: int = 15,
@@ -405,6 +543,18 @@ def _run_legacy_ligand_similarity_screening(
             "descriptor_compatibility": None,
             "site_compatibility": None,
             "interaction_compatibility": None,
+
+            "box_center": None,
+            "box_size": None,
+            "box_center_source": None,
+            "box_size_source": None,
+            "docking_box_status": "legacy_unavailable",
+            "docking_config_txt": "",
+            "docking_config_yml": "",
+            "receptor_available": False,
+            "receptor_source": "external_or_local_required",
+            "receptor_filename": "receptor.pdbqt",
+            "ligand_filename": "ligand.pdbqt",
 
             "similarity_level": similarity_level,
             "similarity_label_key": f"target_similarity_{similarity_level}",
@@ -513,13 +663,17 @@ def _run_hybrid_scpdb_screening(
         similarity_level = classify_tanimoto_similarity(ligand_similarity)
 
         pdb_id = str(row["pdb_id"]).upper()
+        entry_id = str(row["entry_id"])
+        target_key = str(row["target_key"])
+
+        docking_payload = _build_docking_payload(row)
 
         rows.append({
             "id": pdb_id,
             "pdb_id": pdb_id,
-            "entry_id": row["entry_id"],
-            "target_key": row["target_key"],
-            "source_key": row["target_key"],
+            "entry_id": entry_id,
+            "target_key": target_key,
+            "source_key": target_key,
 
             "similarity": ligand_similarity,
             "sim": ligand_similarity,
@@ -543,6 +697,8 @@ def _run_hybrid_scpdb_screening(
             "interpretation_key": "target_student_interpretation",
             "limitation_key": "target_limitation",
             "method_key": "target_method_short",
+
+            **docking_payload,
         })
 
     rows.sort(key=lambda x: x["final_score"], reverse=True)
@@ -610,76 +766,6 @@ def run_ai_target_screening(
         min_similarity=min_similarity,
         candidate_pool=1000,
     )
-    
-def calculate_conformer_energies(smiles: str, num_conformers: int = 15):
-    """
-    Генерирует конформеры, находит самый стабильный (минимум) и возвращает:
-    (список энергий, SDF-блок лучшего конформера)
-    """
-    try:
-        mol = Chem.MolFromSmiles(smiles)
-        mol = Chem.AddHs(mol)
-        
-        cids = AllChem.EmbedMultipleConfs(mol, numConfs=num_conformers, randomSeed=42)
-        
-        conformer_data = []
-        for cid in cids:
-            ff = AllChem.MMFFGetMoleculeForceField(mol, AllChem.MMFFGetMoleculeProperties(mol), confId=cid)
-            if ff:
-                ff.Minimize()
-                energy = ff.CalcEnergy()
-                conformer_data.append((energy, cid))
-        
-        # Сортируем по возрастанию энергии (от минимума к максимуму)
-        conformer_data.sort(key=lambda x: x[0])
-        
-        energies = [item[0] for item in conformer_data]
-        best_cid = conformer_data[0][1] if conformer_data else -1
-        
-        # Генерируем SDF-блок исключительно для самого стабильного конформера
-        best_sdf_block = ""
-        if best_cid != -1:
-            sio = io.StringIO()
-            with Chem.SDWriter(sio) as w:
-                w.write(mol, confId=best_cid)
-            best_sdf_block = sio.getvalue()
-            
-        return energies, best_sdf_block
-    except Exception as e:
-        print(f"Ошибка конформационного анализа: {e}")
-        return [], ""
-
-def compute_gasteiger_charges_block(smiles: str) -> str:
-    """
-    Рассчитывает парциальные заряды по Гастейгеру-Марсили и возвращает 
-    строку MolBlock с внедренными свойствами зарядов для py3Dmol.
-    """
-    try:
-        mol = Chem.MolFromSmiles(smiles)
-        if not mol:
-            return ""
-        Chem.SanitizeMol(mol)
-        mol = Chem.AddHs(mol)
-        
-        # Генерируем стабильные 3D-координаты
-        AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
-        AllChem.MMFFOptimizeMolecule(mol)
-        
-        # Считаем заряды
-        AllChem.ComputeGasteigerCharges(mol)
-        
-        # Переносим заряды в стандартное свойство, которое распознает py3Dmol
-        for atom in mol.GetAtoms():
-            if atom.HasProp('_GasteigerCharge'):
-                charge = float(atom.GetProp('_GasteigerCharge'))
-                atom.SetDoubleProp('partialCharge', charge)
-            else:
-                atom.SetDoubleProp('partialCharge', 0.0)
-                
-        return Chem.MolToMolBlock(mol)
-    except Exception as e:
-        print(f"Ошибка расчета зарядов: {e}")
-        return ""
 
 def get_quantum_descriptors(smiles: str) -> pd.DataFrame:
     """

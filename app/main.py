@@ -486,7 +486,10 @@ with tab3:
 
                     if pdbqt_data:
                         st.session_state.prepared_pdbqt = pdbqt_data
-                        st.session_state.mol_block = smiles_to_3d_block(smiles, optimize=True)
+                        st.session_state.mol_block = smiles_to_3d_block(
+                            smiles,
+                            optimize=True,
+                        )
                         st.balloons()
                     else:
                         st.error(t["docking_error"])
@@ -526,7 +529,7 @@ with tab3:
         st.subheader(t["docking_next_steps_header"])
         st.write(t["docking_next_steps_text"])
 
-        # Векторный скрининг и выбор биологической мишени scPDB
+        # ЭТАП 2: scPDB target hypothesis screening
         st.subheader(t["docking_stage2_title"])
         st.write(t["docking_stage2_desc"])
 
@@ -538,6 +541,11 @@ with tab3:
                     min_similarity=0.30,
                 )
 
+            st.session_state.docking_screening_result = res
+
+        res = st.session_state.get("docking_screening_result")
+
+        if res:
             if not res.get("success", False):
                 error_key = res.get("error_key", "target_error_unknown")
                 st.error(t[error_key])
@@ -608,12 +616,39 @@ with tab3:
                             item.get("similarity_label_key", "target_similarity_low")
                         ]
 
+                        box_center = item.get("box_center") or {}
+                        box_size = item.get("box_size") or {}
+
+                        center_text = "-"
+                        size_text = "-"
+
+                        if box_center:
+                            center_text = (
+                                f"{box_center.get('x', 0):.2f}, "
+                                f"{box_center.get('y', 0):.2f}, "
+                                f"{box_center.get('z', 0):.2f}"
+                            )
+
+                        if box_size:
+                            size_text = (
+                                f"{box_size.get('x', 0):.2f}, "
+                                f"{box_size.get('y', 0):.2f}, "
+                                f"{box_size.get('z', 0):.2f}"
+                            )
+
                         df_data.append({
                             t["target_col_rank"]: idx,
                             t["target_col_pdb"]: item["pdb_id"],
                             t["target_col_similarity"]: f"{item['similarity']:.4f}",
                             t["target_col_similarity_level"]: item_similarity_label,
                             t["target_col_score"]: f"{item['score_0_100']:.1f}",
+                            t["docking_col_entry_id"]: item.get("entry_id", "-"),
+                            t["docking_col_box_center"]: center_text,
+                            t["docking_col_box_size"]: size_text,
+                            t["docking_col_box_status"]: item.get(
+                                "docking_box_status",
+                                "-",
+                            ),
                         })
 
                     df = pd.DataFrame(df_data)
@@ -621,19 +656,174 @@ with tab3:
                     st.write(t["target_screening_top15"])
                     st.dataframe(df, use_container_width=True, hide_index=True)
 
-                    best_pdb = top["pdb_id"][:4].upper()
-                    pdb_url = f"https://www.rcsb.org/structure/{best_pdb}"
+                    st.divider()
 
-                    st.write("")
+                    # ЭТАП 3: выбор кандидата и генерация docking config
+                    st.subheader(t["docking_stage3_title"])
+                    st.write(t["docking_stage3_desc"])
+
+                    candidates = res.get("all_candidates", [])
+
+                    candidate_labels = [
+                        (
+                            f"{idx}. {item.get('pdb_id', '-')}"
+                            f" | {item.get('entry_id', '-')}"
+                            f" | {item.get('score_0_100', 0):.1f}"
+                        )
+                        for idx, item in enumerate(candidates, start=1)
+                    ]
+
+                    selected_label = st.selectbox(
+                        t["docking_select_candidate_label"],
+                        candidate_labels,
+                        index=0,
+                    )
+
+                    selected_idx = candidate_labels.index(selected_label)
+                    selected = candidates[selected_idx]
+
+                    selected_pdb = selected["pdb_id"][:4].upper()
+                    selected_entry_id = selected.get("entry_id", "-")
+                    selected_target_key = selected.get("target_key", "-")
+
+                    box_center = selected.get("box_center")
+                    box_size = selected.get("box_size")
+
+                    box_col1, box_col2, box_col3 = st.columns(3)
+
+                    with box_col1:
+                        st.metric(
+                            t["docking_metric_selected_pdb"],
+                            selected_pdb,
+                        )
+
+                    with box_col2:
+                        st.metric(
+                            t["docking_metric_selected_entry"],
+                            selected_entry_id,
+                        )
+
+                    with box_col3:
+                        st.metric(
+                            t["docking_metric_box_status"],
+                            selected.get("docking_box_status", "-"),
+                        )
+
+                    st.markdown(t["docking_box_coordinates_title"])
+
+                    if box_center and box_size:
+                        coord_df = pd.DataFrame([
+                            {
+                                t["docking_coord_param"]: "center_x",
+                                t["docking_coord_value"]: f"{box_center['x']:.3f}",
+                            },
+                            {
+                                t["docking_coord_param"]: "center_y",
+                                t["docking_coord_value"]: f"{box_center['y']:.3f}",
+                            },
+                            {
+                                t["docking_coord_param"]: "center_z",
+                                t["docking_coord_value"]: f"{box_center['z']:.3f}",
+                            },
+                            {
+                                t["docking_coord_param"]: "size_x",
+                                t["docking_coord_value"]: f"{box_size['x']:.3f}",
+                            },
+                            {
+                                t["docking_coord_param"]: "size_y",
+                                t["docking_coord_value"]: f"{box_size['y']:.3f}",
+                            },
+                            {
+                                t["docking_coord_param"]: "size_z",
+                                t["docking_coord_value"]: f"{box_size['z']:.3f}",
+                            },
+                        ])
+
+                        st.dataframe(
+                            coord_df,
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+
+                        st.caption(
+                            t["docking_box_source_caption"].format(
+                                center_source=selected.get(
+                                    "box_center_source",
+                                    "site.mol2",
+                                ),
+                                size_source=selected.get(
+                                    "box_size_source",
+                                    "cavity6.mol2",
+                                ),
+                            )
+                        )
+
+                    else:
+                        st.warning(t["docking_box_unavailable"])
+
+                    config_txt = selected.get("docking_config_txt", "")
+                    config_yml = selected.get("docking_config_yml", "")
+
+                    st.markdown(t["docking_config_title"])
+
+                    if config_txt:
+                        st.code(config_txt, language="text")
+
+                        cfg_col1, cfg_col2 = st.columns(2)
+
+                        with cfg_col1:
+                            st.download_button(
+                                label=t["btn_download_config_txt"],
+                                data=config_txt,
+                                file_name=f"{selected_entry_id}_docking_config.txt",
+                                mime="text/plain",
+                                use_container_width=True,
+                            )
+
+                        with cfg_col2:
+                            st.download_button(
+                                label=t["btn_download_config_yml"],
+                                data=config_yml,
+                                file_name=f"{selected_entry_id}_docking_config.yml",
+                                mime="text/yaml",
+                                use_container_width=True,
+                            )
+                    else:
+                        st.warning(t["docking_config_unavailable"])
+
+                    st.markdown(t["docking_receptor_title"])
+
+                    if selected.get("receptor_available", False):
+                        st.success(t["docking_receptor_available"])
+                    else:
+                        st.warning(t["docking_receptor_not_available"])
+                        st.info(t["docking_receptor_instruction"])
+
+                    pdb_url = f"https://www.rcsb.org/structure/{selected_pdb}"
+
                     st.link_button(
-                        label=t["btn_go_to_pdb"].format(pdb_id=best_pdb),
+                        label=t["btn_go_to_pdb"].format(pdb_id=selected_pdb),
                         url=pdb_url,
                         use_container_width=True,
                         type="primary",
                     )
+
+                    st.markdown(t["docking_local_command_title"])
+
+                    local_command = (
+                        "vina "
+                        "--config docking_config.txt "
+                        "--out output_docked.pdbqt "
+                        "--log docking.log"
+                    )
+
+                    st.code(local_command, language="bash")
+
+    else:
+        st.warning(t["docking_requires_molecule"])
         
 # --- Вкладка Обучение ---
-with tab4:
+witЫh tab4:
     current_mol = next((m for m in catalog if m['smiles'] == smiles), None)
     if current_mol:
         with st.expander("🇰🇿 Сведения о казахстанской разработке", expanded=True):
