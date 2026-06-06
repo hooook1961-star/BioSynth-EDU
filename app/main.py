@@ -823,7 +823,7 @@ with tab3:
         st.warning(t["docking_requires_molecule"])
         
 # --- Вкладка Обучение ---
-witЫh tab4:
+with tab4:
     current_mol = next((m for m in catalog if m['smiles'] == smiles), None)
     if current_mol:
         with st.expander("🇰🇿 Сведения о казахстанской разработке", expanded=True):
