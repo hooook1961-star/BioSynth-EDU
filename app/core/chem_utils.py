@@ -27,6 +27,17 @@ def safe_float(value, default=0.0):
     except (ValueError, TypeError):
         return default
 
+def _safe_float(value, default=0.0):
+    try:
+        x = float(value)
+    except Exception:
+        return default
+
+    if not np.isfinite(x):
+        return default
+
+    return x
+
 def smiles_to_3d_block(smiles: str, optimize=False) -> str:
     try:
         mol = Chem.MolFromSmiles(smiles)
