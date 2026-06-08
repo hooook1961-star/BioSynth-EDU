@@ -8,6 +8,7 @@ import joblib
 import pickle
 import os
 import io
+import logging
 import streamlit as st3
 from rdkit import Chem
 from rdkit.Chem import AllChem, Descriptors, DataStructs, rdFingerprintGenerator, Crippen,  QED, rdMolDescriptors
