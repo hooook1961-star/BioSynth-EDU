@@ -8,11 +8,15 @@ import joblib
 import pickle
 import os
 import io
-import streamlit as st
+import streamlit as st3
 from rdkit import Chem
-from rdkit.Chem import AllChem, Descriptors, DataStructs, rdFingerprintGenerator
+from rdkit.Chem import AllChem, Descriptors, DataStructs, rdFingerprintGenerator, Crippen,  QED, rdMolDescriptors
 from meeko import MoleculePreparation
 from chembl_webresource_client.new_client import new_client
+from typing import Any
+
+logger = logging.getLogger(__name__)
+
 
 def safe_float(value, default=0.0):
     """
@@ -778,126 +782,238 @@ def run_ai_target_screening(
         candidate_pool=1000,
     )
 
-def get_quantum_descriptors(smiles: str) -> pd.DataFrame:
-    """
-    Расчет фундаментальных структурно-химических и полярных дескрипторов.
-    """
-    try:
-        mol = Chem.MolFromSmiles(smiles)
-        if not mol:
-            return None
-        Chem.SanitizeMol(mol)
-        
-        tpsa = Descriptors.TPSA(mol)
-        labute_asa = Descriptors.LabuteASA(mol)
-        heavy_atoms = mol.GetNumHeavyAtoms()
-        rot_bonds = Descriptors.RotatableBonds(mol)
-        steric_index = round(rot_bonds / heavy_atoms, 3) if heavy_atoms > 0 else 0
-        hetero_atoms = len([at for at in mol.GetAtoms() if at.GetSymbol() in ['N', 'O']])
+def _build_embed_params(random_seed: int = 42, prune_rms: float | None = None):
+    params = AllChem.ETKDGv3()
+    params.randomSeed = random_seed
 
-        df_data = {
-            "Молекулярный дескриптор": [
-                "Топологическая полярная поверхность (TPSA, Å²)",
-                "Доступный объем Ван-дер-Ваальса (Labute ASA)",
-                "Стерический индекс жесткости (RotB/Heavy)",
-                "Количество гетероатомов-доноров (N, O)"
-            ],
-            "Значение": [
-                f"{tpsa:.2f} Å²",
-                f"{labute_asa:.2f}",
-                f"{steric_index}",
-                f"{hetero_atoms}"
-            ]
-        }
-        return pd.DataFrame(df_data)
-    except Exception as e:
-        print(f"Ошибка дескрипторов: {e}")
-        return None
+    try:
+        params.numThreads = 0
+    except Exception:
+        pass
+
+    try:
+        params.maxIterations = 1000
+    except Exception:
+        pass
+
+    if prune_rms is not None:
+        params.pruneRmsThresh = prune_rms
+
+    return params
+
+
+def _embed_conformers(mol: Chem.Mol, num_conformers: int) -> list[int]:
+    num_conformers = max(1, int(num_conformers))
+
+    params = _build_embed_params(
+        random_seed=42,
+        prune_rms=0.25 if num_conformers > 1 else None,
+    )
+
+    if num_conformers == 1:
+        cid = AllChem.EmbedMolecule(mol, params)
+
+        if cid < 0:
+            params.useRandomCoords = True
+            cid = AllChem.EmbedMolecule(mol, params)
+
+        return [int(cid)] if cid >= 0 else []
+
+    cids = list(AllChem.EmbedMultipleConfs(mol, num_conformers, params))
+
+    if not cids:
+        params.useRandomCoords = True
+        cids = list(AllChem.EmbedMultipleConfs(mol, num_conformers, params))
+
+    return [int(cid) for cid in cids]
+
+
+def _optimize_conformers(mol: Chem.Mol, max_iters: int = 500):
+    if AllChem.MMFFHasAllMoleculeParams(mol):
+        results = AllChem.MMFFOptimizeMoleculeConfs(
+            mol,
+            numThreads=0,
+            maxIters=max_iters,
+            mmffVariant="MMFF94",
+        )
+        return "MMFF94", list(results)
+
+    if AllChem.UFFHasAllMoleculeParams(mol):
+        results = AllChem.UFFOptimizeMoleculeConfs(
+            mol,
+            numThreads=0,
+            maxIters=max_iters,
+        )
+        return "UFF", list(results)
+
+    return "", []
+
 
 def calculate_conformer_energies(smiles: str, num_conformers: int = 15):
-    """
-    Генерирует конформеры, находит самый стабильный и возвращает:
-    (список энергий, SDF-блок лучшего конформера)
-    """
     try:
         mol = Chem.MolFromSmiles(smiles)
 
-        if not mol:
+        if mol is None:
             return [], ""
 
         mol = Chem.AddHs(mol)
 
-        cids = AllChem.EmbedMultipleConfs(
-            mol,
-            numConfs=num_conformers,
-            randomSeed=42,
-        )
+        cids = _embed_conformers(mol, num_conformers=num_conformers)
 
+        if not cids:
+            return [], ""
+
+        force_field_name, results = _optimize_conformers(mol)
+
+        if not results:
+            return [], ""
+
+        conformer_ids = [int(conf.GetId()) for conf in mol.GetConformers()]
         conformer_data = []
 
-        props = AllChem.MMFFGetMoleculeProperties(mol)
+        for cid, result in zip(conformer_ids, results):
+            if not result or len(result) != 2:
+                continue
 
-        for cid in cids:
-            ff = AllChem.MMFFGetMoleculeForceField(
-                mol,
-                props,
-                confId=cid,
-            )
+            not_converged, energy = result
 
-            if ff:
-                ff.Minimize()
-                energy = ff.CalcEnergy()
-                conformer_data.append((energy, cid))
+            try:
+                energy = float(energy)
+            except (TypeError, ValueError):
+                continue
 
-        conformer_data.sort(key=lambda x: x[0])
+            if math.isfinite(energy):
+                conformer_data.append(
+                    {
+                        "energy": energy,
+                        "cid": cid,
+                        "not_converged": int(not_converged),
+                        "force_field": force_field_name,
+                    }
+                )
 
-        energies = [item[0] for item in conformer_data]
-        best_cid = conformer_data[0][1] if conformer_data else -1
+        if not conformer_data:
+            return [], ""
 
-        best_sdf_block = ""
+        conformer_data.sort(key=lambda item: item["energy"])
 
-        if best_cid != -1:
-            sio = io.StringIO()
-            writer = Chem.SDWriter(sio)
-            writer.write(mol, confId=best_cid)
-            writer.close()
-            best_sdf_block = sio.getvalue()
+        energies = [item["energy"] for item in conformer_data]
+        best_cid = conformer_data[0]["cid"]
 
-        return energies, best_sdf_block
+        sio = io.StringIO()
+        writer = Chem.SDWriter(sio)
+        writer.write(mol, confId=best_cid)
+        writer.close()
 
-    except Exception as e:
-        print(f"Ошибка конформационного анализа: {e}")
+        return energies, sio.getvalue()
+
+    except Exception:
+        logger.exception("physchem.error.conformer_analysis")
         return [], ""
 
 
-def compute_gasteiger_charges_block(smiles: str) -> str:
-    """
-    Рассчитывает парциальные заряды Гастейгера и возвращает MolBlock
-    для отображения в py3Dmol.
-    """
+def compute_gasteiger_charges_block(
+    smiles: str,
+) -> tuple[str, list[dict[str, Any]], pd.DataFrame]:
     try:
         mol = Chem.MolFromSmiles(smiles)
 
-        if not mol:
-            return ""
+        if mol is None:
+            return "", [], pd.DataFrame()
 
-        Chem.SanitizeMol(mol)
         mol = Chem.AddHs(mol)
 
-        AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
-        AllChem.MMFFOptimizeMolecule(mol)
+        cids = _embed_conformers(mol, num_conformers=1)
+
+        if not cids:
+            return "", [], pd.DataFrame()
+
+        cid = cids[0]
+
+        if AllChem.MMFFHasAllMoleculeParams(mol):
+            AllChem.MMFFOptimizeMolecule(mol, confId=cid, maxIters=500)
+        elif AllChem.UFFHasAllMoleculeParams(mol):
+            AllChem.UFFOptimizeMolecule(mol, confId=cid, maxIters=500)
 
         AllChem.ComputeGasteigerCharges(mol)
 
+        charge_props = []
+        rows = []
+
         for atom in mol.GetAtoms():
-            if atom.HasProp("_GasteigerCharge"):
-                charge = float(atom.GetProp("_GasteigerCharge"))
-                atom.SetDoubleProp("partialCharge", charge)
-            else:
-                atom.SetDoubleProp("partialCharge", 0.0)
+            atom_index = int(atom.GetIdx())
 
-        return Chem.MolToMolBlock(mol)
+            raw_charge = atom.GetProp("_GasteigerCharge") if atom.HasProp("_GasteigerCharge") else "0"
 
-    except Exception as e:
-        print(f"Ошибка расчета зарядов: {e}")
-        return ""
+            try:
+                charge = float(raw_charge)
+            except (TypeError, ValueError):
+                charge = 0.0
+
+            if not math.isfinite(charge):
+                charge = 0.0
+
+            charge_props.append(
+                {
+                    "index": atom_index,
+                    "props": {
+                        "partialCharge": charge,
+                    },
+                }
+            )
+
+            rows.append(
+                {
+                    "atom_index": atom_index,
+                    "atom_symbol": atom.GetSymbol(),
+                    "partial_charge": round(charge, 4),
+                    "is_hydrogen": atom.GetAtomicNum() == 1,
+                }
+            )
+
+        mol_block = Chem.MolToMolBlock(mol, confId=cid)
+        charges_df = pd.DataFrame(rows)
+
+        return mol_block, charge_props, charges_df
+
+    except Exception:
+        logger.exception("physchem.error.gasteiger_charges")
+        return "", [], pd.DataFrame()
+
+
+def get_quantum_descriptors(smiles: str) -> pd.DataFrame | None:
+    try:
+        mol = Chem.MolFromSmiles(smiles)
+
+        if mol is None:
+            return None
+
+        values = [
+            ("MolWt", Descriptors.MolWt(mol)),
+            ("ExactMolWt", Descriptors.ExactMolWt(mol)),
+            ("LogP", Crippen.MolLogP(mol)),
+            ("MR", Crippen.MolMR(mol)),
+            ("TPSA", rdMolDescriptors.CalcTPSA(mol)),
+            ("HBA", rdMolDescriptors.CalcNumHBA(mol)),
+            ("HBD", rdMolDescriptors.CalcNumHBD(mol)),
+            ("RotatableBonds", rdMolDescriptors.CalcNumRotatableBonds(mol)),
+            ("RingCount", rdMolDescriptors.CalcNumRings(mol)),
+            ("AromaticRings", rdMolDescriptors.CalcNumAromaticRings(mol)),
+            ("HeavyAtoms", mol.GetNumHeavyAtoms()),
+            ("FractionCSP3", rdMolDescriptors.CalcFractionCSP3(mol)),
+            ("QED", QED.qed(mol)),
+        ]
+
+        return pd.DataFrame(
+            [
+                {
+                    "descriptor_key": descriptor_key,
+                    "value": round(float(value), 4),
+                }
+                for descriptor_key, value in values
+            ]
+        )
+
+    except Exception:
+        logger.exception("physchem.error.descriptors")
+        return None

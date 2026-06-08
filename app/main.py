@@ -242,62 +242,223 @@ with tab1:
                 use_container_width=True
             )
             
-  # ==============================================================================
-            # --- БЛОК ФИЗИКО-ХИМИЧЕСКОГО АНАЛИЗА ВРЕМЕННО ОТКЛЮЧЕН ДО СТАБИЛИЗАЦИИ RDKit ---
-            # ==============================================================================
-            # st.divider()
-            # st.subheader("🔮 Расширенный физико-химический анализ")
-            # 
-            # current_active_smiles = st.session_state.get("active_smiles", "")
-            # 
-            # if not current_active_smiles:
-            #     st.info("⚠️ Выберите или введите структуру молекулы.")
-            # else:
-            #     analys_tabs = st.tabs(["📊 Конформационный анализ", "⚡ Распределение зарядов", "📝 Топологические дескрикторы"])
-            #     
-            #     with analys_tabs[0]:
-            #         st.markdown("**Анализ энергетического профиля конформеров (силовое поле MMFF94)**")
-            #         if st.button("Рассчитать конформационный ансамбль", use_container_width=True):
-            #             with st.spinner("Поиск конформационных минимумов..."):
-            #                 energies, best_sdf = calculate_conformer_energies(current_active_smiles)
-            #                 st.session_state.conf_energies = energies
-            #                 st.session_state.best_sdf_block = best_sdf
-            #         
-            #         if 'conf_energies' in st.session_state and st.session_state.conf_energies:
-            #             chart_data = pd.DataFrame({
-            #                 "Конформер": [f"№{i+1}" for i in range(len(st.session_state.conf_energies))],
-            #                 "Энергия (ккал/моль)": st.session_state.conf_energies
-            #             }).set_index("Конформер")
-            #             st.bar_chart(chart_data)
-            #             
-            #             if st.session_state.get('best_sdf_block'):
-            #                 st.download_button(
-            #                     label="📥 Скачать пространственную структуру минимума (SDF)",
-            #                     data=st.session_state.best_sdf_block,
-            #                     file_name="global_minimum_structure.sdf",
-            #                     mime="chemical/x-mdl-sdfile",
-            #                     use_container_width=True
-            #                 )
-            # 
-            #     with analys_tabs[1]:
-            #         st.markdown("**Картирование парциальных зарядов по методу Гастейгера-Марсили**")
-            #         charges_block = compute_gasteiger_charges_block(current_active_smiles)
-            #         if charges_block:
-            #             c_view = py3Dmol.view(width=None, height=380)
-            #             c_view.addModel(charges_block, "mol")
-            #             c_view.setColorByProperty({'prop': 'partialCharge', 'gradient': 'rwb', 'min': -0.3, 'max': 0.3})
-            #             c_view.setStyle({'stick': {'radius': 0.2}})
-            #             c_view.zoomTo()
-            #             c_view.setBackgroundColor('#ffffff')
-            #             c_html = c_view._make_html().replace('width: 700px', 'width: 100%')
-            #             components.html(c_html, height=400)
-            # 
-            #     with analys_tabs[2]:
-            #         st.markdown("**Дескрипторы реакционной способности и полярной поверхности**")
-            #         kx_descriptors = get_quantum_descriptors(current_active_smiles)
-            #         if kx_descriptors is not None:
-            #             st.dataframe(kx_descriptors, use_container_width=True, hide_index=True)
-            # ==============================================================================
+            # --- БЛОК ФИЗИКО-ХИМИЧЕСКОГО АНАЛИЗА ---
+            st.divider()
+            st.subheader(tr("physchem_title"))
+
+            current_active_smiles = (
+                st.session_state.get("active_smiles")
+                or smiles
+                or ""
+            ).strip()
+
+            if not current_active_smiles:
+                st.info(tr("physchem_info_choose_or_enter_structure"))
+            else:
+                if st.session_state.get("physchem_active_smiles") != current_active_smiles:
+                    st.session_state["physchem_active_smiles"] = current_active_smiles
+                    st.session_state.pop("physchem_conf_result", None)
+                    st.session_state.pop("physchem_charge_result", None)
+
+                physchem_tabs = st.tabs(
+                    [
+                        tr("physchem_tab_conformers"),
+                        tr("physchem_tab_charges"),
+                        tr("physchem_tab_descriptors"),
+                    ]
+                )
+
+                with physchem_tabs[0]:
+                    st.markdown(tr("physchem_conformers_description"))
+
+                    num_conformers = st.slider(
+                        tr("physchem_conformers_num"),
+                        min_value=5,
+                        max_value=50,
+                        value=15,
+                        step=5,
+                        key="physchem_num_conformers",
+                    )
+
+                    if st.button(
+                        tr("physchem_conformers_calculate"),
+                        key="physchem_btn_calculate_conformers",
+                        use_container_width=True,
+                    ):
+                        with st.spinner(tr("physchem_conformers_spinner")):
+                            energies, best_sdf = calculate_conformer_energies(
+                                current_active_smiles,
+                                num_conformers=num_conformers,
+                            )
+
+                        st.session_state.physchem_conf_result = {
+                            "smiles": current_active_smiles,
+                            "energies": energies,
+                            "best_sdf": best_sdf,
+                            "ok": bool(energies),
+                        }
+
+                    conf_result = st.session_state.get("physchem_conf_result", {})
+
+                    if (
+                        conf_result.get("smiles") == current_active_smiles
+                        and conf_result.get("ok")
+                    ):
+                        energies = conf_result["energies"]
+                        min_energy = min(energies)
+
+                        conformer_col = tr("physchem_table_conformer")
+                        energy_col = tr("physchem_table_energy_kcal_mol")
+                        delta_energy_col = tr("physchem_table_delta_energy_kcal_mol")
+
+                        chart_data = pd.DataFrame(
+                            {
+                                conformer_col: [
+                                    tr("physchem_table_conformer_number", number=i + 1)
+                                    for i in range(len(energies))
+                                ],
+                                energy_col: [round(e, 4) for e in energies],
+                                delta_energy_col: [
+                                    round(e - min_energy, 4) for e in energies
+                                ],
+                            }
+                        ).set_index(conformer_col)
+
+                        st.bar_chart(chart_data[[delta_energy_col]])
+
+                        with st.expander(tr("physchem_conformers_show_energy_table")):
+                            st.dataframe(chart_data, use_container_width=True)
+
+                        best_sdf = conf_result.get("best_sdf", "")
+
+                        if best_sdf:
+                            st.download_button(
+                                label=tr("physchem_conformers_download_sdf"),
+                                data=best_sdf,
+                                file_name=tr("physchem_file_global_minimum_sdf"),
+                                mime="chemical/x-mdl-sdfile",
+                                use_container_width=True,
+                                key="physchem_download_best_sdf",
+                            )
+
+                    elif conf_result.get("smiles") == current_active_smiles:
+                        st.warning(tr("physchem_conformers_failed"))
+                    else:
+                        st.caption(tr("physchem_conformers_caption"))
+
+                with physchem_tabs[1]:
+                    st.markdown(tr("physchem_charges_description"))
+
+                    if st.button(
+                        tr("physchem_charges_calculate"),
+                        key="physchem_btn_calculate_gasteiger",
+                        use_container_width=True,
+                    ):
+                        with st.spinner(tr("physchem_charges_spinner")):
+                            charge_mol_block, charge_props, charges_df = compute_gasteiger_charges_block(
+                                current_active_smiles
+                            )
+
+                        st.session_state.physchem_charge_result = {
+                            "smiles": current_active_smiles,
+                            "mol_block": charge_mol_block,
+                            "charge_props": charge_props,
+                            "charges_df": charges_df,
+                            "ok": bool(charge_mol_block and charge_props),
+                        }
+
+                    charge_result = st.session_state.get("physchem_charge_result", {})
+
+                    if (
+                        charge_result.get("smiles") == current_active_smiles
+                        and charge_result.get("ok")
+                    ):
+                        charge_view = py3Dmol.view(width=None, height=380)
+                        charge_view.addModel(charge_result["mol_block"], "mol")
+
+                        charge_view.mapAtomProperties(charge_result["charge_props"])
+
+                        charge_view.setStyle(
+                            {},
+                            {
+                                "stick": {
+                                    "radius": 0.22,
+                                    "colorscheme": {
+                                        "gradient": "RWB",
+                                        "prop": "partialCharge",
+                                        "min": -0.3,
+                                        "max": 0.3,
+                                    },
+                                }
+                            },
+                        )
+
+                        charge_view.zoomTo()
+                        charge_view.setBackgroundColor("#ffffff")
+
+                        charge_html = charge_view._make_html().replace(
+                            "width: 700px",
+                            "width: 100%",
+                        )
+                        components.html(charge_html, height=410, scrolling=False)
+
+                        charges_df = charge_result.get("charges_df", pd.DataFrame())
+
+                        if charges_df is not None and not charges_df.empty:
+                            heavy_atoms_df = charges_df.loc[
+                                ~charges_df["is_hydrogen"],
+                                ["atom_index", "atom_symbol", "partial_charge"],
+                            ].rename(
+                                columns={
+                                    "atom_index": tr("physchem_table_atom_index"),
+                                    "atom_symbol": tr("physchem_table_atom"),
+                                    "partial_charge": tr("physchem_table_charge"),
+                                }
+                            )
+
+                            st.markdown(tr("physchem_charges_heavy_atoms_title"))
+                            st.dataframe(
+                                heavy_atoms_df,
+                                use_container_width=True,
+                                hide_index=True,
+                            )
+
+                    elif charge_result.get("smiles") == current_active_smiles:
+                        st.warning(tr("physchem_charges_failed"))
+                    else:
+                        st.caption(tr("physchem_charges_caption"))
+
+                with physchem_tabs[2]:
+                    st.markdown(tr("physchem_descriptors_description"))
+
+                    kx_descriptors = get_quantum_descriptors(current_active_smiles)
+
+                    if kx_descriptors is not None and not kx_descriptors.empty:
+                        descriptor_col = tr("physchem_table_descriptor")
+                        description_col = tr("physchem_table_description")
+                        value_col = tr("physchem_table_value")
+
+                        descriptors_view = pd.DataFrame(
+                            {
+                                descriptor_col: [
+                                    tr(f"physchem_descriptor_{descriptor_key}_name")
+                                    for descriptor_key in kx_descriptors["descriptor_key"]
+                                ],
+                                description_col: [
+                                    tr(f"physchem_descriptor_{descriptor_key}_description")
+                                    for descriptor_key in kx_descriptors["descriptor_key"]
+                                ],
+                                value_col: kx_descriptors["value"],
+                            }
+                        )
+
+                        st.dataframe(
+                            descriptors_view,
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+                    else:
+                        st.warning(tr("physchem_descriptors_failed"))
                         
         else:
             st.info(t.get("info_select_mol", "Выберите молекулу"))
