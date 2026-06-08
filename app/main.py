@@ -246,9 +246,11 @@ with tab1:
                 use_container_width=True
             )
             
+            # ==============================================================================
             # --- БЛОК ФИЗИКО-ХИМИЧЕСКОГО АНАЛИЗА ---
+            # ==============================================================================
             st.divider()
-            st.subheader(tr("physchem_title"))
+            st.subheader(tr("physchem.title"))
 
             current_active_smiles = (
                 st.session_state.get("active_smiles")
@@ -257,26 +259,26 @@ with tab1:
             ).strip()
 
             if not current_active_smiles:
-                st.info(tr("physchem_info_choose_or_enter_structure"))
+                st.info(tr("physchem.info.choose_or_enter_structure"))
             else:
-                if st.session_state.get("physchem_active_smiles") != current_active_smiles:
-                    st.session_state["physchem_active_smiles"] = current_active_smiles
-                    st.session_state.pop("physchem_conf_result", None)
-                    st.session_state.pop("physchem_charge_result", None)
+                if st.session_state.get("physchem.active_smiles") != current_active_smiles:
+                    st.session_state["physchem.active_smiles"] = current_active_smiles
+                    st.session_state.pop("physchem.conf_result", None)
+                    st.session_state.pop("physchem.charge_result", None)
 
                 physchem_tabs = st.tabs(
                     [
-                        tr("physchem_tab_conformers"),
-                        tr("physchem_tab_charges"),
-                        tr("physchem_tab_descriptors"),
+                        tr("physchem.tab.conformers"),
+                        tr("physchem.tab.charges"),
+                        tr("physchem.tab.descriptors"),
                     ]
                 )
 
                 with physchem_tabs[0]:
-                    st.markdown(tr("physchem_conformers_description"))
+                    st.markdown(tr("physchem.conformers.description"))
 
                     num_conformers = st.slider(
-                        tr("physchem_conformers_num"),
+                        tr("physchem.conformers.num_conformers"),
                         min_value=5,
                         max_value=50,
                         value=15,
@@ -285,24 +287,24 @@ with tab1:
                     )
 
                     if st.button(
-                        tr("physchem_conformers_calculate"),
+                        tr("physchem.conformers.calculate"),
                         key="physchem_btn_calculate_conformers",
                         use_container_width=True,
                     ):
-                        with st.spinner(tr("physchem_conformers_spinner")):
+                        with st.spinner(tr("physchem.conformers.spinner")):
                             energies, best_sdf = calculate_conformer_energies(
                                 current_active_smiles,
                                 num_conformers=num_conformers,
                             )
 
-                        st.session_state.physchem_conf_result = {
+                        st.session_state["physchem.conf_result"] = {
                             "smiles": current_active_smiles,
                             "energies": energies,
                             "best_sdf": best_sdf,
                             "ok": bool(energies),
                         }
 
-                    conf_result = st.session_state.get("physchem_conf_result", {})
+                    conf_result = st.session_state.get("physchem.conf_result", {})
 
                     if (
                         conf_result.get("smiles") == current_active_smiles
@@ -311,14 +313,14 @@ with tab1:
                         energies = conf_result["energies"]
                         min_energy = min(energies)
 
-                        conformer_col = tr("physchem_table_conformer")
-                        energy_col = tr("physchem_table_energy_kcal_mol")
-                        delta_energy_col = tr("physchem_table_delta_energy_kcal_mol")
+                        conformer_col = tr("physchem.table.conformer")
+                        energy_col = tr("physchem.table.energy_kcal_mol")
+                        delta_energy_col = tr("physchem.table.delta_energy_kcal_mol")
 
                         chart_data = pd.DataFrame(
                             {
                                 conformer_col: [
-                                    tr("physchem_table_conformer_number", number=i + 1)
+                                    tr("physchem.table.conformer_number", number=i + 1)
                                     for i in range(len(energies))
                                 ],
                                 energy_col: [round(e, 4) for e in energies],
@@ -330,40 +332,40 @@ with tab1:
 
                         st.bar_chart(chart_data[[delta_energy_col]])
 
-                        with st.expander(tr("physchem_conformers_show_energy_table")):
+                        with st.expander(tr("physchem.conformers.show_energy_table")):
                             st.dataframe(chart_data, use_container_width=True)
 
                         best_sdf = conf_result.get("best_sdf", "")
 
                         if best_sdf:
                             st.download_button(
-                                label=tr("physchem_conformers_download_sdf"),
+                                label=tr("physchem.conformers.download_sdf"),
                                 data=best_sdf,
-                                file_name=tr("physchem_file_global_minimum_sdf"),
+                                file_name=tr("physchem.file.global_minimum_sdf"),
                                 mime="chemical/x-mdl-sdfile",
                                 use_container_width=True,
                                 key="physchem_download_best_sdf",
                             )
 
                     elif conf_result.get("smiles") == current_active_smiles:
-                        st.warning(tr("physchem_conformers_failed"))
+                        st.warning(tr("physchem.conformers.failed"))
                     else:
-                        st.caption(tr("physchem_conformers_caption"))
+                        st.caption(tr("physchem.conformers.caption"))
 
                 with physchem_tabs[1]:
-                    st.markdown(tr("physchem_charges_description"))
+                    st.markdown(tr("physchem.charges.description"))
 
                     if st.button(
-                        tr("physchem_charges_calculate"),
+                        tr("physchem.charges.calculate"),
                         key="physchem_btn_calculate_gasteiger",
                         use_container_width=True,
                     ):
-                        with st.spinner(tr("physchem_charges_spinner")):
+                        with st.spinner(tr("physchem.charges.spinner")):
                             charge_mol_block, charge_props, charges_df = compute_gasteiger_charges_block(
                                 current_active_smiles
                             )
 
-                        st.session_state.physchem_charge_result = {
+                        st.session_state["physchem.charge_result"] = {
                             "smiles": current_active_smiles,
                             "mol_block": charge_mol_block,
                             "charge_props": charge_props,
@@ -371,7 +373,7 @@ with tab1:
                             "ok": bool(charge_mol_block and charge_props),
                         }
 
-                    charge_result = st.session_state.get("physchem_charge_result", {})
+                    charge_result = st.session_state.get("physchem.charge_result", {})
 
                     if (
                         charge_result.get("smiles") == current_active_smiles
@@ -414,13 +416,13 @@ with tab1:
                                 ["atom_index", "atom_symbol", "partial_charge"],
                             ].rename(
                                 columns={
-                                    "atom_index": tr("physchem_table_atom_index"),
-                                    "atom_symbol": tr("physchem_table_atom"),
-                                    "partial_charge": tr("physchem_table_charge"),
+                                    "atom_index": tr("physchem.table.atom_index"),
+                                    "atom_symbol": tr("physchem.table.atom"),
+                                    "partial_charge": tr("physchem.table.charge"),
                                 }
                             )
 
-                            st.markdown(tr("physchem_charges_heavy_atoms_title"))
+                            st.markdown(tr("physchem.charges.heavy_atoms_title"))
                             st.dataframe(
                                 heavy_atoms_df,
                                 use_container_width=True,
@@ -428,28 +430,28 @@ with tab1:
                             )
 
                     elif charge_result.get("smiles") == current_active_smiles:
-                        st.warning(tr("physchem_charges_failed"))
+                        st.warning(tr("physchem.charges.failed"))
                     else:
-                        st.caption(tr("physchem_charges_caption"))
+                        st.caption(tr("physchem.charges.caption"))
 
                 with physchem_tabs[2]:
-                    st.markdown(tr("physchem_descriptors_description"))
+                    st.markdown(tr("physchem.descriptors.description"))
 
                     kx_descriptors = get_quantum_descriptors(current_active_smiles)
 
                     if kx_descriptors is not None and not kx_descriptors.empty:
-                        descriptor_col = tr("physchem_table_descriptor")
-                        description_col = tr("physchem_table_description")
-                        value_col = tr("physchem_table_value")
+                        descriptor_col = tr("physchem.table.descriptor")
+                        description_col = tr("physchem.table.description")
+                        value_col = tr("physchem.table.value")
 
                         descriptors_view = pd.DataFrame(
                             {
                                 descriptor_col: [
-                                    tr(f"physchem_descriptor_{descriptor_key}_name")
+                                    tr(f"physchem.descriptor.{descriptor_key}.name")
                                     for descriptor_key in kx_descriptors["descriptor_key"]
                                 ],
                                 description_col: [
-                                    tr(f"physchem_descriptor_{descriptor_key}_description")
+                                    tr(f"physchem.descriptor.{descriptor_key}.description")
                                     for descriptor_key in kx_descriptors["descriptor_key"]
                                 ],
                                 value_col: kx_descriptors["value"],
@@ -462,7 +464,7 @@ with tab1:
                             hide_index=True,
                         )
                     else:
-                        st.warning(tr("physchem_descriptors_failed"))
+                        st.warning(tr("physchem.descriptors.failed"))
                         
         else:
             st.info(t.get("info_select_mol", "Выберите молекулу"))
