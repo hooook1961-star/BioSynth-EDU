@@ -47,6 +47,10 @@ selected_lang = st.sidebar.selectbox(
 st.session_state.lang = selected_lang
 t = LANGUAGES[st.session_state.lang]
 
+def tr(key: str, **kwargs) -> str:
+    text = t.get(key, key)
+    return text.format(**kwargs)
+
 lang_code_map = {"Русский": "ru", "Қазақша": "kz", "English": "en"}
 L_CODE = lang_code_map[st.session_state.lang]
 
