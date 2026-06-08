@@ -9,7 +9,7 @@ import pickle
 import os
 import io
 import logging
-import streamlit as st3
+import streamlit as st
 from rdkit import Chem
 from rdkit.Chem import AllChem, Descriptors, DataStructs, rdFingerprintGenerator, Crippen,  QED, rdMolDescriptors
 from meeko import MoleculePreparation
