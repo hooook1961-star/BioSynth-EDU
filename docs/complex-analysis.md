@@ -32,29 +32,31 @@ PLIP добавляет водороды; геометрия тяжёлых ат
 
 ## Зависимости и запуск
 
-Существующий requirements.txt не изменён. До установки requirements-analysis.txt
-в том же Python-окружении необходимо установить рабочие Python bindings Open Babel.
-PLIP 2.4.0 выбран как фиксированная версия с известной схемой XML. Его установка
-проверяет наличие Open Babel; простой системный исполняемый файл obabel недостаточен.
-Порядок установки и платформенные особенности:
-https://github.com/pharmai/plip/tree/v2.4.0
+Основной requirements.txt включает requirements-analysis.txt, поэтому обычная
+установка приложения автоматически устанавливает зависимости анализа.
+Зафиксированы PLIP 3.0.1 и официальный Open Babel 3.2.1 с Python bindings.
+Для этих двух пакетов используются только готовые wheels, без сборки из исходников.
+Требуется Python >= 3.10; для развёртывания рекомендуется Python 3.11.
+Не нужно дополнительно устанавливать openbabel-wheel: он предоставляет тот же
+Python-модуль, что и официальный пакет openbabel.
+Описание пакетов: https://pypi.org/project/plip/3.0.1/
+и https://pypi.org/project/openbabel/3.2.1/
 
 После настройки окружения:
 
 ```text
-python -c "from openbabel import pybel; print('Open Babel OK')"
 python -m pip install -r requirements.txt
-python -m pip install -r requirements-analysis.txt
-python -c "from plip.structure.preparation import PDBComplex; print('PLIP OK')"
+python scripts/check_analysis_runtime.py
 python -m unittest discover -s tests -p test_complex_analysis.py -v
 streamlit run app/main.py
 ```
 
-На Streamlit Cloud сначала нужно проверить установку Open Babel в окружении
-хостинга. Один файл requirements-analysis.txt сам по себе не включает функцию
-на хостинге: зависимости должны быть установлены в среде приложения. До этого
-новая вкладка выдаёт понятное сообщение о недоступном анализаторе, два прежних
-режима продолжают работать. Проверка развёртывания ещё не выполнена.
+На Streamlit Cloud отправьте оба файла requirements в ветку, из которой работает
+приложение, и дождитесь пересборки среды. Если она не началась, выполните Reboot app
+в панели управления приложением. Убедитесь, что сервер использует Python >= 3.10.
+Повторная загрузка PDB сама по себе не устанавливает библиотеки.
+Успешность установки проверяется по журналу развёртывания; она ещё не проверена
+из этого сеанса на удалённом сервере.
 
 ## Ограничения первой версии
 

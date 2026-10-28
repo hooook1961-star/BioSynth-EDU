@@ -1,4 +1,6 @@
-# Install into the application environment after requirements.txt.
-# Open Babel must be available BEFORE building PLIP (see docs/complex-analysis.md).
-plip==2.4.0
+# Included automatically by requirements.txt. Requires Python >= 3.10.
+# Official wheels avoid PLIP 2.4's custom Open Babel source build.
+--only-binary=plip,openbabel
+openbabel==3.2.1
+plip==3.0.1
 Pillow>=10.1
