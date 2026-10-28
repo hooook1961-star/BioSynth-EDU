@@ -5,7 +5,7 @@ import streamlit as st
 
 from core.complex_analysis import (ComplexAnalysisError, KINDS, analyze_complex,
                                    contacts_csv, inspect_pdb, table_rows)
-from core.interaction_diagram import render_diagram
+from core.interaction_diagram import render_available_formats
 
 
 def render_complex_analysis():
@@ -69,19 +69,26 @@ def render_complex_analysis():
     st.caption('Фильтр меняет только рисунок. CSV содержит полную таблицу взаимодействий.')
     try:
         # Session-only cache: no cross-user storage of uploaded structures.
-        diagram_key = (input_key, tuple(chosen))
+        diagram_key = ('svg-independent-v1', input_key, tuple(chosen))
         cached = st.session_state.get('complex_diagram')
         if not cached or cached[0] != diagram_key:
-            cached = (diagram_key, render_diagram(result, chosen))
+            cached = (diagram_key, render_available_formats(result, chosen))
             st.session_state['complex_diagram'] = cached
-        svg, png = cached[1]
-        st.image(png, caption='2D-диаграмма взаимодействий выбранного лиганда', use_container_width=True)
+        svg, png, png_error = cached[1]
+        st.image(svg.decode('utf-8'), caption='2D-диаграмма взаимодействий выбранного лиганда', use_container_width=True)
         left, right = st.columns(2)
-        left.download_button('Скачать PNG', png, 'interactions.png', mime='image/png', key='complex_png_download')
+        if png is not None:
+            left.download_button('Скачать PNG', png, 'interactions.png', mime='image/png', key='complex_png_download')
+        else:
+            st.info('Диаграмма доступна в SVG. Создать PNG на этом сервере не удалось.')
+            with st.expander('Техническая причина ошибки PNG'):
+                st.code(png_error, language='text')
         right.download_button('Скачать SVG', svg, 'interactions.svg', mime='image/svg+xml', key='complex_svg_download')
     except ComplexAnalysisError as exc:
         st.warning(str(exc))
-    except Exception:
+    except Exception as exc:
         logging.getLogger(__name__).exception('Interaction diagram failed')
-        st.warning('Таблица готова, но построить химически корректную диаграмму не удалось. Проверьте структуру лиганда и зависимости визуализации.')
+        st.warning('Таблица готова, но при отрисовке диаграммы произошла ошибка. Причина указана ниже; это не обязательно ошибка в структуре лиганда.')
+        with st.expander('Техническая причина ошибки диаграммы', expanded=True):
+            st.code(f'{type(exc).__name__}: {str(exc)[:1500]}', language='text')
     st.caption('Взаимодействия характеризуют геометрию выбранной позы и сами по себе не доказывают силу связывания.')

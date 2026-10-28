@@ -178,6 +178,50 @@ class RunnerTests(unittest.TestCase):
 
 
 class DiagramTests(unittest.TestCase):
+    def test_png_failure_preserves_svg_and_reports_cause(self):
+        from core import interaction_diagram as diagram
+        with patch.object(diagram, 'render_diagram', side_effect=[(b'<svg/>', None), RuntimeError('Cairo unavailable')]):
+            with self.assertLogs(diagram.__name__, level='ERROR'):
+                svg, png, error = diagram.render_available_formats({})
+        self.assertEqual(svg, b'<svg/>')
+        self.assertIsNone(png)
+        self.assertEqual(error, 'RuntimeError: Cairo unavailable')
+
+    def test_svg_failure_is_not_hidden_by_png_fallback(self):
+        from core import interaction_diagram as diagram
+        with patch.object(diagram, 'render_diagram', side_effect=ValueError('Invalid atom index')) as render:
+            with self.assertRaisesRegex(ValueError, 'Invalid atom index'):
+                diagram.render_available_formats({})
+            self.assertEqual(render.call_count, 1)
+
+    def test_svg_renderer_does_not_need_cairo_or_pillow(self):
+        from core import interaction_diagram as diagram
+        # Simulate an RDKit build exposing SVG only; Pillow is unavailable.
+        class SVGDrawer:
+            def __init__(self, *args):
+                self.options = types.SimpleNamespace()
+            def drawOptions(self):
+                return self.options
+            def DrawMolecule(self, mol):
+                pass
+            def FinishDrawing(self):
+                pass
+            def GetDrawingText(self):
+                return '<svg xmlns="http://www.w3.org/2000/svg"></svg>'
+        chem = types.ModuleType('rdkit.Chem')
+        chem.Mol = lambda mol: mol
+        chem.rdDepictor = types.SimpleNamespace(Compute2DCoords=lambda mol: None)
+        rdkit = types.ModuleType('rdkit')
+        rdkit.Chem = chem
+        draw = types.ModuleType('rdkit.Chem.Draw')
+        draw.rdMolDraw2D = types.SimpleNamespace(MolDraw2DSVG=SVGDrawer)
+        modules = {'rdkit': rdkit, 'rdkit.Chem': chem, 'rdkit.Chem.Draw': draw, 'PIL': None}
+        result = dict(contacts=[], mapping={}, atoms={}, ligand='LIG:A:2', plip_version='3.0.1')
+        with patch.dict(sys.modules, modules), patch.object(diagram, 'validated_ligand', return_value=object()):
+            svg, png = diagram.render_diagram(result, output_png=False)
+        self.assertIn('Взаимодействия'.encode(), svg)
+        self.assertIsNone(png)
+
     def test_unique_residue_layout(self):
         contact = dict(residue='ALA', chain='A', number=1)
         width, height, positions = diagram_layout([contact, contact, dict(contact, chain='B')])
