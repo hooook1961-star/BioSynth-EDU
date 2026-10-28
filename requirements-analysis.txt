@@ -1,0 +1,4 @@
+# Install into the application environment after requirements.txt.
+# Open Babel must be available BEFORE building PLIP (see docs/complex-analysis.md).
+plip==2.4.0
+Pillow>=10.1

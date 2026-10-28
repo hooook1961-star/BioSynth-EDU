@@ -1,3 +1,4 @@
+from ui.complex_analysis import render_complex_analysis
 from ui.pdb_search import render_pdb_search
 import streamlit as st
 import pandas as pd
@@ -636,7 +637,9 @@ with tab2:
 with tab3:
     st.header(t["docking_main_title"])
 
-    similarity_tab, pdb_tab = st.tabs(["Поиск мишеней по сходству с лигандом", "Поиск белка по PDB ID"])
+    similarity_tab, pdb_tab, analysis_tab = st.tabs(["Поиск мишеней по сходству с лигандом", "Поиск белка по PDB ID", "Анализ комплекса"])
+    with analysis_tab:
+        render_complex_analysis()
     with pdb_tab:
         render_pdb_search()
     with similarity_tab:
