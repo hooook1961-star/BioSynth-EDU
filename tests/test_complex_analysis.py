@@ -106,6 +106,46 @@ class ReportTests(unittest.TestCase):
 
 
 class RunnerTests(unittest.TestCase):
+    def test_original_serials_with_gaps_and_ter_are_restored(self):
+        data = ('\n'.join([atom(10, 'CA', 'ALA', 1, 'C', 'ATOM'), 'TER',
+                          atom(500, 'C1', 'LIG', 2, 'C'),
+                          atom(700, 'C2', 'LIG', 2, 'C'),
+                          atom(900, 'O1', 'LIG', 2, 'O')]) + '\nEND\n').encode()
+        report = xml().replace('1:2,2:3,3:4', '1:3,2:4,3:5').replace('<acceptoridx>4', '<acceptoridx>5')
+        def run(command, **kwargs):
+            self.assertEqual(Path(command[command.index('-f') + 1]).read_bytes(), data)
+            Path(kwargs['cwd'], 'report.xml').write_text(report, encoding='utf-8')
+            return types.SimpleNamespace(returncode=0, stderr='')
+        with patch.object(ca.subprocess, 'run', side_effect=run):
+            result = ca.analyze_complex(data, 'LIG:A:2')
+        self.assertEqual(result['mapping'], {500: 0, 700: 1, 900: 2})
+        self.assertEqual(result['contacts'][0]['ligand_atoms'], [900])
+        self.assertEqual(result['atoms'][900]['coordinates'], (1080., 0., 0.))
+        self.assertIn('900', ca.contacts_csv(result).decode('utf-8-sig'))
+
+    def test_overlapping_report_and_input_ids_are_not_guessed(self):
+        # All original ligand IDs exist in the report, but their order differs.
+        data = ('\n'.join([atom(1, 'CA', 'ALA', 1, 'C', 'ATOM'),
+                          atom(4, 'C1', 'LIG', 2, 'C'), atom(2, 'C2', 'LIG', 2, 'C'),
+                          atom(3, 'O1', 'LIG', 2, 'O')]) + '\n').encode()
+        result = ca.restore_pdb_atom_ids(ca.parse_plip_report(xml(), 'LIG:A:2'), ca.inspect_pdb(data), 'LIG:A:2')
+        self.assertEqual(result['contacts'][0]['ligand_atoms'], [3])
+        self.assertEqual(result['mapping'], {4: 0, 2: 1, 3: 2})
+
+    def test_unknown_and_protein_report_ids_are_rejected(self):
+        inspected = ca.inspect_pdb(pdb())
+        for index in [1, 999]:
+            result = ca.parse_plip_report(xml(), 'LIG:A:2')
+            result['contacts'][0]['ligand_atoms'] = [index]
+            with self.subTest(index=index), self.assertRaises(ca.ComplexAnalysisError):
+                ca.restore_pdb_atom_ids(result, inspected, 'LIG:A:2')
+
+    def test_repeated_ter_skips_one_report_number(self):
+        data = pdb().replace(b'HETATM    2', b'TER\nTER\nHETATM    2')
+        report = xml().replace('1:2,2:3,3:4', '1:3,2:4,3:5').replace('<acceptoridx>4', '<acceptoridx>5')
+        result = ca.restore_pdb_atom_ids(ca.parse_plip_report(report, 'LIG:A:2'), ca.inspect_pdb(data), 'LIG:A:2')
+        self.assertEqual(result['contacts'][0]['ligand_atoms'], [4])
+
     def test_isolated_run_and_cleanup(self):
         folders = []
         def run(command, **kwargs):

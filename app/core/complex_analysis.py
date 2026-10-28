@@ -125,13 +125,49 @@ def parse_plip_report(xml_text, selected_key):
         raise ComplexAnalysisError('Не удалось прочитать отчёт PLIP. Координаты и взаимодействия не подставлялись.') from exc
 
 
+def restore_pdb_atom_ids(result, inspected, selected_key):
+    """Translate PLIP 3's report IDs to input serials, without guessing offsets.
+
+    PDBParser.proteinmap counts ATOM/HETATM rows from 1, with one skipped
+    number after TER, even with NOFIX. Its report IDs are not necessarily the
+    serial numbers in columns 7-11. Apply the same explicit map to contacts
+    AND canonical SMILES mappings (including when IDs happen to overlap).
+    See PLIP v3.0.1 plip/structure/preparation.py:PDBParser.parse_pdb.
+    """
+    report_to_input = {}
+    report_id, after_ter = 0, False
+    for line in inspected['text'].splitlines():
+        record = line[:6].strip()
+        if record == 'TER':
+            after_ter = True
+        elif record in {'ATOM', 'HETATM'}:
+            report_id += 2 if after_ter else 1
+            report_to_input[report_id] = int(line[6:11])
+            after_ter = False
+    ligand_atoms = {serial: atom for serial, atom in inspected['atoms'].items()
+                    if atom['residue'] == selected_key}
+
+    def original_id(index):
+        serial = report_to_input.get(index)
+        if serial not in ligand_atoms:
+            raise ComplexAnalysisError('Не удалось однозначно сопоставить атомы отчёта PLIP с выбранным лигандом. Анализ остановлен.')
+        return serial
+
+    # Validate everything before returning a translated result. Never accept an
+    # ID merely because it coincides with an input ligand serial number.
+    contacts = [dict(c, ligand_atoms=[original_id(i) for i in c['ligand_atoms']])
+                for c in result['contacts']]
+    mapping = {original_id(i): index for i, index in result['mapping'].items()}
+    return dict(result, contacts=contacts, mapping=mapping, atoms=ligand_atoms)
+
+
 def analyze_complex(data, selected_key):
     inspected = inspect_pdb(data)
     if selected_key not in {c['key'] for c in inspected['candidates']}:
         raise ComplexAnalysisError('Выбранный лиганд отсутствует в загруженном комплексе.')
     with tempfile.TemporaryDirectory(prefix='biosynth-complex-') as folder:
         source = Path(folder) / 'complex.pdb'
-        source.write_text(inspected['text'], encoding='utf-8')
+        source.write_text(inspected['text'], encoding='utf-8', newline='')
         command = [sys.executable, '-m', 'plip.plipcmd', '-f', str(source),
                    '-o', folder, '-x', '--nofix', '--maxthreads', '1']
         try:
@@ -149,10 +185,7 @@ def analyze_complex(data, selected_key):
         if len(reports) != 1:
             raise ComplexAnalysisError('PLIP завершился без отчёта о взаимодействиях.')
         result = parse_plip_report(reports[0].read_text(encoding='utf-8'), selected_key)
-    result['atoms'] = {serial: atom for serial, atom in inspected['atoms'].items() if atom['residue'] == selected_key}
-    if any(serial not in result['atoms'] for c in result['contacts'] for serial in c['ligand_atoms']):
-        raise ComplexAnalysisError('Номера атомов отчёта не соответствуют выбранному лиганду. Анализ остановлен.')
-    return result
+    return restore_pdb_atom_ids(result, inspected, selected_key)
 
 
 def table_rows(result):
